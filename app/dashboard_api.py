@@ -82,7 +82,14 @@ class DashboardSettings:
         """DASHBOARD_<NAME> for each field, for example DASHBOARD_RECENT_READS=5. The euro rate is
         the exception: it is `EUR_PER_USD` (app/config.py), so costs match everywhere."""
         env = os.environ if environ is None else environ
-        kw: dict[str, Any] = {"eur_per_usd": ModelSettings.from_env(env).eur_per_usd}
+        try:
+            rate = ModelSettings.from_env(env).eur_per_usd
+        except ValueError as error:
+            # A mistyped rate must not stop the container from starting: the page says which rate
+            # it shows, and the log says why it is the default.
+            rate = ModelSettings().eur_per_usd
+            log.warning("EUR_PER_USD is not usable (%s); showing euro costs at the default %.2f", error, rate)
+        kw: dict[str, Any] = {"eur_per_usd": rate}
         for f in fields(cls):
             if f.name == "eur_per_usd":
                 continue
