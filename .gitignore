@@ -1,0 +1,16 @@
+# Virtual environment and Python caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Secrets
+.env
+
+# Local data (the default DATA_DIR) and live recordings, at the repo root only.
+# tests/fixtures/ stays tracked.
+/data/
+/recordings/

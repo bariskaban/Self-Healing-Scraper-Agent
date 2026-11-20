@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.env
+**/__pycache__
+.pytest_cache
+*.egg-info
+data
+recordings
+tests
+research
+docs
+hackathon-pdfs
