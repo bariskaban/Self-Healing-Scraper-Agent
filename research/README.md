@@ -22,6 +22,7 @@ The end check of every answered question is in [audit.md](audit.md).
 | 12 | Large portals | Goktug | answered; one rule waits on the mentors | Bulk source first; list, records, then documents by deadline; `serving` at the records gate when documents take over 10 minutes | [q12-large-portals.md](q12-large-portals.md) |
 | 13 | Read schedule | Goktug | answered; replaces the proposal | Every 2 minutes, or 10 times the list's read time, at most 30 minutes | [q13-read-schedule.md](q13-read-schedule.md) |
 | 14 | Retrying failed portals | Goktug | answered; replaces the proposal | Check on every refresh, and at 5 min, 15 min, 1 h, then every 6 h; repair only on a page not seen before | [q14-failed-retry.md](q14-failed-retry.md) |
+| 15 | Storage: SQL or a graph database | David | answered | SQLite from the standard library; the recipe graph stays a JSON document; no graph database | [q15-storage.md](q15-storage.md) |
 
 The verdict of the end check for each answer is in [audit.md](audit.md).
 
@@ -64,6 +65,7 @@ A mentor answered most of them on 20 Nov. The answers, and what they change, are
 - `tools/q12_request_math.py` prints every number in Q12 and Q13. Change a parameter, run it, paste the tables.
 - `tools/probe_portals.py` records what a plain client sees on a list of public portals. Run it from a laptop: the research machine cannot reach several of them. It writes `sources/portal-probe.json`.
 - `tools/patterno_coverage.py` reads Patterno's public coverage pages, one request per second, and writes the counts per country and platform to `sources/patterno-coverage.json`.
+- `tools/q15_sqlite_bench.py` loads `app/schema.sql` with 50,000 tenders and 5,000 recipes and times every query Q15 relies on; `tools/q15_concurrency_bench.py` and `tools/q15_threads_bench.py` measure reads beside a writer and across threads. Results in `sources/q15-sqlite-bench.json`. Standard library only, no network.
 
 ## Shared context
 

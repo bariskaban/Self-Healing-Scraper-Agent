@@ -133,7 +133,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 ### [ ] G. Work outside any one question
 **Owner:** _____
 - [ ] G1. API (`app/main.py`): every endpoint with the exact answers from the appendix, `/files/{file_id}`.
-- [ ] G2. `app/db.py` on top of `app/schema.sql`.
+- [ ] G2. `app/db.py` on top of `app/schema.sql`: one writer connection for the worker, API reads through one database thread, `async def` handlers (research in `research/q15-storage.md`).
 - [ ] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
 - [ ] G5. Video, at most 3 minutes, including the dashboard (mock portal break and repair makes a good demo).

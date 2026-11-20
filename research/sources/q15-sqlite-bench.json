@@ -1,0 +1,141 @@
+{
+  "measured": "2026-11-20",
+  "machine": "team laptop, local Python and SQLite (not the container image)",
+  "main": {
+    "python": "3.14.9",
+    "sqlite": "3.54.0",
+    "portals": 50,
+    "tenders": 50000,
+    "recipes": 5000,
+    "journal_mode": "wal",
+    "insert_all_tenders_ms": 623.395,
+    "db_size_mb_after_tenders": 41.0,
+    "changed_since_plan": [
+      "SEARCH tenders USING INDEX tenders_changed (portal_id=? AND last_changed_at>?)"
+    ],
+    "changed_since_rows": 300,
+    "changed_since_ms_median": 1.399,
+    "changed_since_ms_p99": 2.786,
+    "second_active_read_rejected": "UNIQUE constraint failed: runs.portal_id",
+    "insert_recipes_ms": 2650.039,
+    "recipe_json_bytes": 8122,
+    "load_and_walk_one_recipe_us": 152.3,
+    "reachable_nodes": 40,
+    "recursive_cte_walk_one_recipe_us": 3221.2,
+    "recursive_cte_reachable_nodes": 40,
+    "fingerprint_scan_all_recipes_ms": 539.887,
+    "family_lookup_us": 98.3,
+    "delete_portal_cascade_ms": 6.838,
+    "tenders_left_for_deleted_portal": 0,
+    "concurrent_seconds": 5,
+    "concurrent_tender_updates_per_s": 9312,
+    "concurrent_api_reads": 100,
+    "concurrent_api_read_ms_median": 204.41,
+    "concurrent_api_read_ms_p99": 244.482
+  },
+  "concurrency_4_readers": {
+    "sqlite": "3.54.0",
+    "runs": [
+      {
+        "writer_pause_ms": 0,
+        "reader_busy_timeout_s": 30,
+        "updates_per_s": 8905,
+        "reads": 77,
+        "busy_errors": 0,
+        "read_ms_median": 207.1,
+        "read_ms_p99": 267.23
+      },
+      {
+        "writer_pause_ms": 0,
+        "reader_busy_timeout_s": 0,
+        "updates_per_s": 9250,
+        "reads": 80,
+        "busy_errors": 0,
+        "read_ms_median": 204.31,
+        "read_ms_p99": 249.33
+      },
+      {
+        "writer_pause_ms": 1.0,
+        "reader_busy_timeout_s": 30,
+        "updates_per_s": 5895,
+        "reads": 92,
+        "busy_errors": 0,
+        "read_ms_median": 173.1,
+        "read_ms_p99": 254.71
+      },
+      {
+        "writer_pause_ms": 100.0,
+        "reader_busy_timeout_s": 30,
+        "updates_per_s": 195,
+        "reads": 128,
+        "busy_errors": 0,
+        "read_ms_median": 125.69,
+        "read_ms_p99": 143.57
+      },
+      {
+        "writer_pause_ms": 1000.0,
+        "reader_busy_timeout_s": 30,
+        "updates_per_s": 20,
+        "reads": 114,
+        "busy_errors": 0,
+        "read_ms_median": 130.5,
+        "read_ms_p99": 218.64
+      }
+    ]
+  },
+  "threads_vs_processes_no_writer": [
+    {
+      "case": "1 thread",
+      "reads": 1237,
+      "ms_median": 2.3,
+      "ms_p99": 5.45
+    },
+    {
+      "case": "4 threads",
+      "reads": 93,
+      "ms_median": 129.8,
+      "ms_p99": 177.28
+    },
+    {
+      "case": "4 threads, GIL switch interval 0.2 ms",
+      "reads": 98,
+      "ms_median": 124.43,
+      "ms_p99": 150.77
+    },
+    {
+      "case": "4 processes",
+      "reads": 4951,
+      "ms_median": 2.36,
+      "ms_p99": 3.55
+    }
+  ],
+  "concurrency_1_reader": [
+    {
+      "writer_pause_ms": 100.0,
+      "reader_busy_timeout_s": 30,
+      "updates_per_s": 200,
+      "reads": 1683,
+      "busy_errors": 0,
+      "read_ms_median": 2.35,
+      "read_ms_p99": 2.88
+    },
+    {
+      "writer_pause_ms": 1000.0,
+      "reader_busy_timeout_s": 30,
+      "updates_per_s": 20,
+      "reads": 1415,
+      "busy_errors": 0,
+      "read_ms_median": 2.79,
+      "read_ms_p99": 5.12
+    },
+    {
+      "writer_pause_ms": 0,
+      "reader_busy_timeout_s": 30,
+      "updates_per_s": 39960,
+      "reads": 431,
+      "busy_errors": 0,
+      "read_ms_median": 9.14,
+      "read_ms_p99": 16.99
+    }
+  ]
+}
