@@ -17,13 +17,13 @@ An agent that attaches to European public procurement portals on its own, watche
 - **Dan:** Q2, Q9, Q11
 - **Goktug:** Q6, Q10, Q12
 - **Goktug (research only, build not assigned):** Q13, Q14
-- **Not assigned yet:** G1 to G8
+- **Not assigned yet:** G1 to G11
 
 ## Questions and what is left
 
 ### [ ] Q1. Recipe model
 How we represent what the LLM learned about a portal. **Owner:** David
-- [ ] Research: write up in `docs/research/Q1.md`, including a draft recipe for one real portal.
+- [x] Research: `research/q01-recipe-model.md`. A typed navigation graph; `research/audit.md` lists what the draft recipe must still express (form-post paging, POST-body APIs, multi-step downloads).
 - [ ] Team agrees on the format.
 - [ ] Recipe Pydantic model (goes into `Recipe.body` in `app/models.py`, format id `recipe/v1`).
 - [ ] Executor that runs a recipe with no model call (`app/recipe/`): list, paging, detail pages, JSON API, multi-step steps.
@@ -31,21 +31,21 @@ How we represent what the LLM learned about a portal. **Owner:** David
 
 ### [ ] Q2. Field locators
 What the recipe stores to find each field and link, and how a break is detected. **Owner:** Dan
-- [ ] Research: write up in `docs/research/Q2.md` (locator format, fallback order, value checks per field).
+- [x] Research: `research/q02-locators.md`. Two or three locators and value checks per field; per the audit, a single surviving locator counts only when it equals the last good value.
 - [ ] Locator types in the recipe (CSS, XPath, label, JSON path, fallbacks).
 - [ ] Value checks per field (dates parse, deadline after publication, CPV 8 digits, country 2 letters).
 - [ ] Normalizers (`app/extract/`): local dates and times to offset, CPV, procedureType and contractNature mapping, ids.
 
 ### [ ] Q3. Explore or map first
 Goal-directed exploration vs site mapping, and structured sources to try first. **Owner:** David
-- [ ] Research: write up in `docs/research/Q3.md`, with the request count per option and the ordered probe checklist.
-- [ ] Source prober: JSON API in network traffic, OCDS, RSS/Atom, sitemap, before crawling HTML.
+- [x] Research: `research/q03-explore-or-map.md`. Use the portal's own network calls and links first, then explore with a page budget; never map the site.
+- [ ] Source prober: JSON calls in the page's network traffic, feed links the pages carry, embedded app state, before crawling HTML. Guessed paths (`/feed`, `/api`, `/ocds`) found nothing on four portals, so they come last if at all (audit of Q3).
 - [ ] Summary page detection: entry URL that is not the tender list leads to the real list (`Portal.list_url`).
 
 ### [ ] Q4. Agent tools
 What the learn and repair agents use to see and drive a portal. **Owner:** David
-- [ ] Research: write up in `docs/research/Q4.md`, with token counts of page views measured on 2 to 3 real pages.
-- [ ] Fetch layer (`app/fetch/`): 1 request/s per host for httpx and every browser sub-request via `page.route`; block images, fonts, media, stylesheets.
+- [x] Research: `research/q04-agent-tools.md`, with token counts measured on real pages in `research/q04-page-views-measured.md`.
+- [ ] Fetch layer (`app/fetch/`): 1 request/s per portal for httpx and every browser sub-request; block images, fonts, media, stylesheets. Redirect hops and WebSockets get past `page.route`, so redirects are walked by our client and WebSockets blocked (audit of Q4).
 - [ ] Network capture to find JSON APIs (`NetworkEntry`, `looks_like_tender_list`).
 - [ ] Compact page view for the model.
 - [ ] Agent tools (`app/agent/tools.py`): fetch page, page view, list links, click or fill, test locator, download file.
@@ -53,7 +53,7 @@ What the learn and repair agents use to see and drive a portal. **Owner:** David
 
 ### [ ] Q5. Agent framework and conventions
 **Owner:** Baris
-- [x] Research: `docs/research/Q5_Q7_Q8.md` (OpenAI Agents SDK, own loop as fallback).
+- [x] Research: `research/q05-q07-q08-framework-schemas-benchmark.md` (OpenAI Agents SDK, own loop as fallback).
 - [x] Conventions: `CONVENTIONS.md`.
 - [ ] Team agrees on the project layout in `CONVENTIONS.md`.
 - [ ] Agents SDK spike (about 1 h): two tools, Pydantic `output_type`, `max_turns`, usage logged, runs in Docker.
@@ -68,7 +68,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 
 ### [ ] Q7. Schemas
 **Owner:** Baris. Core done and usable now; three small follow-ups left.
-- [x] Research: `docs/research/Q5_Q7_Q8.md`.
+- [x] Research: `research/q05-q07-q08-framework-schemas-benchmark.md`.
 - [x] `app/models.py`, `app/schema.sql`, 19 passing tests in `tests/test_models.py`.
 - [ ] Verify the eForms BT numbers marked (*) in `models.py` (about 15 min).
 - [ ] Add the recipe `body` format once Q1 is decided.
@@ -79,13 +79,13 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Design: `docs/BENCHMARK.md`.
 - [ ] Mock portal with variants and the 16 scenarios (`mock_portal/`, 3 to 4 h).
 - [ ] Record and replay mode in `app/fetch/`, together with the Q4 owner (1 to 2 h).
-- [ ] Real test set: 8+ portals, 4+ countries, 3+ software packages, 1 to 2 behind login or captcha.
+- [ ] Real test set: 8+ portals, 4+ countries, 3+ software packages, 1 to 2 behind login or captcha. Candidates in `research/q08-test-portals.md`; still to add Italian and Polish platforms (`research/patterno-landscape.md`) and record them.
 - [ ] Gold labels: open-id list per portal plus 5 checked tenders each (about 1.5 h, split).
 - [ ] Harness and scorer (`bench/run.py`, 2 to 3 h).
 
 ### [ ] Q9. OpenAI models and cost
 **Owner:** Dan
-- [ ] Research: write up in `docs/research/Q9.md`, from OpenAI's current pricing page, dated.
+- [x] Research: `research/q09-models-cost.md`. Learn and repair on `gpt-6.2-sol`, spot checks on `gpt-6-luna`; per the audit, quote the cost per portal only once measured.
 - [ ] `app/config.py`: model per job (`MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK`) and the price table with its date.
 - [ ] Pick models from the benchmark (needs Q8).
 - [ ] Cost per portal (attach and repair) for the hand-in README.
@@ -100,7 +100,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 
 ### [ ] Q11. Reuse across portals
 **Owner:** Dan
-- [ ] Research: write up in `docs/research/Q11.md`: common platforms per country and their fingerprints.
+- [x] Research: `research/q11-reuse.md`. Host, path or brand match makes a candidate, trusted only after a canary read; per the audit, also match on page structure.
 - [ ] Fingerprint detector (`Portal.fingerprint`).
 - [ ] Reuse rule: try a stored recipe with the same fingerprint first; trust it only if it passes every check plus a spot check.
 
@@ -134,11 +134,13 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [ ] G7. Team decision on the Patterno participant declaration (required for the track prize and the final).
 - [ ] G8. Submit the repository link in the hackathon submission.
 - [ ] G9. Recipe schema before the agents fan out. One agent writes the Q1 recipe format as a Pydantic model (`Recipe.body`, `recipe/v1`) and a person approves it. Only then do agents start on the executor, learner, repairer, checks and reuse, which all build against it.
-- [ ] G10. Add to `CLAUDE.md`: no agent sends requests to a live portal. Each test portal is recorded once at the fetch layer (`FETCH_MODE=record`) and agents work from the recordings only (`FETCH_MODE=replay`). Several agents testing the same portal at once would break the 1 request per second rule.
-- [ ] G11. Model calls in tests are mocked or replayed, never live. Development uses its own OpenAI key with a spending cap, separate from the judging key (G6).
+- [x] G10. Add to `CLAUDE.md`: no agent sends requests to a live portal. Each test portal is recorded once at the fetch layer (`FETCH_MODE=record`) and agents work from the recordings only (`FETCH_MODE=replay`). Several agents testing the same portal at once would break the 1 request per second rule.
+- [ ] G11. Model calls in tests are mocked or replayed, never live. Development uses its own OpenAI key with a spending cap, separate from the judging key (G6). The rule is in `CLAUDE.md`; the development key itself is still to make.
 
 ## Files so far
 
+- `DESIGN.md`: the spec, draft 3, built from the finished research
+- `CLAUDE.md`: rules for the agents that build the system (source of truth, one module per agent, no live portals, no live model calls in tests)
 - `app/models.py`: all records and the exact API models (Q7)
 - `app/schema.sql`: SQLite tables (Q7)
 - `tests/test_models.py`: tests for the schemas (Q7)
