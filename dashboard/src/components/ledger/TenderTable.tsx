@@ -25,6 +25,16 @@ function Docs({ docs, live }: { docs: Tender["documents"]; live: boolean }) {
   );
 }
 
+const missing = <span className="text-muted-foreground">Not stated</span>;
+
+function Deadline({ at, timeZone }: { at: string | null; timeZone: string | null }) {
+  if (at === null) return missing;
+  return <><time dateTime={at}>{absTime(at, timeZone)}</time><p className="text-micro text-muted-foreground">Local: {localTime(at)}</p></>;
+}
+
+/** Reference number and page address, whichever of the two the portal shows. */
+const subline = (t: Tender) => [t.referenceNumber, t.url].filter(Boolean).join(" · ");
+
 const STATUS = { open: "text-serving", closed: "text-muted-foreground", withdrawn: "text-failed" };
 
 export function TenderTable({ tenders, timeZone, live }: { tenders: Tender[]; timeZone: string | null; live: boolean }) {
@@ -34,11 +44,11 @@ export function TenderTable({ tenders, timeZone, live }: { tenders: Tender[]; ti
     <>
       <ul className="divide-y divide-divider border-y border-divider md:hidden" aria-label="Delivered tenders">
         {tenders.map((t) => <li key={t.id} className="py-4">
-          <h3 className="text-body font-semibold">{t.title}</h3>
-          <p className="mt-1 break-all text-micro text-muted-foreground">{t.referenceNumber ? `${t.referenceNumber} · ` : ""}{t.url}</p>
+          <h3 className="text-body font-semibold">{t.title ?? missing}</h3>
+          <p className="mt-1 break-all text-micro text-muted-foreground">{subline(t)}</p>
           <dl className="mt-3 grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-label">
-            <dt className="text-muted-foreground">Buyer</dt><dd>{t.buyerName}</dd>
-            <dt className="text-muted-foreground">Deadline</dt><dd><time dateTime={t.submissionDeadline}>{absTime(t.submissionDeadline, timeZone)}</time><p className="text-micro text-muted-foreground">Local: {localTime(t.submissionDeadline)}</p></dd>
+            <dt className="text-muted-foreground">Buyer</dt><dd>{t.buyerName ?? missing}</dd>
+            <dt className="text-muted-foreground">Deadline</dt><dd><Deadline at={t.submissionDeadline} timeZone={timeZone} /></dd>
             <dt className="text-muted-foreground">Status</dt><dd className={`font-medium capitalize ${STATUS[t.status]}`}>{t.status}</dd>
             <dt className="text-muted-foreground">Documents</dt><dd><Docs docs={t.documents} live={live} /></dd>
           </dl>
@@ -54,9 +64,9 @@ export function TenderTable({ tenders, timeZone, live }: { tenders: Tender[]; ti
         <tbody className="divide-y divide-divider">
           {tenders.map((t) => (
             <tr key={t.id} className="align-top">
-              <td className="px-3 py-2"><p className="font-medium">{t.title}</p><p className="text-micro text-muted-foreground break-all">{t.referenceNumber ? `${t.referenceNumber} · ` : ""}{t.url}</p></td>
-              <td className="px-3 py-2 text-label">{t.buyerName}</td>
-              <td className="px-3 py-2 text-label whitespace-nowrap"><time dateTime={t.submissionDeadline}>{absTime(t.submissionDeadline, timeZone)}</time><p className="text-micro text-muted-foreground">Local: {localTime(t.submissionDeadline)}</p></td>
+              <td className="px-3 py-2"><p className="font-medium">{t.title ?? missing}</p><p className="text-micro text-muted-foreground break-all">{subline(t)}</p></td>
+              <td className="px-3 py-2 text-label">{t.buyerName ?? missing}</td>
+              <td className="px-3 py-2 text-label whitespace-nowrap"><Deadline at={t.submissionDeadline} timeZone={timeZone} /></td>
               <td className={`px-3 py-2 text-label font-medium capitalize ${STATUS[t.status]}`}>{t.status}</td>
               <td className="px-3 py-2"><Docs docs={t.documents} live={live} /></td>
             </tr>

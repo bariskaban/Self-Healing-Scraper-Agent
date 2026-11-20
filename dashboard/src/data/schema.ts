@@ -63,7 +63,7 @@ export const stepSchema = z.object({
   name: z.string(),
   summary: z.string(),
   durationMs: z.number().nonnegative().nullable(),
-  usage: usageSchema.optional(),
+  usage: usageSchema.nullish(),
 });
 
 export const runSchema = z.object({
@@ -78,7 +78,7 @@ export const runSchema = z.object({
   publishedCount: z.number().int().nonnegative().optional(),
   stats: z.record(z.union([z.number(), z.string(), z.boolean(), z.null()])).optional(),
   modelCalls: z.number().int().nonnegative(),
-  usage: usageSchema.optional(),
+  usage: usageSchema.nullish(),
   checks: z.array(checkSchema).optional(),
   steps: z.array(stepSchema).optional(),
   recipeChange: z
@@ -100,19 +100,25 @@ export const documentSchema = z.object({
   path: z.string().nullable(),
 });
 
+/**
+ * Mirrors TenderOut in app/models.py: the required fields are always present but null when the
+ * portal does not show them; the optional ones are left out when empty. publicationDate is a plain
+ * date (2026-12-09), the other times carry an offset. Keys not listed here (contractNature,
+ * cpvCodes, placeOfPerformance) are not rendered and are dropped, never rejected.
+ */
 export const tenderSchema = z.object({
   id: z.string(),
-  url: z.string(),
-  title: z.string(),
-  buyerName: z.string(),
-  publicationDate: iso,
-  submissionDeadline: iso,
+  url: z.string().nullable(),
+  title: z.string().nullable(),
+  buyerName: z.string().nullable(),
+  publicationDate: iso.nullable(),
+  submissionDeadline: iso.nullable(),
   status: z.enum(["open", "closed", "withdrawn"]),
   documents: z.array(documentSchema).nullable(),
   lastChangedAt: iso,
-  referenceNumber: z.string().optional(),
-  description: z.string().optional(),
-  procedureType: z.string().optional(),
+  referenceNumber: z.string().nullish(),
+  description: z.string().nullish(),
+  procedureType: z.string().nullish(),
 });
 
 export const tendersSchema = z.array(tenderSchema);

@@ -55,8 +55,9 @@ export async function getJson<T>(
   }
 }
 
+/** The timeline is a dashboard route under /api; tenders are the public contract route (docs/DASHBOARD_API.md). */
 export const portalPath = (id: string, part: "timeline" | "tenders") =>
-  `/api/portals/${encodeURIComponent(id)}/${part}`;
+  `${part === "tenders" ? "" : "/api"}/portals/${encodeURIComponent(id)}/${part}`;
 
 /** Only same-origin /files/{id} paths with a safe id are linkable. */
 export function safeFileHref(path: string | null): string | null {

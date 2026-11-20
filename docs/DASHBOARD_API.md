@@ -66,12 +66,16 @@ type TimelineResponse = Run[]; // GET /api/portals/{id}/timeline; chronological 
 interface TenderDocument {
   fileName: string; sizeBytes: number | null; sha256: string | null; path: string | null;
 }
-interface Tender {
-  id: string; url: string; title: string; buyerName: string; publicationDate: string;
-  submissionDeadline: Time; status: "open" | "closed" | "withdrawn";
+interface Tender {               // TenderOut in app/models.py
+  // Always present, null when the portal does not show the value:
+  id: string; url: string | null; title: string | null; buyerName: string | null;
+  publicationDate: string | null;  // a plain date, "2026-12-09", no time and no offset
+  submissionDeadline: Time | null; status: "open" | "closed" | "withdrawn";
   documents: TenderDocument[] | null; lastChangedAt: Time;
+  // Left out when empty, never sent as null:
   referenceNumber?: string; description?: string;
   procedureType?: "open" | "restricted" | "negotiated" | "other";
+  // Also sent when known, not shown by the page: contractNature?, cpvCodes?, placeOfPerformance?
 }
 type TendersResponse = Tender[]; // GET /portals/{id}/tenders
 // POST /api/settings: body Settings → 200 Settings (effective values)
@@ -90,7 +94,7 @@ Settings request and success shape: `{"attachTimeLimitMinutes":20,"ignoreRobotsT
 The source is in `dashboard/` (React, Vite, TypeScript, Tailwind; designed in Lovable, project "Tender Trail Watchtower"). The built page is committed in `app/dashboard/static/`, so `docker build` needs no Node:
 
 ```bash
-cd dashboard && npm ci && npm run build
+cd dashboard && bun install --frozen-lockfile && bun run build
 ```
 
-Then replace `app/dashboard/static/` with the contents of `dashboard/dist/`. `GET /` serves `index.html`, and `/assets/*` serves the bundle (`app/main.py`).
+Only `bun.lock` is committed, so use bun, not `npm ci`. Then replace `app/dashboard/static/` with the contents of `dashboard/dist/`. `GET /` serves `index.html`, and `/assets/*` serves the bundle (`app/main.py`).
