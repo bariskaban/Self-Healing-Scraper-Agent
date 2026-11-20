@@ -20,7 +20,7 @@ Guidance for working in this repository. See README.md for setup and project sta
 ## Network: no live portals
 
 - Never send a request to a live procurement portal, TED or any other tender site, whether from an agent session, a test or a script.
-- Each test portal is recorded once, by a person, with `FETCH_MODE=record`. Agents work with `FETCH_MODE=replay`, the mock portal in `mock_portal/`, or the fixtures in `tests/fixtures/`.
+- Each test portal is recorded once, by a person, with `FETCH_MODE=record`. Agents work with `FETCH_MODE=replay`, the mock portal in `mock_portal/`, or the fixtures in `tests/fixtures/`. Replay is the default of `app/fetch`; only the Dockerfile sets `FETCH_MODE=live`. Never set it anywhere else.
 - If a recording you need is missing, stop and ask for one. Do not fetch it live.
 - Every request the code makes goes through `app/fetch/`. No direct httpx calls or Playwright navigation anywhere else.
 - Why: several agents testing the same portal at once break the rule of 1 request per second per portal before the judges ever see the system, and can get our address blocked.
