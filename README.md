@@ -88,7 +88,8 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Design: `docs/BENCHMARK.md`.
 - [ ] Mock portal with variants and the 25 scenarios in `docs/BENCHMARK.md` (`mock_portal/`). Done: the server-rendered template with 13 switches and its recipe, mounted in the app at `/mock`. Open: the JSON and multi-step templates, the large variant, the 250 MB ZIP, the scenario runner.
 - [x] Record and replay mode in `app/fetch/` (`FETCH_MODE`; replay is the default, the Dockerfile sets live).
-- [ ] Real test set: 8+ portals, 4+ countries, 3+ software packages, 1 to 2 behind login or captcha. Candidates in `research/q08-test-portals.md`; still to add Italian and Polish platforms (`research/patterno-landscape.md`) and record them.
+- [x] Real test set: `bench/portals.toml` (read with `bench.portals.load_portals()`): 49 portals in 7 countries plus Mercell, led by Poland, Italy and France as the mentor's answers suggest; 2 held back unseen, 2 expected to fail at login, aggregators listed as excluded. Each address says how sure we are of it.
+- [ ] Record the test set (a person, `FETCH_MODE=record`), Poland first; find the 18 missing addresses and confirm the 10 example or doubtful ones.
 - [ ] Gold labels: open-id list per portal plus 5 checked tenders each (about 1.5 h, split).
 - [ ] Harness and scorer (`bench/run.py`, 2 to 3 h).
 
