@@ -1,0 +1,885 @@
+{
+  "read_at": "2026-11-20T15:48:11+00:00",
+  "source": "https://www.patterno.de/de/vergabe-portale/coverage",
+  "stated_total": {
+    "portals": 4657,
+    "countries": 29
+  },
+  "countries": {
+    "austria": {
+      "portals": 129,
+      "platforms": 30,
+      "largest": [
+        [
+          "vemap.com",
+          52
+        ],
+        [
+          "vergabeportal.at",
+          47
+        ],
+        [
+          "icmpd.org",
+          2
+        ],
+        [
+          "post.at",
+          2
+        ],
+        [
+          "esteri.it",
+          1
+        ],
+        [
+          "asfinag.at",
+          1
+        ]
+      ]
+    },
+    "belgium": {
+      "portals": 31,
+      "platforms": 30,
+      "largest": [
+        [
+          "kuleuven.be",
+          2
+        ],
+        [
+          "belgiantrain.be",
+          1
+        ],
+        [
+          "chuliege.be",
+          1
+        ],
+        [
+          "3p.eu",
+          1
+        ],
+        [
+          "belgium.be",
+          1
+        ],
+        [
+          "ec.europa.eu",
+          1
+        ]
+      ]
+    },
+    "bulgaria": {
+      "portals": 3,
+      "platforms": 3,
+      "largest": [
+        [
+          "eop.bg",
+          1
+        ],
+        [
+          "government.bg",
+          1
+        ],
+        [
+          "e-licitatie.ro",
+          1
+        ]
+      ]
+    },
+    "croatia": {
+      "portals": 3,
+      "platforms": 3,
+      "largest": [
+        [
+          "eojn.hr",
+          1
+        ],
+        [
+          "nn.hr",
+          1
+        ],
+        [
+          "zgh.hr",
+          1
+        ]
+      ]
+    },
+    "cyprus": {
+      "portals": 2,
+      "platforms": 2,
+      "largest": [
+        [
+          "centralbank.cy",
+          1
+        ],
+        [
+          "sedigep.com",
+          1
+        ]
+      ]
+    },
+    "czechia": {
+      "portals": 204,
+      "platforms": 177,
+      "largest": [
+        [
+          "profilzadavatele-vz.cz",
+          15
+        ],
+        [
+          "ezak.cz",
+          9
+        ],
+        [
+          "e-zakazky.cz",
+          2
+        ],
+        [
+          "proebiz.com",
+          2
+        ],
+        [
+          "nipez.cz",
+          2
+        ],
+        [
+          "tenderarena.cz",
+          2
+        ]
+      ]
+    },
+    "denmark": {
+      "portals": 45,
+      "platforms": 23,
+      "largest": [
+        [
+          "ajoursystem.net",
+          15
+        ],
+        [
+          "dalux.com",
+          5
+        ],
+        [
+          "ibinder.com",
+          3
+        ],
+        [
+          "mercell.com",
+          3
+        ],
+        [
+          "achilles.com",
+          1
+        ],
+        [
+          "clira.io",
+          1
+        ]
+      ]
+    },
+    "estonia": {
+      "portals": 1,
+      "platforms": 1,
+      "largest": [
+        [
+          "riik.ee",
+          1
+        ]
+      ]
+    },
+    "finland": {
+      "portals": 62,
+      "platforms": 59,
+      "largest": [
+        [
+          "toimittajapalvelu.fi",
+          3
+        ],
+        [
+          "sokopro.fi",
+          2
+        ],
+        [
+          "a-kruunu.fi",
+          1
+        ],
+        [
+          "aikk.fi",
+          1
+        ],
+        [
+          "alavieska.fi",
+          1
+        ],
+        [
+          "buildercom.net",
+          1
+        ]
+      ]
+    },
+    "france": {
+      "portals": 1021,
+      "platforms": 243,
+      "largest": [
+        [
+          "e-marchespublics.com",
+          573
+        ],
+        [
+          "achatpublic.com",
+          58
+        ],
+        [
+          "safetender.com",
+          38
+        ],
+        [
+          "synapse-entreprises.com",
+          12
+        ],
+        [
+          "sudest-marchespublics.com",
+          12
+        ],
+        [
+          "centreofficielles.com",
+          9
+        ]
+      ]
+    },
+    "germany": {
+      "portals": 441,
+      "top10_market_share_percent": 60,
+      "ranked_portals_read": 99,
+      "share_by_software_type_percent": {
+        "cosinex-vmpsatellite": 23.5,
+        "netserver": 10.8,
+        "healy-hudson": 10.5,
+        "(no type given)": 8.9,
+        "evergabe-online": 8.0,
+        "evergabe-de": 7.6,
+        "subreport": 7.5,
+        "itwo-tender": 6.7,
+        "staatsanzeiger": 1.8,
+        "had-de": 1.7,
+        "vergabe24": 1.1,
+        "bi-medien": 1.1,
+        "eva-coindms": 0.1,
+        "aumass": 0.1,
+        "evoportal": 0.1,
+        "mercell": 0.0,
+        "mercell-s2c": 0.0,
+        "eu-funding-tenders": 0.0,
+        "muelheim-ruhr": 0.0,
+        "eu-supply": 0.0,
+        "it-vergabe-eu": 0.0
+      }
+    },
+    "greece": {
+      "portals": 71,
+      "platforms": 60,
+      "largest": [
+        [
+          "eprocurement.gov.gr",
+          11
+        ],
+        [
+          "pkm.gov.gr",
+          2
+        ],
+        [
+          "aegean.gr",
+          1
+        ],
+        [
+          "aepp-procurement.gr",
+          1
+        ],
+        [
+          "aia.gr",
+          1
+        ],
+        [
+          "arta.gr",
+          1
+        ]
+      ]
+    },
+    "hungary": {
+      "portals": 7,
+      "platforms": 7,
+      "largest": [
+        [
+          "belvaros-lipotvaros.hu",
+          1
+        ],
+        [
+          "nif.hu",
+          1
+        ],
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "ekr.gov.hu",
+          1
+        ],
+        [
+          "kmnp.hu",
+          1
+        ],
+        [
+          "debrecen.hu",
+          1
+        ]
+      ]
+    },
+    "iceland": {
+      "portals": 22,
+      "platforms": 14,
+      "largest": [
+        [
+          "ajoursystem.net",
+          6
+        ],
+        [
+          "utbodsgatt.is",
+          3
+        ],
+        [
+          "reykjavik.is",
+          2
+        ],
+        [
+          "hvolsvollur.is",
+          1
+        ],
+        [
+          "in-tendhost.co.uk",
+          1
+        ],
+        [
+          "i-nomi.net",
+          1
+        ]
+      ]
+    },
+    "ireland": {
+      "portals": 15,
+      "platforms": 13,
+      "largest": [
+        [
+          "coupahost.com",
+          2
+        ],
+        [
+          "jaggaer.com",
+          2
+        ],
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "etenders.gov.ie",
+          1
+        ],
+        [
+          "rand-associates.co.uk",
+          1
+        ],
+        [
+          "etendersni.gov.uk",
+          1
+        ]
+      ]
+    },
+    "italy": {
+      "portals": 1318,
+      "platforms": 459,
+      "largest": [
+        [
+          "acquistitelematici.it",
+          184
+        ],
+        [
+          "tuttogare.it",
+          161
+        ],
+        [
+          "maggiolicloud.it",
+          126
+        ],
+        [
+          "traspare.com",
+          106
+        ],
+        [
+          "cineca.it",
+          34
+        ],
+        [
+          "trasparenza-valutazione-merito.it",
+          23
+        ]
+      ]
+    },
+    "latvia": {
+      "portals": 4,
+      "platforms": 3,
+      "largest": [
+        [
+          "gov.lv",
+          2
+        ],
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "latvenergo.lv",
+          1
+        ]
+      ]
+    },
+    "lithuania": {
+      "portals": 5,
+      "platforms": 5,
+      "largest": [
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "pasvaliobu.lt",
+          1
+        ],
+        [
+          "eviesiejipirkimai.lt",
+          1
+        ],
+        [
+          "ted.europa.eu",
+          1
+        ],
+        [
+          "viesiejipirkimai.lt",
+          1
+        ]
+      ]
+    },
+    "luxembourg": {
+      "portals": 8,
+      "platforms": 8,
+      "largest": [
+        [
+          "curia.europa.eu",
+          1
+        ],
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "eeef.lu",
+          1
+        ],
+        [
+          "eel2.eu",
+          1
+        ],
+        [
+          "eib.org",
+          1
+        ],
+        [
+          "esm.europa.eu",
+          1
+        ]
+      ]
+    },
+    "malta": {
+      "portals": 4,
+      "platforms": 4,
+      "largest": [
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "etenders.gov.mt",
+          1
+        ],
+        [
+          "maltairport.com",
+          1
+        ],
+        [
+          "stjohnscocathedral.com",
+          1
+        ]
+      ]
+    },
+    "netherlands": {
+      "portals": 26,
+      "platforms": 22,
+      "largest": [
+        [
+          "mercell.com",
+          4
+        ],
+        [
+          "ariba.com",
+          2
+        ],
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "epo.org",
+          1
+        ],
+        [
+          "eu-supply.com",
+          1
+        ],
+        [
+          "fmo.nl",
+          1
+        ]
+      ]
+    },
+    "norway": {
+      "portals": 21,
+      "platforms": 14,
+      "largest": [
+        [
+          "ivalua.app",
+          6
+        ],
+        [
+          "mercell.com",
+          3
+        ],
+        [
+          "achilles.com",
+          1
+        ],
+        [
+          "artifik.no",
+          1
+        ],
+        [
+          "doffin.no",
+          1
+        ],
+        [
+          "eu-supply.com",
+          1
+        ]
+      ]
+    },
+    "poland": {
+      "portals": 1090,
+      "platforms": 167,
+      "largest": [
+        [
+          "ezamawiajacy.pl",
+          595
+        ],
+        [
+          "logintrade.net",
+          203
+        ],
+        [
+          "eb2b.com.pl",
+          91
+        ],
+        [
+          "sarp.pl",
+          5
+        ],
+        [
+          "mil.pl",
+          5
+        ],
+        [
+          "warszawa.pl",
+          5
+        ]
+      ]
+    },
+    "portugal": {
+      "portals": 42,
+      "platforms": 33,
+      "largest": [
+        [
+          "vortal.biz",
+          7
+        ],
+        [
+          "acingov.pt",
+          2
+        ],
+        [
+          "compraspt.com",
+          2
+        ],
+        [
+          "vortalgov.biz",
+          2
+        ],
+        [
+          "alsatodi.pt",
+          1
+        ],
+        [
+          "anogov.com",
+          1
+        ]
+      ]
+    },
+    "romania": {
+      "portals": 14,
+      "platforms": 14,
+      "largest": [
+        [
+          "acn.ro",
+          1
+        ],
+        [
+          "org.ro",
+          1
+        ],
+        [
+          "arice.gov.ro",
+          1
+        ],
+        [
+          "cresamiciimagicieni.ro",
+          1
+        ],
+        [
+          "dgauis.ro",
+          1
+        ],
+        [
+          "e-licitatie.ro",
+          1
+        ]
+      ]
+    },
+    "slovakia": {
+      "portals": 10,
+      "platforms": 7,
+      "largest": [
+        [
+          "eranet.sk",
+          4
+        ],
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "ekr.gov.hu",
+          1
+        ],
+        [
+          "isepvo.sk",
+          1
+        ],
+        [
+          "proebiz.com",
+          1
+        ],
+        [
+          "simap.ch",
+          1
+        ]
+      ]
+    },
+    "slovenia": {
+      "portals": 1,
+      "platforms": 1,
+      "largest": [
+        [
+          "ec.europa.eu",
+          1
+        ]
+      ]
+    },
+    "spain": {
+      "portals": 111,
+      "platforms": 95,
+      "largest": [
+        [
+          "gencat.cat",
+          4
+        ],
+        [
+          "navarra.es",
+          3
+        ],
+        [
+          "barcelona.cat",
+          2
+        ],
+        [
+          "avanzagrupo.com",
+          2
+        ],
+        [
+          "bcn.cat",
+          2
+        ],
+        [
+          "vortal.biz",
+          2
+        ]
+      ]
+    },
+    "sweden": {
+      "portals": 16,
+      "platforms": 13,
+      "largest": [
+        [
+          "clira.io",
+          3
+        ],
+        [
+          "mercell.com",
+          2
+        ],
+        [
+          "e-avrop.com",
+          1
+        ],
+        [
+          "ec.europa.eu",
+          1
+        ],
+        [
+          "switchmarket.se",
+          1
+        ],
+        [
+          "kommersannons.se",
+          1
+        ]
+      ]
+    }
+  },
+  "hosts_with_full_list": 4286,
+  "distinct_platforms": 1445,
+  "share_of_hosts_held_by_largest": {
+    "5": 40.1,
+    "10": 50.2,
+    "20": 56.1,
+    "50": 61.6
+  },
+  "single_host_platforms": 1229,
+  "largest_platforms": [
+    [
+      "ezamawiajacy.pl",
+      595
+    ],
+    [
+      "e-marchespublics.com",
+      573
+    ],
+    [
+      "logintrade.net",
+      203
+    ],
+    [
+      "acquistitelematici.it",
+      184
+    ],
+    [
+      "tuttogare.it",
+      162
+    ],
+    [
+      "maggiolicloud.it",
+      126
+    ],
+    [
+      "traspare.com",
+      106
+    ],
+    [
+      "eb2b.com.pl",
+      91
+    ],
+    [
+      "achatpublic.com",
+      58
+    ],
+    [
+      "vemap.com",
+      52
+    ],
+    [
+      "vergabeportal.at",
+      48
+    ],
+    [
+      "safetender.com",
+      38
+    ],
+    [
+      "cineca.it",
+      34
+    ],
+    [
+      "trasparenza-valutazione-merito.it",
+      23
+    ],
+    [
+      "ec.europa.eu",
+      22
+    ],
+    [
+      "bravosolution.com",
+      22
+    ],
+    [
+      "ajoursystem.net",
+      21
+    ],
+    [
+      "mercell.com",
+      17
+    ],
+    [
+      "marche.it",
+      16
+    ],
+    [
+      "profilzadavatele-vz.cz",
+      15
+    ],
+    [
+      "jaggaer.com",
+      13
+    ],
+    [
+      "mi.it",
+      13
+    ],
+    [
+      "synapse-entreprises.com",
+      12
+    ],
+    [
+      "sudest-marchespublics.com",
+      12
+    ],
+    [
+      "eprocurement.gov.gr",
+      11
+    ]
+  ]
+}

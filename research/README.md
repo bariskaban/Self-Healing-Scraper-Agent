@@ -25,6 +25,8 @@ The end check of every answered question is in [audit.md](audit.md).
 
 The verdict of the end check for each answer is in [audit.md](audit.md).
 
+Beside the questions: [patterno-landscape.md](patterno-landscape.md) counts Patterno's own list of 4,657 portals by country and platform. Four countries hold 83% of them, and ten platforms hold half of all portal addresses. Q8, Q11 and Q12 lean on it.
+
 ## Answer standard
 
 Every answer file has, in this order:
@@ -67,6 +69,7 @@ About 12 hours of building, in this order. Each step is the prototype named in i
 
 - `tools/q12_request_math.py` prints every number in Q12 and Q13. Change a parameter, run it, paste the tables.
 - `tools/probe_portals.py` records what a plain client sees on a list of public portals. Run it from a laptop: the research machine cannot reach several of them. It writes `sources/portal-probe.json`.
+- `tools/patterno_coverage.py` reads Patterno's public coverage pages, one request per second, and writes the counts per country and platform to `sources/patterno-coverage.json`.
 
 ## Shared context
 
