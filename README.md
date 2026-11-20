@@ -111,7 +111,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 ### [ ] Q11. Reuse across portals
 **Owner:** Danil
 - [x] Research: `research/q11-reuse.md`. Host, path or brand match makes a candidate, trusted only after a canary read; per the audit, also match on page structure.
-- [ ] Fingerprint detector (`Portal.fingerprint`).
+- [x] Fingerprint detector (`Portal.fingerprint`): `app/software.py`, `detect()` and `best()`.
 - [ ] Reuse rule: candidates by host, path, brand text or page structure; trust one only after the canary read, the full first read and a spot check (DESIGN.md, Reuse).
 
 ### [ ] Q12. Large portals
