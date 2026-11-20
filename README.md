@@ -66,7 +66,7 @@ What the learn and repair agents use to see and drive a portal. **Owner:** David
 - [x] Conventions: `CONVENTIONS.md`.
 - [ ] Team agrees on the project layout in `CONVENTIONS.md`.
 - [ ] Agents SDK spike (about 1 h): two tools, Pydantic `output_type`, `max_turns`, usage logged, runs in Docker.
-- [ ] `app/agent/runner.py`: budgets, token and cost bookkeeping, `AgentStep` logging.
+- [x] `app/agent/runner.py`: budgets, token and cost bookkeeping, `AgentStep` logging.
 - [ ] Learn agent (`app/agent/learn.py`) and repair agent (`app/agent/repair.py`), with prompts in `app/agent/prompts/` (needs Q1 to Q4).
 
 ### [x] Q6. Language
@@ -98,7 +98,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Research: `research/q09-models-cost.md`. Learn and repair on `gpt-6.2-sol`, spot checks on `gpt-6-luna`; per the audit, quote the cost per portal only once measured.
 - [x] `app/config.py`: model per job (`MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK`) and the price table with its date.
 - [ ] Pick models from the benchmark (needs Q8).
-- [ ] Cost per portal (attach and repair) for the hand-in README.
+- [ ] Cost per portal (attach and repair) for the hand-in README. Measured on the mock portal only so far (`DESIGN.md`, Cost per portal): a learn $0.12 to $0.14, a repair $0.08 to $0.10, on `gpt-6.2-sol`. No real portal has been measured.
 
 ### [ ] Q10. Failure rules
 **Owner:** Goktug
@@ -150,6 +150,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
   - [x] No demo data in place of a down API: the page says "API offline, retrying"; the demo snapshot only with `?demo`.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
+  - [ ] On hand-in day, set `EUR_PER_USD` to that day's ECB reference rate: the default of 0.90 is a placeholder, and both the dashboard and the README's costs use it. A value that is not a number (a decimal comma, for one) stops the app at start; a blank one keeps the default.
 - [ ] G5. Video, at most 3 minutes, including the dashboard (mock portal break and repair makes a good demo).
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging.
 - [ ] G7. Team decision on the Patterno participant declaration (required for the track prize and the final).

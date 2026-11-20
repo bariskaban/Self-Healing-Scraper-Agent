@@ -124,7 +124,10 @@ def cost_usd(model: str, input_tokens: int, output_tokens: int, cached_input_tok
 
 
 def to_eur(usd: float | None, settings: ModelSettings | None = None) -> float | None:
-    """USD shown in euros at the configured rate; None stays None."""
+    """USD shown in euros at the configured rate; None stays None.
+
+    Pass the settings built at start. Without them the environment is read again on every call,
+    and a rate that is no usable number raises here, in the middle of the work."""
     if usd is None:
         return None
     return usd * (settings or ModelSettings.from_env()).eur_per_usd

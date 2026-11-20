@@ -1,7 +1,8 @@
-"""A store and a worker in memory, standing in until `app/db.py` and the scheduler's loop exist.
+"""A store and a worker in memory, for an app started without DATA_DIR and for the unit tests.
 
-Nothing here survives a restart and nothing reads a portal. It exists so that the API can be
-built, tested and called by the dashboard today. Tests also use it to put records in place.
+Nothing here survives a restart and nothing reads a portal: with DATA_DIR set, the records
+live in `app/db.py` and the worker is the read loop (`app/loop.py`). Tests use this store to
+put records in place.
 """
 from __future__ import annotations
 

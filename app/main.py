@@ -42,7 +42,7 @@ from app.interfaces import Store, Worker
 from app.memory_store import IdleWorker, MemoryStore
 from app.fetch import Fetcher
 from app.loop import ReadLoop
-from app.reader import Learned, Reader
+from app.reader import Learned, Learner, NotLearned, Reader, Repairer, SpotChecked, SpotChecker
 from app.recipe.settings import RecipeSettings
 from app.scheduler import SchedulerSettings
 from app.models import CreatedId, Portal, PortalCreate, RunAccepted, url_key, utcnow
@@ -113,6 +113,47 @@ def builtin_learner(portal: Portal, run_id: str) -> Learned | None:
     return None
 
 
+def agent_hooks(agents: Any, *, mock_by_model: bool = False
+                ) -> tuple[Learner, Repairer | None, SpotChecker | None]:
+    """What the reader calls to learn, repair and spot-check, on the agents of `app/agent`.
+
+    Without agents (no OPENAI_API_KEY) the build knows only the mock portal's hand-written recipe,
+    repairs nothing and checks nothing with a model. With them the hand-written recipe still
+    serves the mock portal, so the demo costs nothing, unless `mock_by_model` (MOCK_LEARNED_BY_MODEL)
+    says the model shall learn it too; and it stays the fallback when the model finds no recipe.
+    """
+    if agents is None:
+        return builtin_learner, None, None
+
+    def result(found: Any) -> Learned | NotLearned:
+        if found.recipe is None:
+            return NotLearned(reason=found.reason, model_calls=found.model_calls, usage=found.usage)
+        return Learned(recipe=found.recipe, timezone=found.timezone, country_code=found.country_code,
+                       model_calls=found.model_calls, usage=found.usage)
+
+    def learn(portal: Portal, run_id: str) -> Learned | NotLearned | None:
+        known = builtin_learner(portal, run_id)
+        if known is not None and not mock_by_model:
+            return known
+        learned = result(agents.learn(portal, run_id))
+        if isinstance(learned, NotLearned) and known is not None:
+            return Learned(recipe=known.recipe, timezone=known.timezone, country_code=known.country_code,
+                           model_calls=learned.model_calls, usage=learned.usage)
+        return learned
+
+    def repair(portal: Portal, recipe: Any, failed: Any, run_id: str) -> Learned | NotLearned | None:
+        return result(agents.repair(portal, recipe, failed, run_id))
+
+    def spot_check(portal: Portal, records: Any, finding: str, run_id: str) -> SpotChecked | None:
+        found = agents.spot_check(portal, records, finding, run_id)
+        if found is None:
+            return None
+        return SpotChecked(passed=found.passed, message=found.message, model_calls=found.model_calls,
+                           usage=found.usage)
+
+    return learn, repair, spot_check
+
+
 def default_store() -> tuple[Store, Worker | None]:
     """The SQLite store under DATA_DIR when it is set (the container sets it); memory otherwise.
 
@@ -128,11 +169,15 @@ def default_store() -> tuple[Store, Worker | None]:
 
 def create_app(store: Store | None = None, worker: Worker | None = None,
                files: Callable[[], FileStore] | None = None, *, fetch: Fetcher | None = None,
-               mock: Any = None) -> FastAPI:
+               mock: Any = None,
+               agents: Callable[[Fetcher, Database], Any] | None = None) -> FastAPI:
     """The app on a given store and worker. Without them, on `default_store()`.
 
     `fetch` replaces the network layer of the read loop and `mock` the mock portal mounted at
-    /mock: tests hand in a fetcher that reaches the mock portal in this process.
+    /mock: tests hand in a fetcher that reaches the mock portal in this process. `agents`
+    builds the learning and repair agents (`app.agent.Agents`) from the network layer and the
+    database: tests hand in one on a scripted model. Without it the agents are built on OpenAI
+    when OPENAI_API_KEY is set, and else there are none.
     """
     opened: Database | None = None  # a database this app opened itself, and closes on shutdown
     if store is None:
@@ -155,8 +200,17 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
         # Every number of ours comes from the environment (CLAUDE.md): READ_INTERVAL_SECONDS,
         # ATTACH_TIME_LIMIT_SECONDS, the check thresholds, the executor's ceilings.
         schedule = SchedulerSettings.from_env()
-        reader = Reader(opened, fetcher, documents, learn=builtin_learner, checks=CheckSettings.from_env(),
-                        schedule=schedule, recipes=RecipeSettings.from_env(),
+        recipes = RecipeSettings.from_env()
+        if agents is None:
+            from app.agent import Agents
+
+            built = Agents.from_env(fetcher, opened, recipes=recipes)
+        else:
+            built = agents(fetcher, opened)
+        mock_by_model = os.environ.get("MOCK_LEARNED_BY_MODEL", "").strip().lower() in ("1", "true", "yes", "on")
+        learn, repair, spot_check = agent_hooks(built, mock_by_model=mock_by_model)
+        reader = Reader(opened, fetcher, documents, learn=learn, repair=repair, spot_check=spot_check,
+                        checks=CheckSettings.from_env(), schedule=schedule, recipes=recipes,
                         ignore_robots=fetcher.settings.ignore_robots_txt)
         worker = ReadLoop(opened, reader, fetcher, schedule=schedule)
 

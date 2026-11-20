@@ -322,6 +322,116 @@ def test_ordinals_full_hours_and_spellings_in_other_languages(raw, language, zon
     assert p.value.isoformat() == expected
 
 
+# == datetime: what stands between the date and its time ==
+
+@pytest.mark.parametrize("raw, language", [
+    # An hour with no minutes after a word that is not a lead-in: a duration, or not the deadline.
+    ("12 décembre 2026 dans 12 h", "fr"),
+    ("12 décembre 2026 dans 12 heures", "fr"),
+    ("12 décembre 2026 en 12 h", "fr"),
+    ("12 décembre 2026 + 12 h", "fr"),
+    ("12 décembre 2026 +12h", "fr"),
+    ("12 décembre 2026 après 12 h", "fr"),
+    ("12 décembre 2026 environ 12 h", "fr"),
+    ("12 décembre 2026 et 12 h", "fr"),
+    ("12 décembre 2026 le 12 h", "fr"),
+    ("12 décembre 2026 (12 h)", "fr"),
+    ("9. Dezember 2026 in 10 Uhr", "de"),
+    ("9 december 2026 in 10 uur", "nl"),
+    ("9 December 2026 in 10 h", "en"),
+    # The same with minutes.
+    ("12 décembre 2026 dans 12 h 00", "fr"),
+    ("12 décembre 2026 dans 12 h 30", "fr"),
+    ("12 décembre 2026 dans 12:00", "fr"),
+    ("12 décembre 2026 après 12:00", "fr"),
+    ("9. Dezember 2026 in 10:00", "de"),
+    ("9. Dezember 2026 und 10.00 Uhr", "de"),
+    ("9 December 2026 in 10:00", "en"),
+    ("9 December 2026 after 10:00", "en"),
+    ("9 dicembre 2026 circa 10:00", "it"),
+    ("9 de diciembre de 2026 en 10:00", "es"),
+    ("9 grudnia 2026 za 10:00", "pl"),
+    # A lead-in of a language the month word does not belong to.
+    ("12 March 2027 um 10:00", "en"),
+])
+def test_time_after_a_word_that_is_not_a_lead_in_is_refused(raw, language):
+    for type_ in (T.datetime, T.date):
+        p = parse(spec(type_), raw, ctx(language=language))
+        assert p.value is None and p.problem == "time after a word that is not a lead-in", (raw, type_, p)
+
+
+@pytest.mark.parametrize("raw, language, zone, expected", [
+    ("12 décembre 2026 12 h", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("12 décembre 2026 à 12 h", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("12 décembre 2026 a 12h", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("12 DÉCEMBRE 2026 À 12 HEURES", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("12 décembre 2026, 12 h", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("12 décembre 2026 - 12 h", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("12 décembre 2026 – 12 h 00", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("12 décembre 2026, à 12 h 00", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("12 décembre 2026 - à 12:00", "fr", "Europe/Paris", "2026-12-12T12:00:00+01:00"),
+    ("9. Dezember 2026 10 Uhr", "de", "Europe/Berlin", "2026-12-09T10:00:00+01:00"),
+    ("9. Dezember 2026 um 10 Uhr", "de", "Europe/Berlin", "2026-12-09T10:00:00+01:00"),
+    ("9. Dezember 2026, um 10 Uhr", "de", "Europe/Berlin", "2026-12-09T10:00:00+01:00"),
+    ("9. Dezember 2026 um 10.00 Uhr", "de", "Europe/Berlin", "2026-12-09T10:00:00+01:00"),
+    ("9. Dezember 2026 um 10:00 Uhr MEZ", "de", "Europe/Berlin", "2026-12-09T10:00:00+01:00"),
+    ("9 december 2026 10 uur", "nl", "Europe/Amsterdam", "2026-12-09T10:00:00+01:00"),
+    ("9 december 2026, om 10 uur", "nl", "Europe/Amsterdam", "2026-12-09T10:00:00+01:00"),
+    ("9 december 2026 om 10.00 uur", "nl", "Europe/Amsterdam", "2026-12-09T10:00:00+01:00"),
+    ("9 December 2026 at 10:00", "en", "Europe/London", "2026-12-09T10:00:00+00:00"),
+    ("9 December 2026, at 10:00", "en", "Europe/London", "2026-12-09T10:00:00+00:00"),
+    ("9 December 2026 at 10 h", "en", "Europe/London", "2026-12-09T10:00:00+00:00"),
+    ("9 December 2026 UTC 10:00", "en", "Europe/London", "2026-12-09T10:00:00+00:00"),
+    ("9 dicembre 2026 ore 10:00", "it", "Europe/Rome", "2026-12-09T10:00:00+01:00"),
+    ("9 dicembre 2026 alle 10:00", "it", "Europe/Rome", "2026-12-09T10:00:00+01:00"),
+    ("9 dicembre 2026 alle ore 10:00", "it", "Europe/Rome", "2026-12-09T10:00:00+01:00"),
+    ("9 dicembre 2026 - ore 10:00", "it", "Europe/Rome", "2026-12-09T10:00:00+01:00"),
+    ("9 de diciembre de 2026 a las 10:00", "es", "Europe/Madrid", "2026-12-09T10:00:00+01:00"),
+    ("9 de diciembre de 2026, a las 10:00", "es", "Europe/Madrid", "2026-12-09T10:00:00+01:00"),
+    ("9 grudnia 2026 o 10:00", "pl", "Europe/Warsaw", "2026-12-09T10:00:00+01:00"),
+    ("9 grudnia 2026 godz. 10:00", "pl", "Europe/Warsaw", "2026-12-09T10:00:00+01:00"),
+    ("9 grudnia 2026 o godz. 10:00", "pl", "Europe/Warsaw", "2026-12-09T10:00:00+01:00"),
+    ("9 grudnia 2026 r. 10:00", "pl", "Europe/Warsaw", "2026-12-09T10:00:00+01:00"),
+    ("9 grudnia 2026 r. o godz. 10:00", "pl", "Europe/Warsaw", "2026-12-09T10:00:00+01:00"),
+    ("9 grudnia 2026 r., godz. 10:00", "pl", "Europe/Warsaw", "2026-12-09T10:00:00+01:00"),
+    ("9 grudnia 2026 roku o godz. 10:00", "pl", "Europe/Warsaw", "2026-12-09T10:00:00+01:00"),
+    # Ordinary cell texts: nothing, a comma or a dash before the time.
+    ("12 mars 2027 10:00", "fr", "Europe/Paris", "2027-03-12T10:00:00+01:00"),
+    ("12 mars 2027, 10:00", "fr", "Europe/Paris", "2027-03-12T10:00:00+01:00"),
+    ("12 mars 2027 - 10:00", "fr", "Europe/Paris", "2027-03-12T10:00:00+01:00"),
+    ("12. März 2027 10:00 Uhr", "de", "Europe/Berlin", "2027-03-12T10:00:00+01:00"),
+])
+def test_time_right_after_the_date_or_after_a_lead_in_is_read(raw, language, zone, expected):
+    p = parse(spec(T.datetime), raw, ctx(zone=ZoneInfo(zone), language=language))
+    assert p.value is not None, p.problem
+    assert p.value.isoformat() == expected and p.note is None
+
+
+def test_lead_in_rule_leaves_dates_read_by_a_format_alone():
+    # The rule is about dates with the month as a word; a recipe's own format is what it says.
+    p = parse(spec(T.datetime, ["%d.%m.%Y %H:%M"]), "12.03.2027 10:00", ctx())
+    assert p.value.isoformat() == "2027-03-12T10:00:00+01:00"
+    p = parse(spec(T.datetime, ["Deadline: %d %B %Y %H:%M"]), "Deadline: 12 March 2027 10:00", ctx(language="en"))
+    assert p.value.isoformat() == "2027-03-12T10:00:00+01:00"
+
+
+@pytest.mark.parametrize("raw, expected", [
+    # Test cases from pull request 32 by Danil: the French dates named in docs/HANDOFF.md (Q2).
+    ("1er décembre 2026 à 10h00", "2026-12-01T10:00:00+01:00"),
+    ("Le 1er décembre 2026 à 9 h 30", "2026-12-01T09:30:00+01:00"),
+    ("1er avril 2027 à 12 h 00", "2027-04-01T12:00:00+02:00"),      # summer time
+    ("1er décembre 2026 à 12 h 00 et 14 h 00", None),                # two times
+    ("2er décembre 2026 10:00", None),                               # only the first takes "er"
+])
+def test_french_dates_from_pull_request_32(raw, expected):
+    p = parse(spec(T.datetime), raw, ctx(zone=PARIS, language="fr"))
+    if expected is None:
+        assert p.value is None and p.problem and p.raw == raw
+    else:
+        assert p.value is not None, p.problem
+        assert p.value.isoformat() == expected and p.note is None
+
+
 def test_every_month_word_is_read_and_names_one_month_in_every_language():
     from app.extract.moments import _MONTH_WORDS, _MONTHS
 
