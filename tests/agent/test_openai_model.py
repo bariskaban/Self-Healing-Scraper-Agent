@@ -47,12 +47,14 @@ def test_a_call_names_the_model_sends_strict_tools_and_reads_tool_calls_and_usag
     reply = model(ANSWER, sent).respond(
         model="gpt-6.2-sol", instructions="Learn the portal.", input=[{"role": "user", "content": "the task"}],
         tools=[TOOL], answer=("LearnAnswer", {"type": "object", "properties": {}, "required": [],
-                                              "additionalProperties": False}), reasoning="medium")
+                                              "additionalProperties": False}), reasoning="medium",
+        cache_key="learn-run1")
     request, body = sent[0]
     assert request.url.path.endswith("/responses") and len(sent) == 1
     assert body["model"] == "gpt-6.2-sol" and body["instructions"] == "Learn the portal."
     assert body["store"] is False and body["include"] == ["reasoning.encrypted_content"]
     assert body["reasoning"] == {"effort": "medium"}
+    assert body["prompt_cache_key"] == "learn-run1"
     assert body["tools"] == [{"type": "function", "name": "open_page", "description": "Open a page.",
                               "parameters": TOOL.parameters, "strict": True}]
     assert body["text"]["format"]["type"] == "json_schema" and body["text"]["format"]["strict"] is True
@@ -74,7 +76,7 @@ def test_a_final_answer_is_read_as_text_and_a_call_without_tools_asks_for_no_rea
                                        reasoning=None)
     assert reply.text == '{"done": true}' and reply.calls == []
     body = sent[0][1]
-    assert "tools" not in body and "include" not in body and "reasoning" not in body and "text" not in body
+    assert "tools" not in body and "include" not in body and "reasoning" not in body and "text" not in body and "prompt_cache_key" not in body
 
 
 def test_an_api_error_becomes_a_model_error_that_does_not_carry_the_key():

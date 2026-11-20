@@ -40,6 +40,8 @@ from app.recipe.settings import DEFAULT_RECIPE_SETTINGS, RecipeSettings
 # The fields a tender must carry for the contract (DESIGN.md, "Tender record"); a recipe that
 # fills none of one of them is accepted only with a warning the model has read.
 WANTED = ("url", "title", "buyer_name", "publication_date", "submission_deadline")
+# Not required, but delivered when the portal states them: a recipe that reads none is told once.
+WELCOME = ("reference_number", "description", "cpv_codes", "procedure_type", "contract_nature")
 
 
 class _Args(BaseModel):
@@ -296,6 +298,10 @@ class Workspace:
             for name, count in result.conflicts.items():
                 out.append(f"{name}: its locators disagreed on {count} record(s), so the value was dropped there. "
                            "Make them point at the same value.")
+            absent = [name for name in WELCOME if result.filled.get(name, 0) == 0]
+            if absent:
+                out.append(f"No record has {', '.join(absent)}. They are not required, but read each one the "
+                           "portal states on the tender's page or in its API answer.")
         if self.timezone is None:
             out.append("No time zone is set: a deadline without an offset reads as null. Pass `timezone`.")
         return out

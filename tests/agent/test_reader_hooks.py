@@ -92,6 +92,9 @@ def test_a_spot_check_that_confirms_the_values_passes_and_its_cost_is_counted(db
 
     read = reading(db, checker)
     row = read._spot_check(asked(read), RECORDS, {"t2": object()})
+    # What the model cost is on the run row at once, while the read is still going on.
+    stored = db.get_run(read.run.id)
+    assert stored.finished_at is None and stored.model_calls == 1 and stored.usage.cost_usd == 0.25
     assert row.passed and row.name == "spot_check" and row.message.startswith("The spot check confirmed")
     assert seen == [(["t2", "t1"], "The list page's structure changed.")]  # the pages read now come first
     assert read.model_calls == 1 and read.usage.cost_usd == 0.25

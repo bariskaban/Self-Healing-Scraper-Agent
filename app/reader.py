@@ -225,6 +225,11 @@ class _Read:
             self.model_calls += result.model_calls
             self.usage = self.usage.add(result.usage)
         self.seq = max([self.seq, *(step.seq for step in self.db.list_steps(self.run.id))])
+        if result is not None and result.model_calls:
+            # Saved at once, not at the end of the read: an attach can read pages for many minutes
+            # after its learn, and what the model cost must not show as zero, or be lost, meanwhile.
+            self.run = self.run.model_copy(update={"model_calls": self.model_calls, "usage": self.usage})
+            self.db.save_run(self.run)
 
     def add(self, *results: CheckResult | None) -> None:
         for result in results:
