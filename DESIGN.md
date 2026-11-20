@@ -6,7 +6,7 @@ Patterno track · draft 3 of 2026-11-20 · built from the finished research in `
 
 This is the spec the system is built from. Each decision names the research question it comes from (Q1 to Q14); the reasons, the alternatives and every threshold are in `research/qNN-*.md`, and the register is `research/README.md`.
 
-Where this doc and the research disagree, the research wins. Where `research/audit.md` corrects an answer file, the audit wins. The track description and the API contract below win over everything.
+Where this doc and the research disagree, the research wins. Where `research/audit.md` corrects an answer file, the audit wins. The track description and the API contract below win over everything, and so do the mentor's answers in `research/mentor-answers.md`.
 
 ## Changes in draft 3
 
@@ -22,6 +22,7 @@ Draft 2's own change list is in git history. This draft brings the doc in line w
 - **Reuse**: a portal is also matched to stored recipes by its page structure; Patterno's own portal list sizes the Approach argument. (Q11, audit of Q11 · Reuse)
 - **Cost**: prices from Q9. The cost per portal is quoted only once measured; it holds only if the learner trims its context. (audit of Q9 · Cost per portal)
 - **Build plan**: AI agents build the system, one module each, behind tests. (Build plan)
+- **The mentor's answers of 20 November**: a partial result when the attach time limit passes, documents listed while they load, a `cause` field on a portal, robots.txt obeyed with a test switch, a date-only deadline read as end of day, and a test set that leads with non-German portals. (`research/mentor-answers.md`)
 
 ## Context: the Patterno challenge
 
@@ -93,11 +94,13 @@ The brief leaves these open. We decide them once, here, so every part is built t
 - **`reason`.** Always a sentence, also when all is well: "Read at 14:02 found 23 open tenders, 2 new and 1 closed. Every check passed."
 - **`tenderCount`.** The length of the tenders list, closed and withdrawn tenders included.
 - **Tenders while `integrating`.** 200 with `[]`.
-- **Documents not fetched yet.** `documents` is null on that tender, never `[]`: an empty list says the tender has no documents (Q12).
+- **Documents not fetched yet.** A document we know of is listed with its name and announced size, and its `sha256` and `path` are null until its bytes are in. `documents` itself is null when not even the list is known, never `[]`: an empty list says the tender has no documents (Q12; the mentor is fine with documents that are mapped and still loading).
 - **`changedSince`.** A `+` in the offset arrives as a space when the caller does not percent-encode it; we accept both. A value we cannot parse answers 400.
 - **Refresh during a repair.** Answers with the repair's `runId`. A repair run ends with a full verifying read and publishes on success, so when that run finishes the tenders are fresh.
 - **Refresh on a `failed` portal.** Checks it at once with the old recipe, at most once a minute. The check makes no model call; it starts a repair only when the page structure is one we have not seen before (Q14).
-- **Extra fields.** We add our own fields to runs and portals (cost, failed checks, a summary in words). We never rename or drop one from the contract.
+- **Extra fields.** We add our own fields to runs and portals (cost, failed checks, a summary in words). We never rename or drop one from the contract. A portal that is not `serving` also carries `cause`: `outage`, `block` or `breakage`, so the three can be told apart without reading the reason. The mentor confirmed that adding to the interface is fine as long as its schema is kept.
+- **A deadline shown as a date with no time** is the end of that day in the portal's zone. The mentor called that technically right, and without a deadline we could not tell `open` from `closed`. A setting can make it null instead.
+- **robots.txt** is read before the first request to a portal and obeyed. A portal that forbids every path is `failed` with that reason. A setting, off by default, ignores robots.txt for a test; the mentor asked for it. Captchas are never bypassed.
 
 ### Tender record
 
@@ -162,7 +165,7 @@ Learn once, read cheaply, check every read, re-learn on failure. The LLM turns a
 ```mermaid
 stateDiagram-v2
     [*] --> integrating: POST /portals
-    integrating --> serving: every open tender read and checked
+    integrating --> serving: every open tender read and checked, or the attach time limit passed
     integrating --> failed: blocked, or no recipe works
     serving --> serving: read passes
     serving --> healing: breakage confirmed, outage, or no passing read for 3 intervals
@@ -236,6 +239,7 @@ From Q10. A read is judged by evidence that does not depend on how many tenders 
 
 - **O1 list**: the row locator matches, or the list is provably empty (a printed total of 0, the empty-state marker, an API answering its usual keys with an empty list).
 - **O2 file**: 2xx, not an HTML page, first bytes fit the type (`%PDF`; `PK\x03\x04` for ZIP, DOCX, XLSX; `D0 CF 11 E0` for old Office files), size above 0 and equal to the announced size. A login page served with 200 in place of a file is a **Block** and is never stored.
+- **robots.txt** is obeyed. A portal that disallows every path is a **Block** with that reason, unless the test switch is on (the mentor's answer).
 - When the outcome is missing and a block sign is present (a redirect to a login, a password field where a list was expected, `cf-mitigated: challenge`, an AWS WAF 202 or 405 on a non-page request, "Request Rejected", an Imperva frame, a 401, a 403 that persists in the browser too), fetch once more, through the browser if plain HTTP was used. Still blocked: **Block**. A maintenance page: **Outage**. The browser try is made once per incident: one page load of a JavaScript app can cost about 90 requests.
 
 **Step 3: is what we extracted right?** No model.
@@ -315,11 +319,12 @@ At 1 request per second, requests are the budget. From Q12 and Q13.
 | Phase | State | `GET /tenders` | `reason` |
 | --- | --- | --- | --- |
 | List and record phases | `integrating` | `[]` | "Reading tender 420 of 1,000." |
+| The attach time limit passes while still `integrating` | `serving` | the tenders validated so far | "Delivering 400 of about 1,000 open tenders so far. The rest follow by 15:10." |
 | Gate reached, documents need 10 minutes or less | `integrating` | `[]` | "All 38 tenders read. Fetching documents: 12 of 38." |
-| Gate reached, documents need longer | `serving` | every tender; `documents` null where files are not in yet | "All 1,000 open tenders are delivered. Documents are in for 140 of them, soonest deadlines first; the rest follow by 16:40." |
+| Gate reached, documents need longer | `serving` | every tender; each known document listed, with `sha256` and `path` null until its bytes are in | "All 1,000 open tenders are delivered. Documents are in for 140 of them, soonest deadlines first; the rest follow by 16:40." |
 | Everything in | `serving` | complete | "Read at 14:02 found 1,000 open tenders. Every check passed." |
 
-The 10 minutes is ours and waits on the mentors.
+The mentor can wait 20 to 30 minutes per portal, does not want all or nothing at the limit ("we would want to see some kind of results up until then"), and is fine with documents that are listed but still loading (`research/mentor-answers.md`). So the attach time limit is 20 minutes and the document rule stays at 10; both are settings. The size of the test portals was not disclosed.
 
 | Portal (measured or computed in Q12) | Requests | Every record known | Everything in |
 | --- | --- | --- | --- |
@@ -417,7 +422,8 @@ The records and tables are in `app/models.py` and `app/schema.sql` (Q7): API mod
 What the research needs added (audit of Q7):
 
 - **An outage**: `healing` without a repair. `Severity` gets an `outage` value (Q10).
-- **A tender whose documents are not in yet**: `documents` nullable in the API model, and a document entry that can exist before its bytes do (Q12).
+- **A tender whose documents are not in yet**: `documents` nullable in the API model, and a document entry whose `sha256` and `path` are null while its bytes load (Q12, the mentor's answer).
+- **`cause`** on a portal that is not `serving`: outage, block or breakage (the mentor's answer).
 - **What a failed portal remembers**: the page structure we gave up on, the time of the next check, today's repair count; and a per-portal request rate for portals that state their own limit (Q14, Q10).
 - **Read bookkeeping**: a hash of each tender's list row, and a place to hold records before the gate (Q12).
 - **Check results** as Q10 names them, including a suspect that cleared (a passed row, severity `info`, the first observation in `observed`), and room for a first observation and its confirmation in one run.
@@ -443,7 +449,7 @@ One server-rendered page at `/`, reading the same store as the API, so the two c
 - **Top line**: the number of portals in each state, and the model cost so far.
 - **Portal table**, the ones needing attention first: `failed`, `healing`, `integrating`, `serving`. Each row has state, reason, tender count, the age of the last success ("12 minutes ago"), the last run's result and the portal's model cost.
 - **Per portal**: the run timeline. Every read and repair with its time, result and the rules that fired; suspects that cleared, so an operator sees how often a portal wobbles; the share of `conflict` and single-survivor fields; for a repair, what changed in the recipe, in words.
-- The page refreshes itself every few seconds. It has no controls: nobody steers the system from it.
+- The page refreshes itself every few seconds. It shows two settings and lets them be changed, because the mentor asked for both: the attach time limit, and the switch that ignores robots.txt for a test. Both are also environment variables. Nothing else is steered from the page.
 
 ## Build plan
 
@@ -500,11 +506,14 @@ Three templates (a server-rendered table with paging, a JavaScript app on a JSON
 | List emptied, without the notice | Must not pass: confirm, then `healing` |
 | A tender cancelled | `withdrawn` |
 | A ZIP over 250 MB | Skipped; the other files delivered |
+| Large variant, attach time limit passes before the records gate | `serving` with the tenders validated so far; the reason says how many are still to come |
+| robots.txt forbids every path | `failed` with that reason; `serving` when the test switch is on |
 
 ### Test set
 
 From `research/q08-test-portals.md` and `research/patterno-landscape.md`. Recorded once by a person; agents work from the recordings (`CLAUDE.md`).
 
+- **The mentor expects the real test portals not to be German**: Patterno's German coverage is already good. TED will not be a test portal, and aggregators are unlikely. So the portals under "Where Patterno's portals are" come first when recording and testing.
 - **First targets**: TenderNed (Netherlands; public JSON API, one ZIP per tender) and evergabe.nrw.de (Germany; cosinex VMPSatellite, server HTML, a documents tab per notice).
 - **More software families**: tender24.de and the Frankfurt portal (NetServer), Spain's PLACSP (its HTML refuses a plain client; its Atom feed works), e-Zamówienia (Poland; 30 requests a minute).
 - **Where Patterno's portals are**: at least one portal each on `ezamawiajacy.pl`, `e-marchespublics.com`, `logintrade.net`, `acquistitelematici.it` and `tuttogare.it`. Italy and Poland are half of Patterno's list and were missing from the first set.
@@ -527,6 +536,7 @@ Record a backup as soon as healing works on the mock portal. The final take repl
 - [ ] From a fresh clone, `docker build .` works on linux/amd64 and the container answers on port 8080 with only the documented environment variables
 - [ ] README on one page: how it works, the environment variables, the measured cost table
 - [ ] Video of at most 3 minutes, dashboard included
+- [ ] A test report: attach results on the test portals, and the mock portal's switch results. The mentor asked to see how we did on our own runs, also for portals that take longer than they can wait.
 - [ ] Model key values given to the judges, from a key made for the judging with a spending cap
 - [ ] Participant declaration signed by every member
 - [ ] Repo linked in the submission and readable by the judges, with no open-source licence file
@@ -545,25 +555,33 @@ The biggest risk is reporting `serving` while delivering wrong data; most rules 
 
 ### For the mentors
 
-Each has the default we build on until we hear otherwise. The first three decide the most.
+A mentor answered most of these on 20 November. The answers, with how sure we are of each, are in `research/mentor-answers.md`.
 
-- [ ] How long does the harness wait after `POST /portals` before it scores Attach, and how many tenders and documents do the test portals hold? Default: the records gate, then the 10-minute rule (Q12).
-- [ ] Is a portal `serving` when every open tender is delivered with a correct record while some documents are still being fetched, shown as null? Default: yes (Q12).
-- [ ] If one tender's documents need a login while the rest download, is the portal `failed`? Default: no. We publish everything we verified, leave that tender's `documents` null and log it on the run; `failed` only when blocked files pass D1's threshold (Q10).
-- [ ] Does "1 request per second" limit request starts, or requests in flight? Default: starts (Q12).
-- [ ] Do a page's own sub-requests (scripts, images) count? Default: yes, every request to the portal's hosts (Q4).
-- [ ] A portal that is down, not changed: `healing` or `failed`, and after how long? Default: `healing`, then `failed` after 60 minutes (Q10).
-- [ ] A portal that refuses a plain HTTP client but serves a normal browser: may we read it with the headless browser? Default: yes; we solve nothing (Q10).
+**Answered**
+
+- [x] How long does the harness wait, and how big are the test portals? They can wait 20 to 30 minutes per portal; a few minutes per website is fine; they want to see results by the limit, not all or nothing. The size of the test portals was not disclosed.
+- [x] Is a portal `serving` while documents are still being fetched? Yes, when the documents are mapped and loading.
+- [x] A portal that is down, not changed: `healing`. `failed` is for portals that need a person; one that stays down long enough may become `failed` too. No number was given, so 60 minutes stays ours.
+- [x] May we add states or fields? Yes, as long as the given schema is kept. We keep the four states and add `cause`.
+- [x] Does "1 request per second" limit request starts, or requests in flight? Starts.
+- [x] May we read a portal with the headless browser when it refuses a plain HTTP client? Yes.
+- [x] Do we obey robots.txt? Yes; a switch to ignore it for a test is welcome. Captchas are never bypassed.
+- [x] How do the judges change a private portal? Layout, API and paths can all change; the domain will not.
+- [x] How much disk does the container have? Our plan is reasonable; they run on virtual machines and can scale.
+- [x] If only some tenders' documents need a login, is the portal `failed`? Our default stands: no, unless most are blocked.
+- [x] A deadline shown as a date with no time: our choice; end of day is technically right. We use end of day.
+- [x] Can an aggregator such as TED be a test portal? No. TED is fine for finding portals.
+- [x] Where will the real test portals come from? Probably not Germany.
+
+**Still open.** Each has the default we build on.
+
+- [ ] Do tender ids stay the same when a private portal changes? Default: yes.
+- [ ] Do a page's own sub-requests (scripts, images) count, and is the limit per portal or per host? Default: every request counts, per portal across all its hosts (Q4).
 - [ ] After you restore a portal we reported `failed`, do you call refresh, or wait for us to notice? Default: we check on refresh and at 5, 15 and 60 minutes (Q14).
-- [ ] Do we obey robots.txt? Spain's national portal disallows every path for every robot. Default: yes for pages; a portal that forbids everything is `failed` with that reason (Q10, Q3).
-- [ ] How much disk does the container have? Default: about 20 MB per tender; stop fetching documents when space runs low (Q12).
-- [ ] How do the judges change a private portal: layout, URLs, API, or all of them? Do tender ids stay the same? Default: all of them change, ids stay.
 - [ ] How many portals does the harness add at once? Default: any number; each portal reads side by side at its own rate.
 - [ ] Are a ZIP's entries listed in place of the ZIP, or beside it? Default: in place of it.
 - [ ] Is `tenderCount` every tender we hold, or the open ones? Default: every tender we hold.
-- [ ] A deadline shown as a date with no time: null, or end of day? Default: null.
 - [ ] A portal that shows both its own tender id and the buyer's reference number: which one is `id`? Default: the portal's own id; the buyer's number goes in `referenceNumber`.
-- [ ] Can an aggregator such as TED be one of the test portals? Default: we attach it like any portal and follow each notice to the page holding its documents; TED is never the source of another portal's ids (Q11).
 
 ### Risks
 

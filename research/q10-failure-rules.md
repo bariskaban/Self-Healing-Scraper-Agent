@@ -227,9 +227,12 @@ Looked at only when the outcome is missing (O1, O2).
 
 ## For the mentors
 
-1. A portal that is down, not changed: should it read `healing` or `failed`, and after how long?
-2. When a portal answers 403 or shows a challenge to a plain HTTP client but serves a normal browser, may we read it with the headless browser? We assume yes: it is a real browser and we solve nothing.
-3. Do we obey robots.txt? Spain's national portal disallows every path for every robot. We assume yes for pages, and that a portal which forbids everything is reported `failed` with that reason.
+Answered on 20 Nov ([mentor-answers.md](mentor-answers.md)):
+
+1. A portal that is down, not changed, reads `healing`. `failed` is for portals that need a person; one that stays down long enough may become `failed`. No number was given, so the 60 minutes stays ours.
+2. We may read a portal with the headless browser when it refuses a plain HTTP client.
+3. robots.txt is obeyed. A portal that forbids every path is a **Block** with that reason. A switch, off by default, ignores robots.txt for a test. Captchas are never bypassed.
+4. Fields may be added to the interface as long as its schema is kept. So a portal that is not `serving` carries `cause`: `outage`, `block` or `breakage`, taken from the verdict above.
 
 ## Prototype first (about 5 hours)
 

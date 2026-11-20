@@ -55,6 +55,7 @@ The longest wrong time is the interval plus the time the list takes. A change th
 - **Longest wrong time = interval + list duration** (**ours**: an event just after a read is seen at the end of the next one).
 - **Freshness of a tender under a re-read period I**, with changes arriving at rate λ: (1 - e^(-λI)) / (λI). At λ = 0.1 per day and I = 24 hours this is 0.952 (**measured**: computed). This is the model used in crawler-refresh research (**search**: Cho and Garcia-Molina 2003; the paper was not opened).
 - **Changes do happen.** 14 of TenderNed's newest 100 notices were rectifications (**measured** today). So detail pages must be re-read, which the rotation does.
+- **Being first matters to Patterno.** The mentor on why aggregators are not enough: they are late, and Patterno wants to be first ([mentor-answers.md](mentor-answers.md)). A short interval serves that as well as the Notice criterion.
 - **The judges' cadence.** The brief says refresh may be called "every few minutes" (**read**). A 2-minute floor means we have read at least once on our own between two such calls.
 
 ## Numbers that are our own choice

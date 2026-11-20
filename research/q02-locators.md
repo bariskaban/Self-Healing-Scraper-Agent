@@ -73,7 +73,7 @@ Two attach rules from the prior art:
 | title | non-empty, not equal to buyerName, length within bounds | title/buyer swap |
 | buyerName | non-empty, not identical to the portal's own name on most tenders | header or footer text |
 | publicationDate | parses, not in the future | wrong date row |
-| submissionDeadline | parses with the portal's zone; after publicationDate when present, and after the dispatch date when present; a date with no time is null (draft 2) | deadline/publication swap |
+| submissionDeadline | parses with the portal's zone; after publicationDate when present, and after the dispatch date when present; a date with no time is the end of that day in the portal's zone (the mentor's answer, see mentor-answers.md) | deadline/publication swap |
 | status | enum after the word map; when the portal shows none, deriving from the deadline covers only open/closed; withdrawn needs an explicit cancellation shown by the portal (DESIGN.md) | constant column |
 | cpvCodes | 8 digits **and present in the official CPV 2008 code list**, shipped in the image | wrong code column. The check digit is dropped from our output, so list membership is a stronger check than the check-digit formula, which the research could not confirm |
 | placeOfPerformance | country code in ISO 3166-1; postal code fits the country's pattern | address line swap |

@@ -55,18 +55,9 @@ About 12 hours of building, in this order. Each step is the prototype named in i
 | 8 | Q10, Q14 | Run every mock-portal switch; each verdict row must be produced at least once | 2 | Q8's mock portal |
 | 9 | Q12 | One real bulk portal end to end (TenderNed's API and ZIP); compare the request count with the table | 1 | steps 3 and 5 |
 
-## Questions these answers raise for the mentors
+## Questions for the mentors
 
-The first three decide the most.
-
-1. How long does the harness wait after `POST /portals` before it scores Attach, and how many tenders and documents do the test portals hold? (Q12)
-2. Is a portal `serving` when every open tender is delivered with a correct record while some documents are still being fetched, shown as null? (Q12)
-3. Does "1 request per second" limit request starts, or the number in flight? (Q12)
-4. How much disk does the container have? (Q12)
-5. A portal that is down, not changed: `healing` or `failed`, and after how long? (Q10)
-6. A portal that refuses a plain HTTP client but serves a normal browser: may we read it with the headless browser? (Q10)
-7. After you restore a portal that we reported `failed`, do you call refresh, or wait for us to notice? (Q14)
-8. Do we obey robots.txt? Spain's national portal disallows every path for every robot. (Q10, Q3)
+A mentor answered most of them on 20 Nov. The answers, and what they change, are in [mentor-answers.md](mentor-answers.md); they rank with the track description. Still open: whether tender ids stay the same when a portal changes, whether a page's sub-requests count, whether the judges call refresh after restoring a portal, ZIP entries in place of the ZIP or beside it, what `tenderCount` counts, and which of two identifiers is `id`.
 
 ## Tools
 

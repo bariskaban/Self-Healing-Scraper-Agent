@@ -56,7 +56,9 @@ Added from the answers to Q10, Q12 and Q14:
 22. Down for over an hour, then back: `failed` after 60 minutes, `serving` at the next check; 0 model calls.
 23. Login wall shown, then removed: `failed` with the reason, then `serving` at the next check; 0 model calls.
 24. Layout changed twice in a row: one repair per change, two in all.
-25. Large variant: `serving` at the records gate with `documents` null on tenders whose files are not in yet; complete later.
+25. Large variant: `serving` at the records gate, each known document listed with `sha256` and `path` null until its bytes are in; complete later.
+26. Large variant, attach time limit passes before the records gate: `serving` with the tenders validated so far, the reason saying how many are still to come (the mentor's answer).
+27. robots.txt forbids every path: `failed` with that reason; `serving` when the test switch is on (the mentor's answer).
 
 ## What is automated, what is checked by eye
 * Automated: scoring, state polling, scenario switching, cost, attach time, the "0 model calls per read" assertion.
