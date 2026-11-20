@@ -14,3 +14,7 @@ dist/
 # tests/fixtures/ stays tracked.
 /data/
 /recordings/
+
+# dashboard build
+dashboard/node_modules/
+dashboard/dist/
