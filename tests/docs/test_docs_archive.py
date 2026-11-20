@@ -95,13 +95,15 @@ def _set_flag(data: bytes, name: bytes, bit: int) -> bytes:
     return bytes(out)
 
 
-def test_encrypted_entry_is_skipped(store):
+def test_zip_with_a_password_protected_entry_is_kept_whole(store):
+    # Unpacking would lose the protected entry; the whole ZIP still delivers every byte.
     data = _set_flag(make_zip([("secret.pdf", PDF), ("open.pdf", b"%PDF-open")]), b"secret.pdf", 0x1)
     res = run(store, data)
-    secret, opened = res.files[1:]
-    assert secret.skipped == SkipReason.login_required and secret.sha256 is None
-    assert opened.deliverable
-    assert {p.name for p in blobs(store)} == {sha(b"%PDF-open")}
+    (whole,) = res.files
+    assert whole.deliverable and not whole.is_archive and whole.sha256 == sha(data)
+    assert [link.file_id for link in res.links] == [whole.file_id]
+    assert {p.name for p in blobs(store)} == {sha(data)}
+    assert any("password-protected" in note for note in res.notes)
 
 
 def test_non_utf8_name_is_read_as_cp437(store):

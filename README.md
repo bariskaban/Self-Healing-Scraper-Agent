@@ -110,7 +110,8 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Ask the mentors how long the harness waits and whether `serving` may have documents pending. Answered (`research/mentor-answers.md`): 20 to 30 minutes, and yes. The 10-minute rule stays; the attach time limit is 20 minutes.
 - [x] Incremental reads, the plan: which tenders are fetched, which are no longer listed, and the detail-page rotation (`plan_incremental_read` in `app/scheduler.py`).
 - [ ] Incremental reads, in the loop: run the plan against the executor and the store (`detail_fetched_at`, `docs_status`).
-- [ ] Documents (`app/docs/`): multi-step downloads, streaming, ZIP unpacking, sha256, 250 MB limit, captcha-but-file-downloads case.
+- [x] Documents (`app/docs/`): streaming to disk with the SHA-256 computed as the bytes arrive, the 250 MB limit, files stored once under their hash, ZIP unpacking (nested too, within caps), file names, disk rules. It takes the bytes from the network layer and the file test (O2) from `app/checks/` as parameters.
+- [ ] Documents, wiring: the download through `app/fetch/` (multi-step downloads are recipe steps), the file test from `app/checks/` (covers the captcha-but-file-downloads case), and storing the records (`app/db.py`).
 
 ### [ ] Q13. Read schedule
 **Owner:** Goktug for the rules; the loop: _____

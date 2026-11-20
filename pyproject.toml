@@ -24,3 +24,5 @@ include = ["app", "app.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The repo root on the path, so tests in sub-folders can share helpers (tests.docs.conftest).
+pythonpath = ["."]

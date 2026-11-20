@@ -2,7 +2,8 @@
 
 Every entry is stored under its own hash; the name inside the archive is only a display name.
 Archive-wide caps (entry count, unpacked total, ratio, depth) are checked from the central
-directory before anything is extracted. An archive over a cap, or one that cannot be read, is not
+directory before anything is extracted. An archive over a cap, one with password-protected
+entries, or one that cannot be read, is not
 unpacked: `Unpacked.refused` says why, and the caller keeps its bytes as one plain file. The bytes
 of an archive that was unpacked are not kept. Blocking: run in a thread.
 """
@@ -70,9 +71,13 @@ class Unpacked:
 def _refusal(infos: list[zipfile.ZipInfo], archive_size: int, budget: _Budget,
              settings: DocsSettings) -> str | None:
     """Why this archive must not be unpacked, judged from its central directory; None if it may."""
+    if any(i.flag_bits & _ENCRYPTED for i in infos):
+        # We cannot open these entries. Kept whole, the archive still delivers every byte the
+        # portal published; unpacked, the protected entries would be lost.
+        return "it has password-protected entries"
     if len(infos) > budget.entries_left:
         return f"{len(infos)} entries, over the cap of {settings.max_entries}"
-    wanted = [i for i in infos if not i.flag_bits & _ENCRYPTED and i.file_size <= settings.max_file_bytes]
+    wanted = [i for i in infos if i.file_size <= settings.max_file_bytes]
     total = _wanted_total(infos, settings)
     if total > budget.bytes_left:
         return f"unpacks to {total} bytes, over the cap of {settings.max_unpacked_bytes}"
@@ -113,9 +118,8 @@ def unpack(store: FileStore, zip_path: Path, *, archive_sha256: str, archive_fil
 
 
 def _wanted_total(infos: list[zipfile.ZipInfo], settings: DocsSettings) -> int:
-    """Declared bytes of the entries we would extract (not encrypted, not over the file limit)."""
-    return sum(i.file_size for i in infos
-               if not i.flag_bits & _ENCRYPTED and i.file_size <= settings.max_file_bytes)
+    """Declared bytes of the entries we would extract (those not over the file limit)."""
+    return sum(i.file_size for i in infos if i.file_size <= settings.max_file_bytes)
 
 
 def _skip(out: Unpacked, path: str, reason: SkipReason, note: str, *, archive_sha256: str,
@@ -131,10 +135,6 @@ def _unpack_entry(zf: zipfile.ZipFile, info: zipfile.ZipInfo, path: str, out: Un
                   store: FileStore, archive_sha256: str, archive_file_id: str, source_url: str,
                   settings: DocsSettings, depth: int, budget: _Budget) -> None:
     ctx = dict(archive_sha256=archive_sha256, archive_file_id=archive_file_id, source_url=source_url)
-    if info.flag_bits & _ENCRYPTED:
-        # No SkipReason fits; login_required is the closest ("needs a password we do not have").
-        _skip(out, path, SkipReason.login_required, "encrypted", size=info.file_size, **ctx)
-        return
     if info.file_size > settings.max_file_bytes:
         _skip(out, path, SkipReason.too_large, f"{info.file_size} bytes, over the limit",
               size=info.file_size, **ctx)
