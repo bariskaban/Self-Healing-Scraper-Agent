@@ -435,7 +435,7 @@ What the research needs added (audit of Q7):
 - Portals run side by side. Twenty portals added at once all make progress; browser pages are capped at two at a time, model calls at four.
 - One request may start per second per portal, counting every request to the portal's hosts, redirect hops and browser sub-requests included.
 - The API answers at once, always. Parsing, hashing and unzipping run in threads, off the event loop.
-- Database access does not fan out over threads: four threads reading SQLite in one process took 130 ms a query against 2.3 ms for one (Q15). API handlers are `async def` and use one database thread; the worker writes through its own connection; long scans such as the fingerprint match run in the worker.
+- Database access does not fan out over threads: four threads reading SQLite through their own connections in one process took 130 ms a query against 2.3 ms for one (Q15). The store (`app/db.py`) holds one connection for reads and one for writes, each behind a lock, so routes may call it from any thread and throughput stays flat as threads are added. Long scans such as the fingerprint match run in the worker.
 - After a restart, runs left open are closed as failed and their portals queued again.
 - Tenders of the last good read stay published until a new read passes every check.
 - `closed` is set when the deadline passes or a passing read no longer lists the tender and its detail page confirms it (C4); `withdrawn` only when the portal says it was cancelled. The deadline is watched by a clock, not only by reads, and the change sets `lastChangedAt`, so a `changedSince` caller sees it.
