@@ -59,7 +59,7 @@ All merged with tests; CI runs the unit tests, the Docker build and the contract
 
 The executor runs a recipe without a model. It is made of pure functions on pages, plus a thin layer that asks a page source for the next page.
 
-**On `goktug-executor` now** (three commits on top of the schema branch; 788 tests pass with the plain `pytest` command; the Docker check was not run on it yet):
+**On `goktug-executor` now** (three commits, with `main` merged in at 19:20 UTC; 788 tests pass with the plain `pytest` command; the Docker image builds with the new packages and answers on port 8080):
 
 | File | What it does | State |
 | --- | --- | --- |
