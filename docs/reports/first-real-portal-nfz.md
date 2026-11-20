@@ -55,9 +55,19 @@ A cache-missing call cost $0.04 to $0.07; a cache-hitting one about $0.01. If ev
 |---|---|---|---|---|
 | 1 | 21:37:58 | **"No recipe could be learned"** on the first attach. The reason has no "The learner says" part, so no model was called: the app had no `OPENAI_API_KEY`, and the only learner without a key knows just the mock portal. | $0, 6 minutes | Explained. A key was set at the restart and the next recheck learned it. The new debug logs (PR #52) say this outright at startup ("no agents: OPENAI_API_KEY is not set"). |
 | 2 | 21:45 (call 21 of 40) | **First recipe proposal rejected**: three procedure words were mapped to values the contract does not have (`competitive_dialogue`, `innovation_partnership`, `direct_award`; only `open`, `restricted`, `negotiated`, `other` exist). The model fixed it with `replace_node` on the next call. TenderNed's first proposal was also rejected (7 problems) and fixed the same way. | Two extra calls each | Recovered by itself. The learn prompt should list the allowed values so the first proposal passes. |
-| 3 | 21:52:28 | **DNS failure, 3 tries.** The portal went `healing` / `outage` and kept its 5 tenders; no repair was started and no model was called. Recovered at the next try, 3 minutes later. Probably the local network. | $0 | Correct behaviour: an outage is not a breakage. |
+| 3 | 21:52:28 | **A DNS failure shows as `healing`, not as an outage.** The reads recorded it correctly: the `outage` check failed ("The portal did not answer (DNS failure, 3 tries)"), severity `outage`, cause `outage`. But the portal's *state* was `healing`, so the dashboard showed a Healing badge, and its overview band offers "Inspect repair" although no repair ran and no model was called. Only the portal's detail page says "Cause: outage". It recovered by itself at 21:55. | $0 | **Open, by design but misleading.** Q10 and DESIGN.md give an outage the state `healing` (then `failed` after 60 minutes), and the API has only four states (`outage` is a cause, not a state), so the state machine did what the design says. The wording is the problem: "healing" reads as a repair. See below. |
 | 4 | after the learn | **Optional fields not read**: `description` and `cpv_codes` are empty on all 5 tenders (the other nine fields are filled on all 5). The checks do not flag it because they are optional. | | Open. Not a failure, but a lower field score than the portal could give. |
 | 5 | 22:08 onward | **Cost of an unfinished run is not stored.** TenderNed's learn cost $0.74 (28 calls), but its run row shows 0 calls and $0 and the dashboard shows 0.00 EUR, because a run's usage is saved only when the run ends. The figure is visible only in the text of a step. If the app stops before the run ends, the spend is lost. | $0.74 invisible | Open. The true spend of the session is at least $1.46, not the $0.72 the runs table shows. |
+
+## Outage shown as healing: options
+
+| Option | Change | Cost |
+|---|---|---|
+| A. Keep the state, fix the wording | The dashboard shows the cause beside the state on the overview ("Healing: outage, the portal is not answering") and the repair band says "Not answering" instead of "Inspect repair" when the cause is an outage | Dashboard only (Danil's files); no contract change |
+| B. Say it in the reason | The reason already says "has not answered since 21:52 (DNS failure, 3 tries)"; show it on the overview row, not only on the detail page | Dashboard only |
+| C. Change the state | Report an outage as something other than `healing` | **Not possible without breaking the contract**: the brief's four states are fixed. Research (Q10) also says `healing`, and research wins over our wishes |
+
+Also to decide: a DNS failure may be *our* network, not the portal (here it probably was). The app cannot tell the two apart from one portal; it would need to resolve a known-good name too. Not built.
 
 ## The second portal: TenderNed (for context, not finished)
 
