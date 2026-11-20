@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { absTime, hostname, portalCost, relTime } from "@/data/format";
 import { portalHash } from "@/data/hooks";
 import { sortPortals } from "@/data/view";
 import { cn } from "@/lib/utils";
 import type { Portal, PortalState } from "@/types";
-import { CostLabel, DeliverySparkline, ReadHistory30, ResultMark, Skel, StateBadge } from "./primitives";
+import { stillServing } from "./overview";
+import { CostLabel, DeliverySparkline, ReadHistory30, ResultMark, Skel, StateBadge, idx } from "./primitives";
 
 function useFlashes(portals: Portal[], live: boolean) {
   const prev = useRef<Map<string, PortalState> | null>(null);
@@ -33,17 +35,27 @@ function LastRun({ p }: { p: Portal }) {
   return <span className="whitespace-nowrap"><span className="capitalize text-secondary-text">{p.lastRun.kind}</span> · <ResultMark result={p.lastRun.result} /></span>;
 }
 
+/** Only the exceptions float; healthy rows stay still. */
+const Chip = ({ p, i }: { p: Portal; i: number }) => <StateBadge state={p.state} float={p.state !== "serving"} i={i} />;
+
+/** What a healing portal keeps delivering, as its own floating chip beside the host name. */
+function StillServing({ p, i }: { p: Portal; i: number }) {
+  const note = stillServing(p);
+  if (!note) return null;
+  return <span className="chip chip-plain float text-xs font-medium text-healing" style={idx(i + 2)}><span aria-hidden className="live-dot" />{note}</span>;
+}
+
 export function PortalLedger({ portals, now, eurPerUsd, live }: { portals: Portal[]; now: number; eurPerUsd: number; live: boolean }) {
   const rows = sortPortals(portals);
   const flash = useFlashes(portals, live);
-  const th = "px-3 py-2 text-left text-label font-medium text-secondary-text 2xl:px-4";
-  const td = "px-3 py-2 align-middle 2xl:px-4 2xl:py-2.5";
+  const th = "px-3 pb-1 text-left text-[0.7rem] font-semibold tracking-[0.14em] whitespace-nowrap text-muted-foreground uppercase first:pl-5 last:pr-5 2xl:px-5";
+  const td = "px-3 py-3.5 align-middle first:pl-5 last:pr-5 2xl:px-5";
   return (
     <>
-      <div className="hidden overflow-hidden rounded-lg border border-border bg-surface md:block">
-        <table className="w-full border-collapse text-label ledger-table">
+      <div className="hidden min-[1360px]:block">
+        <table className="ledger-table w-full text-[0.92rem]">
           <caption className="sr-only">Portals, sorted by state then hostname</caption>
-          <thead className="border-b border-divider bg-inset">
+          <thead>
             <tr>
               <th scope="col" className={th}>State</th>
               <th scope="col" className={th}>Portal / Reason</th>
@@ -54,39 +66,45 @@ export function PortalLedger({ portals, now, eurPerUsd, live }: { portals: Porta
               <th scope="col" className={cn(th, "text-right")}>Model cost</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-divider">
-            {rows.map((p) => (
-              <tr key={`${p.id}-${flash[p.id] ?? 0}`} className={cn("hover:bg-inset", live && flash[p.id] && `animate-state-flash flash-${p.state}`)}>
-                <td className={td}><StateBadge state={p.state} /></td>
-                <td className={cn(td, "w-[40%] min-w-[16rem]")}>
-                  <a href={portalHash(p.id)} className="text-body font-semibold text-primary underline-offset-2 hover:underline break-words">{hostname(p.url)}</a>
-                  <p className="text-label leading-relaxed text-secondary-text">{p.reason}</p>
+          <tbody>
+            {rows.map((p, i) => (
+              <tr key={`${p.id}-${flash[p.id] ?? 0}`} className={cn(live && flash[p.id] && `flash-row flash-${p.state}`)}>
+                <td className={cn(td, "w-px whitespace-nowrap")}><Chip p={p} i={i} /></td>
+                <td className={cn(td, "min-w-[17rem]")}>
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <a href={portalHash(p.id)} className="group inline-flex items-center gap-1 text-[1.05rem] font-semibold tracking-tight text-foreground underline-offset-4 hover:underline break-all">
+                      {hostname(p.url)}<ArrowUpRight aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform duration-500 ease-spring group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
+                    </a>
+                    <StillServing p={p} i={i} />
+                  </span>
+                  <p className="mt-0.5 max-w-[60rem] leading-relaxed text-secondary-text">{p.reason}</p>
                 </td>
                 <td className={cn(td, "text-right")}>
-                  <div className="flex items-center justify-end gap-3"><DeliverySparkline values={p.deliveryTrend} /><span className="font-semibold">{p.tenderCount}</span></div>
+                  <div className="flex items-center justify-end gap-3"><DeliverySparkline values={p.deliveryTrend} /><span className="min-w-[1.5ch] text-[1.35rem] leading-none font-semibold tracking-tight">{p.tenderCount}</span></div>
                 </td>
-                <td className={td}><LastSuccess p={p} now={now} /></td>
+                <td className={cn(td, "whitespace-nowrap")}><LastSuccess p={p} now={now} /></td>
                 <td className={td}><LastRun p={p} /></td>
                 <td className={td}><ReadHistory30 reads={p.recentReads} /></td>
-                <td className={cn(td, "text-right")}><CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} className="text-label" /></td>
+                <td className={cn(td, "text-right")}><CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} stacked /></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <ul className="flex flex-col gap-3 md:hidden" aria-label="Portals">
-        {rows.map((p) => (
-          <li key={`${p.id}-${flash[p.id] ?? 0}`} className={cn("rounded-lg border border-border bg-surface p-4", live && flash[p.id] && `animate-state-flash flash-${p.state}`)}>
-            <div className="flex items-start justify-between gap-2">
-              <a href={portalHash(p.id)} className="font-semibold text-primary break-all">{hostname(p.url)}</a>
-              <StateBadge state={p.state} />
+      <ul className="grid gap-3 md:grid-cols-2 min-[1360px]:hidden" aria-label="Portals">
+        {rows.map((p, i) => (
+          <li key={`${p.id}-${flash[p.id] ?? 0}`} className={cn("card p-4 sm:p-5", live && flash[p.id] && `flash-row flash-${p.state}`)}>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <a href={portalHash(p.id)} className="text-[1.05rem] font-semibold tracking-tight underline-offset-4 hover:underline break-all">{hostname(p.url)}</a>
+              <Chip p={p} i={i} />
             </div>
-            <p className="mt-1 text-label text-secondary-text">{p.reason}</p>
-            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-label">
+            {stillServing(p) && <p className="mt-2"><StillServing p={p} i={i} /></p>}
+            <p className="mt-2 text-sm leading-relaxed text-secondary-text">{p.reason}</p>
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <dt className="text-muted-foreground">Tenders</dt><dd className="font-semibold">{p.tenderCount}</dd>
               <dt className="text-muted-foreground">Last success</dt><dd><LastSuccess p={p} now={now} /></dd>
               <dt className="text-muted-foreground">Last run</dt><dd><LastRun p={p} /></dd>
-              <dt className="col-span-2 text-muted-foreground">Last 30 reads</dt><dd className="col-span-2"><ReadHistory30 reads={p.recentReads} /></dd>
+              <dt className="col-span-2 text-muted-foreground">Last 30 reads</dt><dd className="col-span-2 overflow-hidden"><ReadHistory30 reads={p.recentReads} /></dd>
               <dt className="col-span-2 text-muted-foreground">Model cost</dt><dd className="col-span-2"><CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} className="whitespace-normal" /></dd>
             </dl>
           </li>
@@ -98,11 +116,10 @@ export function PortalLedger({ portals, now, eurPerUsd, live }: { portals: Porta
 
 export function LedgerSkeleton() {
   return (
-    <div className="rounded-lg border border-border bg-surface" aria-busy="true" aria-label="Loading portals">
-      <div className="h-10 border-b border-divider bg-inset" />
+    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading portals">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="flex h-[3.6rem] items-center gap-6 border-b border-divider px-4 last:border-0">
-          <Skel className="h-6 w-24" /><Skel className="h-5 flex-1" /><Skel className="h-5 w-16" /><Skel className="h-5 w-20" /><Skel className="h-5 w-24" /><Skel className="h-6 w-40" /><Skel className="h-5 w-28" />
+        <div key={i} className="card flex h-[4.6rem] items-center gap-6 rounded-2xl px-5">
+          <Skel className="h-7 w-28 rounded-full" /><Skel className="h-5 flex-1" /><Skel className="hidden h-5 w-16 md:block" /><Skel className="hidden h-5 w-20 md:block" /><Skel className="hidden h-6 w-40 lg:block" /><Skel className="hidden h-5 w-24 lg:block" />
         </div>
       ))}
     </div>
@@ -113,10 +130,10 @@ const CURL = `curl -X POST http://localhost:8080/portals -H 'Content-Type: appli
 
 export function EmptyFleet() {
   return (
-    <div className="rounded-lg border border-border bg-surface p-8">
-      <h2 className="text-section font-semibold">No portals yet</h2>
+    <div className="card p-8">
+      <h2 className="display text-[1.9rem]">No portals yet</h2>
       <p className="mt-2 text-secondary-text">Attach a public tender portal through the API:</p>
-      <pre tabIndex={0} aria-label="Command to attach a portal" className="mt-4 overflow-x-auto rounded-md bg-inset p-4 font-mono text-label select-all">{CURL}</pre>
+      <pre tabIndex={0} aria-label="Command to attach a portal" className="mt-4 overflow-x-auto rounded-xl bg-inset p-4 font-mono text-sm select-all">{CURL}</pre>
     </div>
   );
 }

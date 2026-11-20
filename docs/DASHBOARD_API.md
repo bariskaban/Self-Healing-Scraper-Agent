@@ -4,6 +4,7 @@ The JSON the dashboard at `GET /` reads. The Platform fills these routes from SQ
 
 - `GET /api/dashboard`: every 5 s.
 - `GET /api/portals/{id}/timeline` and `GET /portals/{id}/tenders` (the public contract route, unchanged): only while a portal's page is open.
+- The overview also reads `GET /api/portals/{id}/timeline` for one portal, and only while that portal has a repair in flight: its "Live repair" card walks through that run. No repair, no extra request.
 - `POST /api/settings`: the only write. It sets the attach time limit and the robots.txt test switch (mentor answers 1b and 7).
 
 Field names follow `app/models.py` (`Portal`, `Run`, `RunStats`, `TokenUsage`, `CheckResult`, `AgentStep`, `Recipe.rationale`), in camelCase. These are extra routes; the public Patterno contract is not changed. Written with GPT-6.2 Astra, 20 Nov 2026.
@@ -97,4 +98,4 @@ The source is in `dashboard/` (React, Vite, TypeScript, Tailwind; designed in Lo
 cd dashboard && bun install --frozen-lockfile && bun run build
 ```
 
-Only `bun.lock` is committed, so use bun, not `npm ci`. Then replace `app/dashboard/static/` with the contents of `dashboard/dist/`. `GET /` serves `index.html`, and `/assets/*` serves the bundle (`app/main.py`).
+Only `bun.lock` is committed, so use bun, not `npm ci`. Then replace `app/dashboard/static/` with the contents of `dashboard/dist/`. The Inter font is bundled from `@fontsource-variable/inter`, so the page still makes no request to a font host or CDN. `/?run=<run id>#/portal/<id>` opens that run's sheet directly, which is handy for the demo video. `GET /` serves `index.html`, and `/assets/*` serves the bundle (`app/main.py`).
