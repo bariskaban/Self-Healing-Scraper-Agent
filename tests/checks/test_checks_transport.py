@@ -53,7 +53,7 @@ def test_a_503_is_tried_three_times_before_it_is_an_outage():
     assert effect_of(first) is Effect.suspect and first.observed["second_look"] == "retry"
     third = transport_check("r1", Answer(status=503), tries=3)
     assert effect_of(third) is Effect.outage and cause_of(third) is Cause.outage
-    assert third.name == "outage" and third.severity is Severity.fail
+    assert third.name == "outage" and third.severity is Severity.outage
     assert "HTTP 503" in third.message and "3 tries" in third.message
 
 

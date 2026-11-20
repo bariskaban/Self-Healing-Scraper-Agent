@@ -10,7 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.models import (  # noqa: E402
-    FileRecord, PlaceOfPerformance, Portal, PortalState, TenderFile, TenderRecord,
+    Cause, CheckResult, DocsStatus, DocumentOut, FileRecord, PlaceOfPerformance, Portal,
+    PortalState, Severity, TenderFile, TenderRecord,
     TenderOut, TenderStatus, REQUIRED_TENDER_FIELDS, normalize_cpv, url_key,
 )
 
@@ -148,5 +149,49 @@ def test_portal_api_shape():
     out = p.to_api(0).model_dump(mode="json")
     assert out == {"id": "p1", "url": "https://x.de", "state": "integrating",
                    "reason": "Attaching: nothing delivered yet.", "tenderCount": 0,
-                   "lastSuccessAt": None}
+                   "lastSuccessAt": None, "cause": None}
     assert p.state == PortalState.integrating
+
+
+def test_portal_cause_is_sent_while_not_serving():
+    p = Portal(id="p1", url="https://x.de", url_key=url_key("https://x.de"),
+               state=PortalState.healing, reason="Not answering since 14:02.", cause=Cause.outage)
+    assert p.to_api(3).model_dump(mode="json")["cause"] == "outage"
+
+
+def test_outage_severity_fits_the_checks_table(db):
+    check = CheckResult(run_id="r1", name="outage", passed=False, severity=Severity.outage,
+                        message="The portal has not answered since 14:02.")
+    db.execute("INSERT INTO portals (id,url,url_key,created_at,updated_at) VALUES ('p1','u','u','t','t')")
+    db.execute("INSERT INTO runs (id,portal_id,kind,trigger,started_at,state_before) VALUES ('r1','p1','read','schedule','t','serving')")
+    db.execute("INSERT INTO run_checks (run_id,name,passed,severity,message) VALUES (?,?,?,?,?)",
+               (check.run_id, check.name, int(check.passed), check.severity, check.message))
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute("INSERT INTO run_checks (run_id,name,passed,severity,message) VALUES ('r1','x',0,'nonsense','m')")
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute("UPDATE portals SET cause = 'nonsense' WHERE id = 'p1'")
+    db.execute("UPDATE portals SET cause = 'outage' WHERE id = 'p1'")
+
+
+def test_document_still_loading_is_listed_without_hash_and_path():
+    waiting = FileRecord(file_id="tmp1", source_url="u4", size_bytes=2048)
+    unknown_size = FileRecord(file_id="tmp2", source_url="u5")
+    links = [pdf_link(),
+             (TenderFile(portal_id="p1", tender_id="T-1", file_id="tmp1", file_name="Plan.pdf", position=1), waiting),
+             (TenderFile(portal_id="p1", tender_id="T-1", file_id="tmp2", file_name="Anlage.docx", position=2), unknown_size)]
+    docs = make_tender().to_api(links, now=NOW)["documents"]
+    assert docs[0]["sha256"] == "a" * 64 and docs[0]["path"] == "/files/ab12cd34ab12cd34"
+    assert docs[1] == {"fileName": "Plan.pdf", "sizeBytes": 2048, "sha256": None, "path": None}
+    assert docs[2] == {"fileName": "Anlage.docx", "sizeBytes": None, "sha256": None, "path": None}
+
+
+def test_documents_null_until_the_list_is_known_and_empty_when_there_are_none():
+    assert make_tender().to_api([], now=NOW)["documents"] is None  # docs_status is pending
+    assert make_tender(docs_status=DocsStatus.complete).to_api([], now=NOW)["documents"] == []
+
+
+def test_document_hash_and_path_come_together():
+    with pytest.raises(ValueError):
+        DocumentOut(fileName="a.pdf", sizeBytes=1, sha256="a" * 64, path=None)
+    with pytest.raises(ValueError):
+        DocumentOut(fileName="a.pdf", sizeBytes=None, sha256="a" * 64, path="/files/ab12")

@@ -1,10 +1,10 @@
 """How a check says what it found, inside the `CheckResult` of `app/models.py`.
 
-`Severity` has four values and no way to say "the portal is down" or "look again
-first". Until `app/models.py` gains them, every result built here keeps `observed`
-as a dict and uses three reserved keys in it:
+`Severity` says what a failure does to the portal: `fail` (a breakage), `block`,
+`outage`. It has no way to say "look again first" or "ask the model", so every
+result built here keeps `observed` as a dict and uses these reserved keys in it:
 
-    cause         "outage", "block" or "breakage", on a result that failed
+    cause         "outage", "block" or "breakage", on a result that failed or warns
     effect        "suspect" (a second look must confirm it before the state may change)
                   or "spot_check" (the model must check the values)
     if_confirmed  on a suspect: the cause it gets when the second look agrees,
@@ -23,21 +23,16 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models import CheckResult, Severity
+from app.models import Cause, CheckResult, Severity
+
+__all__ = ["Cause", "Effect", "Facts", "cause_of", "effect_of", "failed", "note", "observed_of", "passed",
+           "suspect", "wants_spot_check", "without_marks"]
 
 
 class Facts(BaseModel):
     """Base for the small records a read hands to the checks: frozen, no unknown fields."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-
-
-class Cause(StrEnum):
-    """Why a portal is not `serving` (the `cause` field of DESIGN.md)."""
-
-    outage = "outage"      # not answering: healing, never a repair
-    block = "block"        # a login or bot wall: failed
-    breakage = "breakage"  # the read is wrong: healing, repair
 
 
 class Effect(StrEnum):
@@ -93,8 +88,8 @@ def wants_spot_check(run_id: str, name: str, message: str, *, observed: dict[str
 
 def failed(run_id: str, name: str, message: str, *, cause: Cause,
            observed: dict[str, Any] | None = None, expected: Any = None) -> CheckResult:
-    """A confirmed failure. An outage is `fail` with cause "outage" until `Severity.outage` exists."""
-    severity = Severity.block if cause is Cause.block else Severity.fail
+    """A confirmed failure, with the severity of its cause: `outage`, `block`, or `fail` for a breakage."""
+    severity = {Cause.block: Severity.block, Cause.outage: Severity.outage}.get(cause, Severity.fail)
     return CheckResult(run_id=run_id, name=name, passed=False, severity=severity,
                        observed=_seen(observed, cause=cause.value), expected=expected, message=message)
 
@@ -113,8 +108,10 @@ def effect_of(result: CheckResult) -> Effect:
         return Effect(marked)
     if result.severity is Severity.block:
         return Effect.block
+    if result.severity is Severity.outage:
+        return Effect.outage
     if result.severity is Severity.fail:
-        return Effect.outage if observed_of(result).get("cause") == Cause.outage.value else Effect.breakage
+        return Effect.breakage
     return Effect.note if result.severity is Severity.warn else Effect.none
 
 

@@ -54,7 +54,7 @@ def test_the_confirmed_cause_is_the_one_the_second_look_shows():
 def test_a_maintenance_page_seen_twice_is_an_outage_not_a_breakage():
     first = list_outcome("r1", ListFacts(rows=0, answer=Answer(status=200, maintenance=True)))
     row = confirm(first, first)
-    assert effect_of(row) is Effect.outage and row.severity is Severity.fail
+    assert effect_of(row) is Effect.outage and row.severity is Severity.outage
 
 
 def test_a_second_look_that_settles_it_alone_is_kept_with_the_first_attached():
