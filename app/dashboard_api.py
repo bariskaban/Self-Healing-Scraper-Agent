@@ -35,6 +35,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt
 
+from app.config import ModelSettings
 from app.models import (
     AgentStep, CheckResult, Portal, Recipe, RecipeStatus, Run, RunKind, Severity, StepKind, TokenUsage, utcnow,
 )
@@ -60,9 +61,9 @@ class DashboardSettings:
     trend_points: int = 30                  # publications in a portal's small delivery chart
     reads_window_seconds: float = 3600.0    # "reads in the last hour"
     timeline_runs: int = 200                # newest runs a timeline answers with
-    # Euros for one US dollar, for showing model cost. A fixed figure, not a live rate: set
-    # DASHBOARD_EUR_PER_USD to the rate of the day the costs are reported.
-    eur_per_usd: float = 0.86
+    # Euros for one US dollar, for showing model cost. The same figure as the README's costs:
+    # `EUR_PER_USD` in app/config.py is the only setting for it (there is no dashboard copy).
+    eur_per_usd: float = ModelSettings().eur_per_usd
     # What POST /api/settings accepts as the attach time limit, in whole minutes.
     attach_time_limit_min_minutes: int = 1
     attach_time_limit_max_minutes: int = 1440
@@ -78,10 +79,13 @@ class DashboardSettings:
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "DashboardSettings":
-        """DASHBOARD_<NAME> for each field, for example DASHBOARD_EUR_PER_USD=0.9."""
+        """DASHBOARD_<NAME> for each field, for example DASHBOARD_RECENT_READS=5. The euro rate is
+        the exception: it is `EUR_PER_USD` (app/config.py), so costs match everywhere."""
         env = os.environ if environ is None else environ
-        kw: dict[str, Any] = {}
+        kw: dict[str, Any] = {"eur_per_usd": ModelSettings.from_env(env).eur_per_usd}
         for f in fields(cls):
+            if f.name == "eur_per_usd":
+                continue
             raw = env.get(f"DASHBOARD_{f.name.upper()}")
             if raw is not None and raw.strip():
                 kw[f.name] = int(raw) if f.type in ("int", int) else float(raw)

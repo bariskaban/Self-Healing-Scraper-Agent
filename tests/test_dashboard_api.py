@@ -20,6 +20,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import ModelSettings
 from app.dashboard_api import (
     DashboardSettings, PortalHistory, changed_parts, check_out, dashboard_answer, delivered_by, history_from_runs,
     minutes_of, portal_row, recipe_change, run_out, settings_out, stats_out, step_out, timeline_answer, usage_out,
@@ -155,9 +156,12 @@ def a_step(seq: int, name: str = "read_list", **changes) -> AgentStep:
 
 def test_settings_come_from_the_environment_and_refuse_nonsense():
     assert DashboardSettings.from_env({}) == DashboardSettings()
-    custom = DashboardSettings.from_env({"DASHBOARD_EUR_PER_USD": "0.9", "DASHBOARD_RECENT_READS": "5",
+    custom = DashboardSettings.from_env({"EUR_PER_USD": "0.9", "DASHBOARD_RECENT_READS": "5",
                                          "DASHBOARD_ATTACH_TIME_LIMIT_MAX_MINUTES": "60"})
     assert (custom.eur_per_usd, custom.recent_reads, custom.attach_time_limit_max_minutes) == (0.9, 5, 60)
+    # One euro rate for the dashboard and the README: EUR_PER_USD, with config's default; no dashboard copy.
+    assert DashboardSettings().eur_per_usd == ModelSettings().eur_per_usd == 0.90
+    assert DashboardSettings.from_env({"DASHBOARD_EUR_PER_USD": "0.5"}).eur_per_usd == 0.90
     for bad in ({"eur_per_usd": 0}, {"recent_reads": 0}, {"timeline_runs": 0}, {"reads_window_seconds": 0},
                 {"attach_time_limit_min_minutes": 10, "attach_time_limit_max_minutes": 5}):
         with pytest.raises(ValueError):

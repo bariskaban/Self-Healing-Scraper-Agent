@@ -93,7 +93,7 @@ What the server fills today (`app/dashboard_api.py`, with the read loop in `app/
 - `publishedCount` and `deliveryTrend` come from each read's `publish` step, whose args hold `delivered`. A run without a publication has no `publishedCount`, and the page says "no publication", never 0.
 - `checks`, `steps` and `recipeChange` come from the SQLite store. The in-memory stand-in has none, so its runs leave them out and the page says "No checks recorded".
 - A check with our own `outage` severity (Q10) is sent as `fail`; its name and message say it was an outage.
-- `eurPerUsd` is 0.86 unless `DASHBOARD_EUR_PER_USD` is set; set it at hand-in to that day's ECB reference rate (Q9).
+- `eurPerUsd` is `EUR_PER_USD` (`app/config.py`, default 0.90), the same setting the README's costs use; set it at hand-in to that day's ECB reference rate (Q9).
 - `POST /api/settings` accepts 1 to 1440 minutes. The read loop applies the change from its next attach decision and request on. It is kept in memory only: after a restart both values come from the environment again. An app without the read loop reports the defaults and changes nothing.
 
 ## Building the page

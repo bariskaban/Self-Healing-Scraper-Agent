@@ -45,7 +45,7 @@ A file cannot give these; ask him to confirm once in a new session.
 
 - **Danil**: the page does not know the check severity `outage`, so the route sends it as `fail`. `danil-q2-french-dates` may overlap with the French date reading already in `app/extract/moments.py`; nobody has compared them.
 - **David**: three read-only methods were added to `app/db.py` (`recent_runs`, `run_totals`, `recent_steps`). The fetch layer logs no request and counts none (`Run.stats.http_requests` is counted by the reader), and a download does not carry its transport facts.
-- **Team**: `POST /api/settings` can switch robots.txt off and, like the whole API, has no authentication. `DASHBOARD_EUR_PER_USD` defaults to 0.86, a placeholder. The dashboard is a React build although `DESIGN.md` says server-rendered with no build step; `DESIGN.md` should say what is true.
+- **Team**: `POST /api/settings` can switch robots.txt off and, like the whole API, has no authentication. The euro rate is `EUR_PER_USD` (`app/config.py`, 0.90, a placeholder) for the dashboard and the README alike. The dashboard is a React build although `DESIGN.md` says server-rendered with no build step; `DESIGN.md` should say what is true.
 
 ## Known gaps in the read loop, said plainly
 
