@@ -551,3 +551,72 @@ def test_the_store_provides_what_the_api_calls():
         return
     wanted = {n for n in vars(Store) if not n.startswith("_")}
     assert wanted <= set(dir(Database))
+
+
+# == The API on this store ==
+
+class RunsOnlyWorker:
+    """`app.interfaces.Worker` on the database: records runs, reads nothing. The scheduler's loop replaces it."""
+
+    def __init__(self, db: Database) -> None:
+        self.db = db
+
+    def attach(self, portal: Portal) -> None:
+        self.db.start_run(run(portal.id, at=datetime.now(UTC)))
+
+    def refresh(self, portal: Portal) -> str:
+        return self.db.start_run(run(portal.id, trigger=RunTrigger.refresh, at=datetime.now(UTC))).id
+
+    def forget(self, portal_id: str) -> None:
+        return None
+
+
+def test_the_api_runs_on_this_store(db, tmp_path):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app, portal_id_for
+    from tests.contract.schema import check_portal, check_run, check_tender
+
+    files = FileStore(DocsSettings(data_dir=tmp_path / "docs"))
+    with TestClient(create_app(db, RunsOnlyWorker(db), files=lambda: files)) as client:
+        url = "https://vergabe.example/tenders"
+        first = client.post("/portals", json={"url": url})
+        assert first.status_code == 201 and first.json() == {"id": portal_id_for(url)}
+        pid = first.json()["id"]
+        assert client.post("/portals", json={"url": url + "/"}).json() == {"id": pid}
+        assert [p["id"] for p in client.get("/portals").json()] == [pid]
+
+        # Integrating: the attach's run is there, nothing is delivered, a refresh gets the running read.
+        attach_run = client.get(f"/portals/{pid}/runs").json()
+        assert len(attach_run) == 1 and attach_run[0]["kind"] == "read" and attach_run[0]["result"] is None
+        check_run(attach_run[0])
+        assert client.post(f"/portals/{pid}/refresh").json() == {"runId": attach_run[0]["id"]}
+        db.publish_tenders(pid, [tender(pid, "A")])
+        assert client.get(f"/portals/{pid}/tenders").json() == []
+        assert client.get(f"/portals/{pid}").json()["tenderCount"] == 0
+
+        # The worker publishes a document and the portal serves.
+        with files.writer() as writer:
+            writer.write(PDF)
+            stored = writer.commit()
+        record = FileRecord(file_id=stored.file_id, sha256=stored.sha256, size_bytes=stored.size_bytes,
+                            content_type="application/pdf", storage_path=stored.storage_path,
+                            source_url=f"{url}/A/lv.pdf", downloaded_at=T0)
+        db.set_documents(pid, "A", [record], [link(pid, "A", record, "lv.pdf", 0)])
+        db.update_portal(db.get_portal(pid).model_copy(update={"state": PortalState.serving,
+                                                               "reason": "Every check passed.",
+                                                               "last_success_at": T0}))
+        portal_answer = client.get(f"/portals/{pid}").json()
+        check_portal(portal_answer)
+        assert (portal_answer["state"], portal_answer["tenderCount"]) == ("serving", 1)
+        tenders = client.get(f"/portals/{pid}/tenders").json()
+        assert len(tenders) == 1
+        check_tender(tenders[0])
+        document = tenders[0]["documents"][0]
+        assert client.get(document["path"]).content == PDF
+        since = (T0 + timedelta(hours=1)).isoformat()
+        assert client.get(f"/portals/{pid}/tenders", params={"changedSince": since}).json() == []
+
+        assert client.delete(f"/portals/{pid}").status_code == 204
+        assert client.get(f"/portals/{pid}").status_code == 404
+        assert client.get("/portals").json() == []
