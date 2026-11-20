@@ -64,7 +64,7 @@ def test_the_demo_has_a_second_portal_and_switches_that_change_the_mock_portals_
         assert settled(client, first)["state"] == "serving"
 
         # The layout switch breaks the first portal; with no key there is no repairer, so it stays broken.
-        assert client.post("/demo/layout").json()[DEMO_URL] == {"layout_changed": True}
+        assert client.post("/demo/layout").json()[DEMO_URL] == {"layout_changed": True, "paths_moved": False}
         client.post(f"/portals/{first}/refresh")
         portal = settled(client, first)
         assert portal["state"] == "healing" and portal["tenderCount"] == 45
@@ -72,7 +72,8 @@ def test_the_demo_has_a_second_portal_and_switches_that_change_the_mock_portals_
         assert [run["result"] for run in runs] == ["ok", "ok", "failed"] and runs[-1]["modelCalls"] == 0
         assert runs[-1]["stateAfter"] == "healing" and runs[0]["recipeVersion"] == 1
 
-        assert client.post("/demo/reset").json() == {DEMO_URL: {"layout_changed": False},
+        assert client.post("/demo/move").json()[DEMO_URL]["paths_moved"] is True
+        assert client.post("/demo/reset").json() == {DEMO_URL: {"layout_changed": False, "paths_moved": False},
                                                      LOGIN_URL: {"login_wall": "none"}}
         client.post(f"/portals/{first}/refresh")
         assert settled(client, first)["state"] == "serving"

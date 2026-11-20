@@ -120,7 +120,7 @@ def test_a_larger_portal_keeps_its_dates_in_range():
 def test_robots_allows_everything_by_default():
     status, headers, body = get(MockPortal(), "/robots.txt")
     assert status == 200 and headers["Content-Type"].startswith("text/plain")
-    assert body == b"User-agent: *\nAllow: /\n"
+    assert body == b"User-agent: *\nAllow: /\nSitemap: https://mock.example/sitemap.xml\n"
 
 
 def test_entry_page_links_to_the_list():
@@ -371,7 +371,7 @@ def test_captcha_marker_is_on_the_pages_and_blocks_nothing():
 def test_robots_can_forbid_every_path():
     portal = MockPortal()
     portal.robots_disallow_all = True
-    assert get(portal, "/robots.txt")[2] == b"User-agent: *\nDisallow: /\n"
+    assert get(portal, "/robots.txt")[2].startswith(b"User-agent: *\nDisallow: /\n")
 
 
 def test_deadline_moved_shows_on_the_detail_page_only():
@@ -533,3 +533,28 @@ def test_the_asgi_app_acknowledges_the_lifespan():
 
     asyncio.run(app({"type": "lifespan", "asgi": {"version": "3.0"}}, receive, send))
     assert [m["type"] for m in sent] == ["lifespan.startup.complete", "lifespan.shutdown.complete"]
+
+
+def test_paths_moved_leaves_only_the_domain_and_the_entry_leads_to_the_new_addresses():
+    from mock_portal.portal import MOVED_PATH
+
+    portal = MockPortal(tenders=12, page_size=5)
+    before = portal.truth()
+    old_list, old_tender = get(portal, "/tenders")[2], get(portal, "/tenders/MP-2026-0012")[2]
+    portal.paths_moved = True
+    assert get(portal, "/tenders")[0] == 404 and get(portal, "/tenders/MP-2026-0012")[0] == 404
+    assert get(portal, "/files/MP-2026-0012/tender-notice.pdf")[0] == 404
+    status, _, entry = get(portal, "/")
+    assert status == 200 and f'href="{MOVED_PATH}/tenders"'.encode() in entry
+    moved_list = get(portal, f"{MOVED_PATH}/tenders")[2]
+    assert moved_list == old_list.replace(b'href="/', f'href="{MOVED_PATH}/'.encode())  # the same page, new addresses
+    assert get(portal, f"{MOVED_PATH}/tenders/MP-2026-0012")[2] == old_tender.replace(
+        b'href="/', f'href="{MOVED_PATH}/'.encode())
+    after = portal.truth()
+    assert [t["id"] for t in after] == [t["id"] for t in before] and after[0]["title"] == before[0]["title"]
+    assert after[0]["url"] == before[0]["url"].replace("/tenders/", f"{MOVED_PATH}/tenders/")
+    sitemap = get(portal, f"{MOVED_PATH}/sitemap.xml")[2].decode()
+    assert f"Sitemap: https://mock.example{MOVED_PATH}/sitemap.xml" in get(portal, "/robots.txt")[2].decode()
+    assert sitemap.count("<loc>") == 13 and f"<loc>{after[0]['url']}</loc>" in sitemap
+    portal.reset()
+    assert get(portal, "/tenders")[0] == 200 and portal.truth() == before

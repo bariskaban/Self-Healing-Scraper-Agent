@@ -9,6 +9,7 @@ model elsewhere.
 
 The tools:
   open_page, view_page, page_links, search_page   look at the portal
+  portal_hints                                    the sitemaps the portal's robots.txt names, as address patterns
   call_api                                        one HTTP request with parameters or a body
   try_locator                                     what a locator finds on a cached page
   propose_recipe, replace_node, check_recipe      write the recipe; each one validates and dry-runs it
@@ -69,6 +70,10 @@ class PageLinks(_Args):
 class SearchPage(_Args):
     url: str = Field(description="a page opened before (HTML, JSON or a script file)")
     pattern: str = Field(description="a regular expression, matched without regard to case in the raw body")
+
+
+class PortalHints(_Args):
+    pass
 
 
 class CallApi(_Args):
@@ -403,7 +408,10 @@ def _tool(name: str, description: str, args: type[BaseModel], run: Callable[[Any
             return Said(f"The arguments do not fit the tool's schema: {faults}", f"{name}: arguments refused")
         return run(parsed)
 
-    return Tool(name=name, description=description, parameters=strict_schema(args), run=call)
+    schema = strict_schema(args)
+    schema.setdefault("properties", {})  # a tool without arguments: strict calling still wants both keys
+    schema.setdefault("required", [])
+    return Tool(name=name, description=description, parameters=schema, run=call)
 
 
 def tools(space: Workspace) -> list[Tool]:
@@ -449,6 +457,46 @@ def tools(space: Workspace) -> list[Tool]:
             return problem  # type: ignore[return-value]
         text = views.search(space.text(page), args.pattern, settings=space.settings)
         return Said(text, f"Searched {page.url} for /{args.pattern}/: {text.splitlines()[0]}")
+
+    def portal_hints(args: PortalHints) -> Said:
+        home = urlsplit(space.portal.url)
+        root = f"{home.scheme}://{home.netloc}"
+        lines, sitemaps = [], []
+        robots, problem = fetched(f"{root}/robots.txt")
+        if robots is not None and robots.status == 200:
+            for line in space.text(robots).splitlines():
+                name, _, value = line.partition(":")
+                if name.strip().lower() == "sitemap" and value.strip():
+                    sitemaps.append(value.strip())
+            lines.append(f"robots.txt names {len(sitemaps)} sitemap(s)." if sitemaps else "robots.txt names no sitemap.")
+        else:
+            lines.append("robots.txt could not be read." if robots is None else f"robots.txt answered {robots.status}.")
+        todo = (sitemaps or [f"{root}/sitemap.xml"])[: space.settings.hints_sitemaps]
+        addresses: list[str] = []
+        read = 0
+        while todo and read < space.settings.hints_sitemaps:
+            place = todo.pop(0)
+            page, problem = fetched(place)
+            read += 1
+            if page is None or page.status != 200:
+                lines.append(f"{place}: " + (problem.text if page is None else f"answered {page.status}."))
+                continue
+            body = page.body if isinstance(page.body, bytes) else page.body.encode("utf-8")
+            found, index = views.sitemap_addresses(body, space.settings)
+            if index:
+                lines.append(f"{place} is an index of {len(found)} sitemap(s):\n"
+                             + views.addresses_view(found, space.settings))
+                todo = found[:1] + todo  # one of them is read, as a sample of what they hold
+                continue
+            lines.append(f"{place} names {len(found)} address(es)"
+                         + (f" in its first {space.settings.hints_sitemap_bytes:,} bytes" if len(body) > space.settings.hints_sitemap_bytes else "") + ".")
+            addresses += found
+        addresses = addresses[: space.settings.hints_addresses]
+        if addresses:
+            lines.append("Addresses by pattern (a sitemap also lists old pages: it is a hint to where things "
+                         "are, never the list of current tenders):\n" + views.addresses_view(addresses, space.settings))
+        return Said("\n".join(lines), f"Read the portal's robots.txt and sitemap: {len(addresses)} address(es) "
+                                      f"in {read} sitemap file(s).")
 
     def call_api(args: CallApi) -> Said:
         params = {pair.name: pair.value for pair in args.params} or None
@@ -526,6 +574,10 @@ def tools(space: Workspace) -> list[Tool]:
         _tool("search_page", "Search the raw body of an opened page with a regular expression: finds API "
               "addresses in scripts and embedded app state the trimmed view leaves out. No request.",
               SearchPage, search_page),
+        _tool("portal_hints", "The portal's own map of itself: the sitemaps its robots.txt names (or /sitemap.xml), "
+              "as address patterns with counts and samples. Use it when the links from the domain's root do not "
+              "lead to the tender list, or after the portal's addresses moved. Costs up to four requests.",
+              PortalHints, portal_hints),
         _tool("call_api", "One HTTP request with query parameters or a body (a JSON API, a search form). "
               "Cached under its address.", CallApi, call_api),
         _tool("try_locator", "What a locator finds on an opened page, before it goes into the recipe. No request.",

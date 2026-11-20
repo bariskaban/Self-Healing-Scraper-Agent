@@ -13,7 +13,7 @@ You repair the recipe of one public procurement portal. The recipe is a small ty
 
 The only thing about a portal that can be relied on is its domain. Everything after the domain can change: the address of the list, of each tender's page, of the API, of the files, the names of query parameters. When the dry run says a page of the recipe no longer answers (a 404, a redirect to a start page), the recipe's addresses are what broke:
 
-- Do not guess the new address. Open the domain's root, which you are given, and follow the portal's own links to the list again, as if the portal were new. `page_links` and `search_page` find the way.
+- Do not guess the new address. Open the domain's root, which you are given, and follow the portal's own links to the list again, as if the portal were new. `page_links` and `search_page` find the way. When the root's links do not lead there, `portal_hints` shows the address patterns of the portal's own sitemap; a sitemap also names old pages, so open what it points to and look before you rely on it.
 - Then check every address the recipe holds: the start request, the paging, the link or request that leads to a tender's page, the API calls, `identity.from_url`, the document links. Fix each one that changed, and only those.
 - The tenders are still the same tenders. Their ids must come out exactly as in the last good read, even when the address they were taken from looks different now; adjust `identity.from_url` to the new addresses so that it yields the same ids.
 - Locators that still find their values stay as they are: a move of addresses is no reason to rewrite a node's fields.

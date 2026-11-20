@@ -23,6 +23,7 @@ For showing a break and a block there are two mock portals and three routes that
     https://login.mock.example    a second portal, for the login wall
 
     POST /demo/layout             the first portal changes its layout (a breakage: repaired by the model)
+    POST /demo/move               the first portal moves every address under /portal/v2; only the domain stays
     POST /demo/login-wall         the second portal puts every page behind a login (a block: failed)
     POST /demo/reset              both portals work again
     GET  /demo/runs/{portal_id}   the portal's runs with their model calls, cost and recipe version
@@ -78,12 +79,19 @@ def add_demo_routes(app: FastAPI, mock: MockPortal, second: MockPortal) -> None:
     """The switches of the two mock portals, and a look at a portal's runs. Only the demo has these."""
 
     def switches() -> dict[str, Any]:
-        return {DEMO_URL: {"layout_changed": mock.layout_changed}, LOGIN_URL: {"login_wall": second.login_wall}}
+        return {DEMO_URL: {"layout_changed": mock.layout_changed, "paths_moved": mock.paths_moved},
+                LOGIN_URL: {"login_wall": second.login_wall}}
 
     @app.post("/demo/layout")
     def change_layout() -> dict[str, Any]:
         """The first mock portal shows its list as cards and its tender page as a table: a breakage."""
         mock.layout_changed = True
+        return switches()
+
+    @app.post("/demo/move")
+    def move_paths() -> dict[str, Any]:
+        """Every page and file of the first mock portal moves under /portal/v2; the old addresses answer 404."""
+        mock.paths_moved = True
         return switches()
 
     @app.post("/demo/login-wall")

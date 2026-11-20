@@ -63,6 +63,13 @@ class AgentSettings:
     links_groups: int = 40
     search_matches: int = 20
     search_context_chars: int = 120
+    # `portal_hints` reads at most this many sitemap files, this many bytes of each, and this many
+    # addresses in all, and shows `links_groups` groups of them: a national portal's sitemap lists
+    # tens of thousands of notices (audit of Q3), and it must never reach the model whole.
+    hints_sitemaps: int = 3
+    hints_sitemap_bytes: int = 2_000_000
+    hints_addresses: int = 5_000
+    hints_samples: int = 2
     # A dry run of the working recipe reads at most this many list pages and this many tenders'
     # own pages, and may fetch this many pages it lacks before it reports the rest as missing.
     dry_run_list_pages: int = 2
