@@ -67,7 +67,7 @@ No source gives the steps themselves. The shape, close together first and then f
 
 ## For the mentors
 
-After you restore a portal that we reported `failed`, do you call refresh, or wait for us to notice?
+After you restore a portal that we reported `failed`, do you call refresh, or wait for us to notice? Not answered on 20 Nov ([mentor-answers.md](mentor-answers.md)); our default stands. The mentor did confirm that an outage reads `healing` and that `failed` is for portals that need a person.
 
 ## Prototype first (about 1.5 hours)
 

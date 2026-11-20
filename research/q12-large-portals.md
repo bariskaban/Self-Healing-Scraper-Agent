@@ -1,6 +1,6 @@
 # Q12. Large portals: every open tender with its documents, at 1 request per second
 
-Owner: Goktug · Researched 20 Nov 2026 · Status: **answered, with one rule that waits on the mentors**
+Owner: Goktug · Researched 20 Nov 2026 · Status: **answered**; the mentor's answers of 20 Nov are folded in ([mentor-answers.md](mentor-answers.md))
 
 How each claim is known is marked: **measured** (we ran it today), **read** (seen in the document, API answer or source code itself), **search** (seen only in a search result), **ours** (our own reasoning or choice).
 
@@ -24,7 +24,7 @@ Deliverable: the recommended read order and state rule, with the request math fo
 
 **Read order.** Take the cheapest source the portal itself offers, then read in three phases: the whole list, then every tender's record, then the documents with the soonest deadline first. After the first attach, read incrementally.
 
-**State rule.** Stay `integrating` and publish nothing until every open tender's record is read and validated. At that point, if the documents can be finished within 10 minutes, finish them and only then report `serving`. If they cannot, publish every tender now and report `serving`, with `documents` null on the tenders whose files are not in yet and the progress in `reason`.
+**State rule.** Stay `integrating` and publish nothing until every open tender's record is read and validated. At that point, if the documents can be finished within 10 minutes, finish them and only then report `serving`. If they cannot, publish every tender now and report `serving`, with each known document listed and its `sha256` and `path` null until its bytes are in, and the progress in `reason`. And if the attach time limit of 20 minutes passes before every record is in, publish the tenders validated so far and say how many are still to come: the mentor does not want all or nothing at the limit.
 
 We choose this for four reasons:
 
@@ -89,21 +89,24 @@ Portal-stated limits win over our own: the limiter starts at one request per sec
 | --- | --- | --- | --- |
 | List and record phases | `integrating` | `[]` | "Reading tender 420 of 1,000." |
 | Gate reached, documents need 10 minutes or less | `integrating` | `[]` | "All 38 tenders read. Fetching documents: 12 of 38." |
-| Gate reached, documents need longer | `serving` | every tender; `documents` null where files are not in yet | "All 1,000 open tenders are delivered. Documents are in for 140 of them, soonest deadlines first; the rest follow by 16:40." |
+| The attach time limit (20 minutes) passes while still `integrating` | `serving` | the tenders validated so far | "Delivering 400 of about 1,000 open tenders so far. The rest follow by 15:10." |
+| Gate reached, documents need longer | `serving` | every tender; each known document listed, with `sha256` and `path` null until its bytes are in | "All 1,000 open tenders are delivered. Documents are in for 140 of them, soonest deadlines first; the rest follow by 16:40." |
 | Everything in | `serving` | complete | "Read at 14:02 found 1,000 open tenders. Every check passed." |
 
-Why null and not an empty list: an empty list says the tender has no documents, which is wrong. Null is the contract's word for a value we cannot give, and "a wrong value is worse than a missing one".
+Why null and not an empty list: an empty list says the tender has no documents, which is wrong. Null is the contract's word for a value we cannot give, and "a wrong value is worse than a missing one". The mentor is fine with documents that are "mapped out" and still loading, so a known document is listed with its name and announced size, and only its hash and path wait.
 
-The 10 minutes is **ours**, and so is the fifth of the budget for re-reading detail pages. The 10 minutes is the one number here that should come from the mentors (question 1 below). Both are settings.
+**What the mentor said** (20 Nov, [mentor-answers.md](mentor-answers.md)): they can wait 20 to 30 minutes per portal; a few minutes per website is fine; with a limit, "we would want to see some kind of results up until then"; a setting for the limit, shown on the dashboard, is welcome. So:
 
-**Known limit:** a 5,000-tender HTML portal needs 88 minutes to reach the gate, and shows nothing until then. Publishing a partial tender list sooner would mean reporting `serving` on a list we know is incomplete, so we do not.
+- The 10 minutes for documents stays, as a setting.
+- The attach time limit is 20 minutes, as a setting. When it passes before the gate, the tenders validated so far are published and the portal reads `serving`, with the count still to come in `reason`. This replaces the earlier rule that a very large portal shows nothing until its gate: a 5,000-tender HTML portal needs 88 minutes to reach it.
+- This is the one place where a tender list we know to be incomplete is published. It is what the organisers asked for, and the reason says so in numbers.
 
 ## The alternatives, and why they lose here
 
 | Alternative | Why it loses, or what we kept |
 | --- | --- |
 | Publish tenders as they are read, while still `integrating` (the question's first option, as worded) | Contradicts the organisers' definition, "Nothing is delivered yet." The reported state would not match what we deliver, which is what the Notice criterion checks. We keep the order, not the publishing. |
-| `serving` once a first validated batch is out | The tender list is then knowingly incomplete, and only the reason text says so. Our early gate delivers strictly more at every moment: all records, not some. |
+| `serving` once a first validated batch is out | The tender list is then knowingly incomplete, and only the reason text says so. Our early gate delivers strictly more: all records, not some. After the mentor's answer we do publish a partial list, but only when the attach time limit passes first. |
 | `integrating` until the last document, always | Correct, and what we do for portals that finish in 10 minutes. For a 1,000-tender portal it means 3.6 hours with nothing delivered, and zero for Attach if the harness stops waiting. |
 | Finish one tender completely before starting the next | Mean time to a complete tender is better by about N/2 seconds (2,052 s against 2,552 s for 1,000 tenders with 3 files). But every record is known only at the very end (4,050 s against 1,050 s), and a wrong recipe is found late. |
 | Newest tenders first | The newest tenders have the most time left. A tender closing tomorrow without its documents is the worst case, so soonest deadline first. |
@@ -153,10 +156,12 @@ This is one portal for documents and two for lifetimes, on one day. It replaces 
 
 ## For the mentors
 
-1. How long does the harness wait after `POST /portals` before it scores Attach, and how many tenders and documents do the test portals hold?
-2. Is a portal `serving` when every open tender is delivered with a correct record while some tenders' documents are still being fetched, shown as null?
-3. Does "1 request per second" limit request starts, so that a large download may still be running when the next request starts, or the number in flight?
-4. How much disk does the container have?
+Answered on 20 Nov ([mentor-answers.md](mentor-answers.md)):
+
+1. The harness can wait 20 to 30 minutes per portal. The size of the test portals was not disclosed.
+2. A portal is `serving` while documents that are mapped are still loading.
+3. "1 request per second" limits request starts.
+4. Our disk plan is reasonable; they can scale.
 
 ## Disk
 
