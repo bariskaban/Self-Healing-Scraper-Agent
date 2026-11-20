@@ -445,11 +445,14 @@ Each has the default we build on until we hear otherwise.
 
 - [ ] How do the judges change a private portal: layout, URLs, API, or all of them? Do tender ids stay the same? Default: all of them change, ids stay.
 - [ ] How long does the harness wait for `serving` after `POST /portals`, and how many tenders do the test portals hold? Default: we publish only after a full first read. A short wait would force us to publish in checked batches.
+- [ ] How many portals does the harness add at once? Default: any number; each portal reads side by side at its own 1 request per second.
 - [ ] Do a page's own sub-requests (scripts, images) count toward 1 request per second? Default: yes, we throttle all of them.
 - [ ] Are a ZIP's entries listed in place of the ZIP, or beside it? Default: in place of it.
 - [ ] Is `tenderCount` every tender we hold, or the open ones? Default: every tender we hold.
 - [ ] If only some tenders' documents need a login, is the portal `failed`? Default: `failed` when most are blocked; otherwise `serving`, with `documents` null on the blocked tenders.
 - [ ] A deadline shown as a date with no time: null, or end of day? Default: null.
+- [ ] A portal that shows both its own tender id and the buyer's reference number: which one is `id`? Default: the portal's own id; the buyer's number goes in `referenceNumber`.
+- [ ] Can an aggregator such as TED be one of the test portals, or only platforms that hold the documents? Default: we attach it like any portal and follow each notice to the page holding its documents.
 
 ### Risks
 
