@@ -1,14 +1,14 @@
 # Watchtower conventions (Q5)
 
 ## Agent framework
-* **OpenAI Agents SDK** (`pip install openai-agents`) for learn, repair and spot-check agents.
-  * Tools: plain async Python functions with `@function_tool`.
-  * Final answer: `output_type=<Pydantic model>`, so every agent returns a validated object (LearnResult, RepairResult, SpotCheck). The SDK raises after one invalid answer; the retry in rule 10 is ours (audit of Q5).
-  * Step cap: `Runner.run(agent, input, max_turns=N)` always set explicitly (the SDK's default is 10). Always name the model too.
-  * Usage: `result.context_wrapper.usage` (requests, input/output tokens, per-request entries). Copy it into `TokenUsage` and the `runs` row.
-* Token or euro cap per run: the SDK caps turns, not tokens. The runner checks the running total between model calls and stops the run from outside the tools: a tool that raises does not stop an SDK run, the model just carries on to `max_turns` (audit of Q5).
-* Context: the runner trims what each call sends. A learn whose context grows with every tool result costs about 4.6 times as much (audit of Q9).
-* Fallback if the SDK gets in the way: our own loop on `openai` (Responses API with tool calls plus `responses.parse` for the final Pydantic object). Same tools, same logging. About 150 lines.
+* **Our own loop on OpenAI's Responses API**, in `app/agent/runner.py`, for the learn, repair and spot-check agents. The OpenAI Agents SDK was the first choice (Q5); its audit found that it neither trims the context, nor stops on a budget, nor retries an invalid answer, and those three are most of what a runner does.
+  * Tools: plain Python functions wrapped as `Tool`, each with a strict JSON schema built from a Pydantic model (`strict_schema`).
+  * Final answer: a small Pydantic model per job, sent as a strict `json_schema` format. The recipe itself is written through the tools (`propose_recipe`, `replace_node`) and counts only once its dry run passed.
+  * Step cap: `max_turns` is set on every run, and the model is always named.
+  * Usage: read from each response, priced per request by the configured model name, copied into `TokenUsage`, the agent steps and the `runs` row.
+* Token or euro cap per run: the runner checks the running total between model calls and stops the run from outside the tools.
+* Context: the runner trims what each call sends: the task, one line per older step, the newest steps in full. A learn whose context grows with every tool result costs about 4.6 times as much (audit of Q9).
+* Nothing is stored on OpenAI's side (`store=False`); reasoning items go back with the tool calls they belong to.
 * Nobody imports `openai` outside `app/agent/`. Every model call goes through `app/agent/runner.py`.
 
 ## Project layout
@@ -25,7 +25,7 @@ app/
   docs/              downloads, ZIP unpacking, sha256, size limits
   checks/            validators, one function per check, each returns CheckResult
   agent/
-    runner.py        wraps Runner.run: budgets, usage, AgentStep logging
+    runner.py        the model loop: budgets, trimming, usage, AgentStep logging
     tools.py         tools the model may call (Q4)
     learn.py repair.py spotcheck.py
     prompts/         one .md file per prompt
