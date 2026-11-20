@@ -1,6 +1,6 @@
 # Handoff: stream A, from Goktug's first Claude session to the next
 
-Written 20 Nov 2026, about 19:15 UTC. The session that wrote this had filled its context; you continue its work. Everything you need is in this file and in the files it points to. Where this file and the code disagree, the code on `main` is right: check before you rely on a sentence here.
+Written 20 Nov 2026, about 19:20 UTC. The session that wrote this had filled its context; you continue its work. Everything you need is in this file and in the files it points to. Where this file and the code disagree, the code on `main` is right: check before you rely on a sentence here.
 
 ## The situation in six lines
 
@@ -48,8 +48,9 @@ All merged with tests; CI runs the unit tests, the Docker build and the contract
 
 | What | State | What to do |
 | --- | --- | --- |
-| **#26, the recipe schema** (`goktug-recipe-schema`) | Open. A shared interface: a person approves it. Not merged by us | If it is still open, remind Goktug. It lists five places where it differs from the wording of `DESIGN.md` |
-| **`goktug-executor`** (branched from the schema branch) | Pushed, no pull request yet. See "The executor" below for what is on it | Finish the executor on it, then open the pull request. If #26 is merged first, merge `main` into it |
+| #26, the recipe schema | **Merged** at about 19:10 UTC, as written. `app/recipe/schema.py` is on `main`. Any further change to it needs its own pull request and a person's approval | Nothing |
+| **`goktug-executor`** | Pushed, no pull request yet. See "The executor" below for what is on it | Merge `main` into it, finish the executor on it, then open the pull request |
+| `david-fetch-http` (David's, **not ours**) | His network layer, in progress, not merged when this was written | Read `app/fetch/interface.py` on it before you write any code that fetches a page. Do not push to it |
 | This file (`goktug-handoff`) | Merged, or open | Delete `docs/HANDOFF.md` and `docs/handoff/` in your last pull request before the hand-in |
 
 ## Your work, in order
@@ -88,7 +89,7 @@ for item in find_items(node.items, doc):          # one per tender
 
 **Still to write, in this order:**
 
-1. **`app/recipe/pages.py`**: what the executor needs from the network. A `PageRequest` (method, url, params, body, headers, via), a `Page` (the address asked for, the final address, the body, the content type, how long it took, and the `Answer` of `app/checks/transport.py` with the facts the checks read), and a `PageSource` protocol with one async method that takes a request and returns a page. Add `CachedPages`, a page source that serves pages from a mapping and makes no request: the dry run and the tests use it. David's `app/fetch/` does not exist yet; when it lands, either it satisfies `PageSource` or a ten-line adapter does. Tell him what the protocol needs as soon as it is written.
+1. **The page source: use David's, do not invent one.** His branch `origin/david-fetch-http` has `app/fetch/interface.py` with the `Fetch` protocol and the records `Fetched` and `BrowsedPage`, a `Fetcher` on httpx, the limiter, robots.txt, and record and replay by `FETCH_MODE`. **It is blocking**: its docstring says to call it from a worker thread, like `app/docs` and `app/db`. So write the executor as plain functions that take a `Fetch`, and let the loop run them in threads. Read his `interface.py` first and build on it as it is; if it is not merged yet, branch your work so that it merges after his, or ask Goktug to ask David to merge the interface first. For the dry run and for tests you need a `Fetch` that serves pages from a mapping and makes no request: look for one in his replay code (`ReplayTransport`, `RecordedPage`) before you write your own. If the executor needs something his interface lacks, tell Goktug in one sentence what and why; do not change `app/fetch/` yourself.
 2. **`app/recipe/resolve.py`**: one node and one scope (a page, or one item of the list) to values. For each field run **every** locator (`locate.find`), parse each hit (`app.extract.parse`), then apply Q2's rule as the audit corrected it:
    - two or more locators give a value and all agree: the value;
    - two or more give values that differ: null, flagged `conflict`;
@@ -132,7 +133,7 @@ Routes for the dashboard's own data when Danil or Baris say what they need (step
 | --- | --- | --- |
 | The recipe | `app/recipe/schema.py` | Written, in pull request 26. The learner returns `AuthoredRecipe`; `RecipeBody` is what is stored; `problems()` gives the faults as sentences |
 | What the API needs | `app/interfaces.py` | `Store` (done by `Database`) and `Worker` (the loop, yours) |
-| What the executor needs from the network | `app/recipe/pages.py` | To write. David builds `app/fetch/` (stream C) and had not pushed anything by 19:00 UTC |
+| The network layer | `app/fetch/interface.py` (`Fetch`, `Fetched`, `BrowsedPage`), David's | On his branch `david-fetch-http`, not merged at 19:20 UTC. Blocking calls. The live browser is his next step; `browse` already replays recorded browser pages |
 | What the agent calls | `locate.try_locator`, `run.dry_run` | To deliver early to stream B |
 | What the loop calls on the agent | `learn`, `repair`, `spot_check` in `app/agent/` | Stream B defines them. Its brief is at the end of `docs/BUILD-PLAN.md` |
 
@@ -167,7 +168,7 @@ The team has about $50. Goktug asked whether to spend it on reviewing pull reque
 
 ## Waiting on people
 
-- **Goktug**: approval of pull request 26; his confirmation of the standing instructions above; starting the second session (stream B) on the brief in `docs/BUILD-PLAN.md`.
-- **David**: the fetch interface with a replay implementation, then `app/fetch/` itself.
+- **Goktug**: his confirmation of the standing instructions above; starting the second session (stream B) on the brief in `docs/BUILD-PLAN.md`; his answer on the OpenAI credits.
+- **David**: merging his fetch layer (`david-fetch-http`), then the live browser.
 - **Baris**: whether he has started `mock_portal/`.
 - **Danil and Baris**: which data the dashboard needs beyond the contract's routes.
