@@ -79,7 +79,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Research: `research/q05-q07-q08-framework-schemas-benchmark.md`.
 - [x] `app/models.py`, `app/schema.sql`, 19 passing tests in `tests/test_models.py`.
 - [ ] Verify the eForms BT numbers marked (*) in `models.py` (about 15 min).
-- [ ] Add the recipe `body` format once Q1 is decided.
+- [x] Add the recipe `body` format once Q1 is decided: `RecipeBody` in `app/recipe/schema.py`.
 - [ ] Align check names with Q10.
 
 ### [ ] Q8. Benchmark
@@ -150,7 +150,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging.
 - [ ] G7. Team decision on the Patterno participant declaration (required for the track prize and the final).
 - [ ] G8. Submit the repository link in the hackathon submission.
-- [ ] G9. Recipe schema before the agents fan out. One agent writes the Q1 recipe format as a Pydantic model (`Recipe.body`, `recipe/v1`) and a person approves it. Only then do agents start on the executor, learner, repairer, checks and reuse, which all build against it.
+- [x] G9. Recipe schema before the agents fan out: `app/recipe/schema.py`, format `recipe/v1`, with three worked examples in `tests/recipe/examples.py`. Approved by a person in its own pull request. The executor, the learner and the repairer build against it.
 - [x] G10. Add to `CLAUDE.md`: no agent sends requests to a live portal. Each test portal is recorded once at the fetch layer (`FETCH_MODE=record`) and agents work from the recordings only (`FETCH_MODE=replay`). Several agents testing the same portal at once would break the 1 request per second rule.
 - [ ] G11. Model calls in tests are mocked or replayed, never live. Development uses its own OpenAI key with a spending cap, separate from the judging key (G6). The rule is in `CLAUDE.md`; the development key itself is still to make.
 
