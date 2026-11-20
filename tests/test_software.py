@@ -1,7 +1,9 @@
 """Software families of portals (app/software.py, Q11). Run: pytest tests/test_software.py"""
+import time
+
 import pytest
 
-from app.software import Evidence, best, detect
+from app.software import Evidence, best, detect, page_text
 
 
 @pytest.mark.parametrize("url, family", [
@@ -57,3 +59,75 @@ def test_tie_at_the_top_is_none():
     # Two families with the same strongest evidence: no guess.
     html = "<p>Mercell</p><p>TenderNed</p>"
     assert best("https://aanbesteden.example.nl/", html) is None
+
+
+def test_two_names_of_one_product_do_not_break_a_tie():
+    # Mercell's page names two of its brands and says where it also publishes. Still a tie.
+    html = "<p>Mercell (Negometrix)</p><p>Publicatie op TenderNed</p>"
+    assert [c.family for c in detect("https://aanbesteden.example.nl/", html)] == ["mercell", "tenderned"]
+    assert best("https://aanbesteden.example.nl/", html) is None
+    assert best("https://x.example/", "<p>cosinex Vergabemarktplatz. Auch auf TenderNed.</p>") is None
+
+
+@pytest.mark.parametrize("text", [
+    "Mairie, 1 place de la République",
+    "The opening will take place on 3 May",
+])
+def test_the_word_place_is_not_a_brand(text):
+    assert detect("https://achats.ville-x.example/", f"<p>{text}</p>") == []
+
+
+def test_no_brand_pattern_is_a_plain_word():
+    # Brand text is matched with case ignored, so a pattern must not also be an everyday word.
+    everyday = "place places market portal tender tenders vergabe ausschreibung platform achat marché"
+    assert detect("https://x.example/", f"<p>{everyday}</p>") == []
+
+
+@pytest.mark.parametrize("url, family", [
+    ("https://evergabe.nrw.de/VMPSatellite", "cosinex-vmp"),          # as the research cites it, no slash
+    ("https://vergabe.example-stadt.de/VMPSatellite/notice/CXP4", "cosinex-vmp"),
+    ("https://vergabe.example-stadt.de/Satellite/notice/CXP4", "cosinex-vmp"),
+    ("https://evergabe.blb.nrw.de/", "cosinex-vmp"),
+    ("https://www.evergabemv.de/", "subreport-elvis"),
+    ("https://www.tenderned.nl./aankondigingen", "tenderned"),         # a host written with its final dot
+])
+def test_addresses_the_research_names(url, family):
+    assert best(url) == family
+
+
+def test_a_satellite_path_of_other_software_is_no_match():
+    # "/cs/Satellite/" is the address form of an unrelated content system; cosinex is "/Satellite/notice/".
+    assert detect("https://www.bank.example/cs/Satellite/home") == []
+    assert detect("https://www.example.de/VMPSatelliten/") == []
+
+
+@pytest.mark.parametrize("url", ["https://[::1/x", "", "   ", "not an address"])
+def test_an_address_that_cannot_be_parsed_gives_nothing(url):
+    assert detect(url) == [] and best(url) is None
+
+
+@pytest.mark.parametrize("html", [
+    "<!-- if a > b : TenderNed --><p>x</p>",                 # a comment holding a ">"
+    '<p>x</p><script>var a="TenderNed";',                    # a script that never closes
+    "<SCRIPT type='x'>TenderNed</SCRIPT><STYLE>.TenderNed{}</STYLE>",
+    '<script src="https://cdn.mercell.com/x.js"></script><a href="https://www.tenderned.nl/">hier</a>',
+])
+def test_text_outside_the_visible_page_is_no_brand(html):
+    assert detect("https://beispiel.example/", html) == []
+
+
+def test_page_text_keeps_what_a_reader_sees():
+    html = "<title>AI Vergabeplattform</title><p>a < b</p><scripted>TenderNed</scripted>"
+    text = page_text(html)
+    assert "AI Vergabeplattform" in text and "a < b" in text and "TenderNed" in text
+    assert "Atexo" in page_text("<META content='Atexo MPE' NAME=generator>")
+    assert "Atexo" not in page_text('<meta name="description" content="Atexo">')
+
+
+@pytest.mark.parametrize("piece", ["<", "<script ", "<meta ", "<meta name='generator' ", "<style ", "<!-- ", "subreport "])
+def test_time_grows_with_the_page_not_with_its_square(piece):
+    # The first version took 45 s on 320 KB of "<script ". Linear work on 2 MB takes well under a second.
+    html = piece * (2_000_000 // len(piece))
+    started = time.perf_counter()
+    detect("https://beispiel.example/", html)
+    assert time.perf_counter() - started < 5
