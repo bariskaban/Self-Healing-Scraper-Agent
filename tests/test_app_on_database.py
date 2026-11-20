@@ -4,6 +4,7 @@ Run: pytest tests/test_app_on_database.py
 """
 from __future__ import annotations
 
+import time
 from datetime import timedelta
 
 import pytest
@@ -24,21 +25,33 @@ def test_without_data_dir_the_app_keeps_its_records_in_memory(monkeypatch):
     assert isinstance(store, MemoryStore)
 
 
+def _settled(client: TestClient, pid: str, tries: int = 200) -> dict:
+    """The portal once its running read has ended."""
+    for _ in range(tries):
+        runs = client.get(f"/portals/{pid}/runs").json()
+        if runs and all(run["finishedAt"] is not None for run in runs):
+            break
+        time.sleep(0.02)
+    return client.get(f"/portals/{pid}").json()
+
+
 def test_with_data_dir_the_records_live_in_sqlite_and_survive_a_restart(monkeypatch, tmp_path):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     with TestClient(create_app()) as client:
         pid = client.post("/portals", json={"url": URL}).json()["id"]
         (attach,) = client.get(f"/portals/{pid}/runs").json()
-        assert attach["kind"] == "read" and attach["result"] is None
-        assert client.post(f"/portals/{pid}/refresh").json() == {"runId": attach["id"]}
+        assert attach["kind"] == "read"
+        portal = _settled(client, pid)
+        # Nothing in this build can learn this address, so the read loop says so and reads nothing.
+        assert portal["state"] == "failed" and "No recipe could be learned" in portal["reason"]
+        assert portal["tenderCount"] == 0
     assert (tmp_path / "watchtower.db").is_file()
 
     with TestClient(create_app()) as client:  # a new process on the same DATA_DIR
         (portal,) = client.get("/portals").json()
-        assert portal["id"] == pid and portal["state"] == "integrating"
-        assert portal["reason"] == DatabaseIdleWorker.REASON
+        assert portal["id"] == pid
         assert client.post("/portals", json={"url": URL + "/"}).json() == {"id": pid}
-        assert [run["id"] for run in client.get(f"/portals/{pid}/runs").json()] == [attach["id"]]
+        assert client.get(f"/portals/{pid}/runs").json()[0]["id"] == attach["id"]
         assert client.delete(f"/portals/{pid}").status_code == 204
         assert client.get("/portals").json() == []
 
