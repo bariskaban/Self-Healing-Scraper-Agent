@@ -33,8 +33,8 @@ Who builds what from here, in what order, and what each part hands to the others
 How we represent what the LLM learned about a portal. **Owner:** David
 - [x] Research: `research/q01-recipe-model.md`. A typed navigation graph; `research/audit.md` lists what the draft recipe must still express (form-post paging, POST-body APIs, multi-step downloads).
 - [ ] Team agrees on the format.
-- [ ] Recipe Pydantic model (goes into `Recipe.body` in `app/models.py`, format id `recipe/v1`).
-- [ ] Executor that runs a recipe with no model call (`app/recipe/`): list, paging, detail pages, JSON API, multi-step steps.
+- [x] Recipe Pydantic model (goes into `Recipe.body` in `app/models.py`, format id `recipe/v1`).
+- [x] Executor that runs a recipe with no model call (`app/recipe/`): list, paging, detail pages, JSON API, multi-step steps.
 - [ ] Executor tests on recorded pages.
 
 ### [ ] Q2. Field locators
@@ -42,7 +42,7 @@ What the recipe stores to find each field and link, and how a break is detected.
 - [x] Research: `research/q02-locators.md`. Two or three locators and value checks per field; per the audit, a single surviving locator counts only when it equals the last good value.
 - [x] Locator types in the recipe (CSS, XPath, label, JSON path, fallbacks): `LocatorKind` and `FieldSpec.locators` in `app/recipe/schema.py` (G9).
 - [ ] Value checks per field (dates parse, deadline after publication, CPV 8 digits, country 2 letters).
-- [ ] Normalizers (`app/extract/`): local dates and times to offset, CPV, procedureType and contractNature mapping, ids.
+- [x] Normalizers (`app/extract/`): local dates and times to offset, CPV, procedureType and contractNature mapping, ids.
 
 ### [ ] Q3. Explore or map first
 Goal-directed exploration vs site mapping, and structured sources to try first. **Owner:** David
@@ -53,11 +53,12 @@ Goal-directed exploration vs site mapping, and structured sources to try first. 
 ### [ ] Q4. Agent tools
 What the learn and repair agents use to see and drive a portal. **Owner:** David
 - [x] Research: `research/q04-agent-tools.md`, with token counts measured on real pages in `research/q04-page-views-measured.md`.
-- [ ] Fetch layer (`app/fetch/`): 1 request/s per portal for httpx and every browser sub-request; block images, fonts, media, stylesheets. Redirect hops and WebSockets get past `page.route`, so redirects are walked by our client and WebSockets blocked (audit of Q4).
+- [x] Fetch interface and HTTP side (`app/fetch/`): `Fetch` in `app/fetch/interface.py`; one request start per second per portal, redirects walked hop by hop, rules T1 and T2, robots.txt obeyed (`IGNORE_ROBOTS_TXT` for a test), downloads as `app/docs` takes them. Tests in `tests/fetch/`.
+- [ ] Browser side: Playwright through the same limiter (every sub-request via `context.route`); block images, fonts, media, stylesheets, third-party origins; script cache; service workers off; WebSockets blocked; network capture. `browse` already replays recorded pages.
 - [ ] Network capture to find JSON APIs (`NetworkEntry`, `looks_like_tender_list`).
 - [ ] Compact page view for the model.
 - [ ] Agent tools (`app/agent/tools.py`): fetch page, page view, list links, click or fill, test locator, download file.
-- [ ] Login and captcha detection (feeds Q10).
+- [x] Login and captcha detection (feeds Q10): `app/fetch/answer.py` reads login redirects, password fields, bot-wall headers and pages, captcha markers and maintenance pages into `Answer`.
 
 ### [ ] Q5. Agent framework and conventions
 **Owner:** Baris
@@ -85,8 +86,8 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 ### [ ] Q8. Benchmark
 **Owner:** Baris
 - [x] Design: `docs/BENCHMARK.md`.
-- [ ] Mock portal with variants and the 25 scenarios in `docs/BENCHMARK.md` (`mock_portal/`, 3 to 4 h).
-- [ ] Record and replay mode in `app/fetch/`, together with the Q4 owner (1 to 2 h).
+- [ ] Mock portal with variants and the 25 scenarios in `docs/BENCHMARK.md` (`mock_portal/`). Done: the server-rendered template with 13 switches and its recipe, mounted in the app at `/mock`. Open: the JSON and multi-step templates, the large variant, the 250 MB ZIP, the scenario runner.
+- [x] Record and replay mode in `app/fetch/` (`FETCH_MODE`; replay is the default, the Dockerfile sets live).
 - [ ] Real test set: 8+ portals, 4+ countries, 3+ software packages, 1 to 2 behind login or captcha. Candidates in `research/q08-test-portals.md`; still to add Italian and Polish platforms (`research/patterno-landscape.md`) and record them.
 - [ ] Gold labels: open-id list per portal plus 5 checked tenders each (about 1.5 h, split).
 - [ ] Harness and scorer (`bench/run.py`, 2 to 3 h).
@@ -104,7 +105,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Add an `outage` severity (healing without a repair) to `app/models.py`, and `cause` on a portal (pull request 18, approved by a person). The checks use both.
 - [x] Checks (`app/checks/`), one function each, returning `CheckResult`: T1, T2, T4, O1, O2, C1 to C7, D1, F1 and the confirm step. Settings come from the environment (`CHECKS_*`).
 - [x] State machine (`app/state.py`): `decide` turns the checks of one read into the state, the reason, the `cause`, and whether a repair or a spot check follows.
-- [ ] Call the checks and `decide` from the read loop, and store the last good tenders so they stay served while healing (needs the executor and `app/db.py`).
+- [x] Call the checks and `decide` from the read loop, and store the last good tenders so they stay served while healing (needs the executor and `app/db.py`).
 - [x] No false alarm on portals with few or no open tenders, in unit tests: 1 of 3 tenders withdrawn, a list emptied with and without the portal's notice.
 - [ ] The same on the mock portal (scenario 13), once it exists.
 
@@ -119,7 +120,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Research: `research/q12-large-portals.md`: read order, state rule, request math for 100, 1,000 and 5,000 tenders (`research/tools/q12_request_math.py`).
 - [x] Ask the mentors how long the harness waits and whether `serving` may have documents pending. Answered (`research/mentor-answers.md`): 20 to 30 minutes, and yes. The 10-minute rule stays; the attach time limit is 20 minutes.
 - [x] Incremental reads, the plan: which tenders are fetched, which are no longer listed, and the detail-page rotation (`plan_incremental_read` in `app/scheduler.py`).
-- [ ] Incremental reads, in the loop: run the plan against the executor and the store (`detail_fetched_at`, `docs_status`).
+- [x] Incremental reads, in the loop: run the plan against the executor and the store (`detail_fetched_at`, `docs_status`).
 - [x] Documents (`app/docs/`): streaming to disk with the SHA-256 computed as the bytes arrive, the 250 MB limit, files stored once under their hash, ZIP unpacking (nested too, within caps), file names, disk rules. It takes the bytes from the network layer and the file test (O2) from `app/checks/` as parameters.
 - [x] Documents use the file test of `app/checks/` (`outcome_judge` in `app/docs/judge.py`): a web page or a login page in place of a file is never stored, and a captcha on a page whose file downloads changes nothing.
 - [ ] Documents, wiring: the download through `app/fetch/` (multi-step downloads are recipe steps) and storing the records (`app/db.py`).
@@ -129,23 +130,23 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Research: `research/q13-read-schedule.md`. It replaces the 15 minutes with: every 2 minutes, or 10 times the list's read time, at most 30 minutes.
 - [ ] Team agrees on that rule. Details and files only for new or changed tenders; refresh starts a read or returns the running read's `runId`. (`closed` is already computed at answer time, Q7.)
 - [x] The rules as functions in `app/scheduler.py`: the interval, the first-page read on long lists, the attach phases with their state and reason, the document order. Settings come from the environment (`READ_INTERVAL_SECONDS`, `ATTACH_TIME_LIMIT_SECONDS` and others).
-- [ ] The loop that calls them: one run per portal, portals side by side, refresh (needs `app/fetch/`, the executor and `app/db.py`).
+- [x] The loop that calls them: one run per portal, portals side by side, refresh (needs `app/fetch/`, the executor and `app/db.py`).
 
 ### [ ] Q14. Retrying failed portals
 **Owner:** Goktug for the rules; the loop: _____
 - [x] Research: `research/q14-failed-retry.md`. Check on every refresh, and on our own after 5 minutes, 15 minutes, 1 hour, then every 6 hours; one repair only when the page is one we have not already failed on.
 - [ ] Team agrees on that rule.
 - [x] The rules as functions in `app/scheduler.py`: when a failed portal is checked next, the outage retries, the once-a-minute limit on refresh.
-- [ ] Recheck job in the scheduler's loop (`RunTrigger.recheck`).
+- [x] Recheck job in the scheduler's loop (`RunTrigger.recheck`).
 
 ### [ ] G. Work outside any one question
 **Owner:** _____
 - [x] G1. API (`app/main.py`): every endpoint with the exact answers from the appendix, `/files/{file_id}`. It talks to the store and the worker through `app/interfaces.py`, and runs on an in-memory stand-in (`app/memory_store.py`) until both exist.
 - [x] The contract test (`tests/contract/`): plays the judges on every route. CI runs it against the built container on every pull request.
 - [x] G1, wiring the store: with `DATA_DIR` set (the Dockerfile sets `/data`) the app runs on `app/db.py` and its records survive a restart; without it, in memory (`default_store()` in `app/main.py`).
-- [ ] G1, wiring the worker: the read loop replaces `DatabaseIdleWorker` (`app/standin_worker.py`), which records runs and reads nothing.
+- [x] G1, wiring the worker: with `DATA_DIR` the app runs on the read loop (`app/loop.py`, one read in `app/reader.py`). Until the learning agent exists, only the mock portal mounted at `/mock` can be attached (`builtin_learner` in `app/main.py`).
 - [x] G2. `app/db.py` on top of `app/schema.sql`: the eight `Store` methods the API calls, and the worker's writes (portal state, runs, checks, steps, snapshots, recipes, publishing tenders and documents). One read and one write connection, each behind a lock (research in `research/q15-storage.md`). Tests in `tests/test_db.py`.
-- [ ] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
+- [x] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
 - [ ] G5. Video, at most 3 minutes, including the dashboard (mock portal break and repair makes a good demo).
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging.

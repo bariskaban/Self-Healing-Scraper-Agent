@@ -25,18 +25,26 @@ from collections.abc import AsyncIterator, Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, TypeVar
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
+from app.dashboard_api import add_dashboard_routes
+from app.checks import CheckSettings
 from app.db import Database
 from app.docs import DocsSettings, FileStore
 from app.interfaces import Store, Worker
 from app.memory_store import IdleWorker, MemoryStore
-from app.standin_worker import DatabaseIdleWorker
+from app.fetch import Fetcher
+from app.loop import ReadLoop
+from app.reader import Learned, Reader
+from app.recipe.settings import RecipeSettings
+from app.scheduler import SchedulerSettings
 from app.models import CreatedId, Portal, PortalCreate, RunAccepted, url_key, utcnow
 
 T = TypeVar("T")
@@ -44,6 +52,11 @@ T = TypeVar("T")
 PORTAL_ID_LENGTH = 12
 # A time of day, a space, and an offset at the end: the space was a "+" before URL decoding.
 _LOST_PLUS = re.compile(r"(\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?) (\d{2}:?\d{2})$")
+
+# The dashboard is a static page built from dashboard/ (see docs/DASHBOARD_API.md for what it reads).
+DASHBOARD_DIR = Path(__file__).parent / "dashboard" / "static"
+DASHBOARD_PAGE = DASHBOARD_DIR / "index.html"
+DASHBOARD_ROOT_FILES = ("favicon.ico", "robots.txt")
 
 PLACEHOLDER_PAGE = """<!doctype html>
 <html lang="en">
@@ -81,27 +94,52 @@ def parse_changed_since(raw: str) -> datetime:
     return when if when.tzinfo is not None else when.replace(tzinfo=timezone.utc)
 
 
-def default_store() -> tuple[Store, Worker]:
+MOCK_PATH = "/mock"  # where the mock portal is mounted, for demos and end-to-end tests
+
+
+def builtin_learner(portal: Portal, run_id: str) -> Learned | None:
+    """The recipes this build knows without a model: the mock portal's, written by hand.
+
+    The learning agent (app/agent, stream B) takes this place for every other portal.
+    """
+    from urllib.parse import urlsplit
+
+    import mock_portal
+
+    path = urlsplit(portal.url).path.rstrip("/")
+    if path.endswith(MOCK_PATH) or urlsplit(portal.url).hostname == "mock.example":
+        root = path if path.endswith(MOCK_PATH) else ""
+        return Learned(recipe=mock_portal.recipe(root), timezone=mock_portal.TIMEZONE, country_code="NL")
+    return None
+
+
+def default_store() -> tuple[Store, Worker | None]:
     """The SQLite store under DATA_DIR when it is set (the container sets it); memory otherwise.
 
-    The worker is a stand-in that records runs and reads nothing, until the read loop exists.
+    On the database the worker is the read loop, which `create_app` builds; in memory it is a
+    stand-in that reads nothing.
     """
     if os.environ.get("DATA_DIR"):
         database = Database.from_env()
-        return database, DatabaseIdleWorker(database)
+        return database, None  # create_app builds the read loop on it
     memory = MemoryStore()
     return memory, IdleWorker(memory)
 
 
 def create_app(store: Store | None = None, worker: Worker | None = None,
-               files: Callable[[], FileStore] | None = None) -> FastAPI:
-    """The app on a given store and worker. Without them, on `default_store()`."""
+               files: Callable[[], FileStore] | None = None, *, fetch: Fetcher | None = None,
+               mock: Any = None) -> FastAPI:
+    """The app on a given store and worker. Without them, on `default_store()`.
+
+    `fetch` replaces the network layer of the read loop and `mock` the mock portal mounted at
+    /mock: tests hand in a fetcher that reaches the mock portal in this process.
+    """
     opened: Database | None = None  # a database this app opened itself, and closes on shutdown
     if store is None:
         store, default_worker = default_store()
         worker = worker or default_worker
         opened = store if isinstance(store, Database) else None
-    if worker is None:
+    if worker is None and opened is None:
         raise ValueError("a store was given without a worker")
     file_store: list[FileStore] = []
 
@@ -111,6 +149,17 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
             file_store.append(files() if files is not None else FileStore(DocsSettings.from_env()))
         return file_store[0]
 
+    fetcher: Fetcher | None = None
+    if worker is None:  # our own database and no worker given: the read loop
+        fetcher = fetch or Fetcher.from_env()
+        # Every number of ours comes from the environment (CLAUDE.md): READ_INTERVAL_SECONDS,
+        # ATTACH_TIME_LIMIT_SECONDS, the check thresholds, the executor's ceilings.
+        schedule = SchedulerSettings.from_env()
+        reader = Reader(opened, fetcher, documents, learn=builtin_learner, checks=CheckSettings.from_env(),
+                        schedule=schedule, recipes=RecipeSettings.from_env(),
+                        ignore_robots=fetcher.settings.ignore_robots_txt)
+        worker = ReadLoop(opened, reader, fetcher, schedule=schedule)
+
     database = ThreadPoolExecutor(max_workers=1, thread_name_prefix="watchtower-db")
 
     async def on_db(call: Callable[..., T], *args: Any) -> T:
@@ -119,7 +168,13 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        if isinstance(worker, ReadLoop):
+            await worker.start()
         yield
+        if isinstance(worker, ReadLoop):
+            await worker.stop()
+        if fetcher is not None:
+            fetcher.close()
         database.shutdown(wait=False, cancel_futures=True)
         if opened is not None:
             opened.close()
@@ -127,6 +182,11 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
     app = FastAPI(title="Watchtower", docs_url="/api-docs", redoc_url=None, lifespan=lifespan)
     # The dashboard may be developed on another port; the API holds nothing private.
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+    if os.environ.get("MOCK_PORTAL", "1").strip().lower() not in ("0", "false", "no", "off"):
+        from mock_portal import MockPortal
+
+        app.state.mock_portal = mock or MockPortal()  # the portal we break on purpose (DESIGN.md, "Mock portal")
+        app.mount(MOCK_PATH, app.state.mock_portal.asgi())
 
     async def known(portal_id: str) -> Portal:
         portal = await on_db(store.get_portal, portal_id)
@@ -216,12 +276,28 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
             raise HTTPException(status_code=404, detail="The document's bytes are not on disk.")
         return FileResponse(path, media_type=record.content_type or "application/octet-stream")
 
+    add_dashboard_routes(app, store, on_db, worker)  # /api/...: what the page reads (docs/DASHBOARD_API.md)
+
     @app.get("/", response_class=HTMLResponse)
-    async def index() -> str:
-        """Placeholder until the dashboard (`app/dashboard/`) replaces it."""
-        return PLACEHOLDER_PAGE
+    async def index() -> Response:
+        """The dashboard page (built from the dashboard source into app/dashboard/static/), or a placeholder."""
+        if DASHBOARD_PAGE.is_file():
+            return FileResponse(DASHBOARD_PAGE, media_type="text/html", headers={"Cache-Control": "no-cache"})
+        return HTMLResponse(PLACEHOLDER_PAGE)
+
+    for name in DASHBOARD_ROOT_FILES:
+        if (DASHBOARD_DIR / name).is_file():
+            app.add_api_route(f"/{name}", _static_file(DASHBOARD_DIR / name), include_in_schema=False)
+    if (DASHBOARD_DIR / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=DASHBOARD_DIR / "assets"), name="dashboard-assets")
 
     return app
+
+
+def _static_file(path: Path) -> Callable[[], FileResponse]:
+    def serve() -> FileResponse:
+        return FileResponse(path)
+    return serve
 
 
 app = create_app()
