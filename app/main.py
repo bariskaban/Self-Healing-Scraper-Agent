@@ -107,7 +107,9 @@ def builtin_learner(portal: Portal, run_id: str) -> Learned | None:
     import mock_portal
 
     path = urlsplit(portal.url).path.rstrip("/")
-    if path.endswith(MOCK_PATH) or urlsplit(portal.url).hostname == "mock.example":
+    host = urlsplit(portal.url).hostname or ""
+    # `mock.example` is the mock portal's own name; the demo serves further ones under it.
+    if path.endswith(MOCK_PATH) or host == "mock.example" or host.endswith(".mock.example"):
         root = path if path.endswith(MOCK_PATH) else ""
         return Learned(recipe=mock_portal.recipe(root), timezone=mock_portal.TIMEZONE, country_code="NL")
     return None
