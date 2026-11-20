@@ -5,12 +5,13 @@ What reads it:
   * the worker, through the rest: portal state, runs, checks, steps, snapshots, recipes,
     and publishing tenders with their documents.
 
-Threads (Q15). The API calls in from several threads at once. Four threads reading SQLite in
-one process measured 130 ms a query against 2.3 ms for one, so the store holds two
-connections, each behind its own lock: the reader serves every read and the writer every
-write. Whatever calls in, at most two threads touch SQLite at a time, and WAL lets the
-reader go on while the writer commits. Every read runs in one read transaction, so it sees
-one consistent moment; every write runs in one `BEGIN IMMEDIATE` transaction. The reader's
+Threads (Q15). The API makes its store calls on one database thread of its own (`app/main.py`);
+the worker calls from its own threads. Four threads reading SQLite in one process measured
+130 ms a query against 2.3 ms for one, so the store holds two connections, each behind its
+own lock: the reader serves every read and the writer every write. Whatever calls in, at
+most two threads touch SQLite at a time, and WAL lets the reader go on while the writer
+commits. Every read runs in one read transaction, so it sees one consistent moment; every
+write runs in one `BEGIN IMMEDIATE` transaction. The reader's
 lock covers only fetching the rows: building records from them (18 ms for 1,000 tenders,
 against 3 ms in SQLite) happens after it is released, so a quick read never waits behind
 another thread's records.

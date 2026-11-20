@@ -51,7 +51,7 @@ With **no writer at all**, the same query (`research/tools/q15_threads_bench.py`
 
 No read hit a lock error, and four processes are as fast as one thread, so SQLite's locking is not the cause: the slowdown comes from Python threads in one process taking turns. We did not pin down the exact mechanism; the likely one is that the `sqlite3` module releases and takes back Python's global interpreter lock for every row it steps through (**ours**). Any embedded database driven from Python threads would meet the same.
 
-So `app/db.py` must not fan reads out over many threads in one process. FastAPI runs plain `def` handlers in a thread pool; ours should be `async def`, with every database call going through one database thread (or straight on the event loop, at 2 to 3 ms a query). The worker writes through its own single connection. Long scans, such as the fingerprint match, run in the worker, never in an API handler (**ours**). *Superseded by the build, below: the store enforces this itself, so handlers may stay plain `def`.*
+So `app/db.py` must not fan reads out over many threads in one process. FastAPI runs plain `def` handlers in a thread pool; ours should be `async def`, with every database call going through one database thread (or straight on the event loop, at 2 to 3 ms a query). The worker writes through its own single connection. Long scans, such as the fingerprint match, run in the worker, never in an API handler (**ours**). *Built this way: the API's routes are `async def` and call the store on one database thread (PR #22), and the store itself locks each connection, see below.*
 
 ## Alternatives, and why they lose here
 
@@ -98,7 +98,7 @@ The store holds one connection for reads and one for writes, each behind a lock,
 | Where one `list_tenders` spends its time | 3.1 ms fetching from SQLite, 18 ms building the records |
 | `get_portal` alone, beside 1, and beside 4 threads listing 1,000 tenders | 0.06 ms, 22 ms, 104 ms median |
 
-The last row is Python's interpreter lock: the listing threads spend their time in Python, building records, and a quick call waits for its turn. No database choice changes that; only separate processes would. It is acceptable for an API the judges call a few times a minute, and it is why API routes may stay plain `def` (FastAPI's thread pool): the store already keeps SQLite to one thread per connection.
+The last row is Python's interpreter lock: the listing threads spend their time in Python, building records, and a quick call waits for its turn. No database choice changes that; only separate processes would. It is acceptable for an API the judges call a few times a minute. The API already calls the store from one database thread (PR #22); the locks are what make it safe for the worker's threads to call the same store at the same time.
 
 ## Prototype first (about 1 hour)
 

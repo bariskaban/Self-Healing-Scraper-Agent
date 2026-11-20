@@ -17,7 +17,10 @@ An agent that attaches to European public procurement portals on its own, watche
 - **Danil:** Q2, Q9, Q11
 - **Goktug:** Q6, Q10, Q12
 - **Goktug (research, and the rules as functions in `app/scheduler.py`; the loop is not assigned):** Q13, Q14
-- **Not assigned yet:** G1 to G11
+- **G1, the API:** Goktug
+- **G2, the database:** David
+- **G3, the dashboard and frontend:** Danil and Baris
+- **Not assigned yet:** G4 to G11
 
 ## Questions and what is left
 
@@ -132,7 +135,9 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 
 ### [ ] G. Work outside any one question
 **Owner:** _____
-- [ ] G1. API (`app/main.py`): every endpoint with the exact answers from the appendix, `/files/{file_id}`.
+- [x] G1. API (`app/main.py`): every endpoint with the exact answers from the appendix, `/files/{file_id}`. It talks to the store and the worker through `app/interfaces.py`, and runs on an in-memory stand-in (`app/memory_store.py`) until both exist.
+- [x] The contract test (`tests/contract/`): plays the judges on every route. CI runs it against the built container on every pull request.
+- [ ] G1, wiring: `app/db.py` as the store (`Database.from_env()` provides the eight methods of `Store` in `app/interfaces.py`), and the scheduler's loop as the worker.
 - [x] G2. `app/db.py` on top of `app/schema.sql`: the eight `Store` methods the API calls, and the worker's writes (portal state, runs, checks, steps, snapshots, recipes, publishing tenders and documents). One read and one write connection, each behind a lock (research in `research/q15-storage.md`). Tests in `tests/test_db.py`.
 - [ ] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
