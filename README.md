@@ -40,7 +40,7 @@ How we represent what the LLM learned about a portal. **Owner:** David
 ### [ ] Q2. Field locators
 What the recipe stores to find each field and link, and how a break is detected. **Owner:** Danil
 - [x] Research: `research/q02-locators.md`. Two or three locators and value checks per field; per the audit, a single surviving locator counts only when it equals the last good value.
-- [x] Locator types in the recipe (CSS, XPath, label, JSON path, fallbacks).
+- [x] Locator types in the recipe (CSS, XPath, label, JSON path, fallbacks): `LocatorKind` and `FieldSpec.locators` in `app/recipe/schema.py` (G9).
 - [ ] Value checks per field (dates parse, deadline after publication, CPV 8 digits, country 2 letters).
 - [x] Normalizers (`app/extract/`): local dates and times to offset, CPV, procedureType and contractNature mapping, ids.
 
@@ -95,7 +95,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 ### [ ] Q9. OpenAI models and cost
 **Owner:** Danil
 - [x] Research: `research/q09-models-cost.md`. Learn and repair on `gpt-6.2-sol`, spot checks on `gpt-6-luna`; per the audit, quote the cost per portal only once measured.
-- [ ] `app/config.py`: model per job (`MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK`) and the price table with its date.
+- [x] `app/config.py`: model per job (`MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK`) and the price table with its date.
 - [ ] Pick models from the benchmark (needs Q8).
 - [ ] Cost per portal (attach and repair) for the hand-in README.
 
