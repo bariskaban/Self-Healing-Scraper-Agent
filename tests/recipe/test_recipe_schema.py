@@ -244,12 +244,11 @@ def without_field(recipe: AuthoredRecipe, name: FieldName, *node_ids: str) -> Au
 
 
 @pytest.mark.parametrize("name", ["url", "title", "buyer_name", "publication_date", "submission_deadline"])
-@pytest.mark.parametrize("example", sorted(EXAMPLES))
-def test_a_required_field_no_node_reads_is_a_problem(example, name):
-    recipe = without_field(EXAMPLES[example](), FieldName(name))
-    found = one_problem(recipe, "No node reads the required field", f"`{name}`")
-    assert "every tender would be delivered without it" in found
-    assert [p for p in problems(recipe) if "No node reads" in p] == [found]
+def test_a_required_field_no_node_reads_is_not_refused(name):
+    # A portal may not show a buyer at all. The agent's `propose_recipe` reports that as a warning
+    # ("No record has a buyer_name"), so `problems()` must let the recipe through.
+    for make in (html_table_portal, json_api_portal):
+        assert not any("required field" in p for p in problems(without_field(make(), FieldName(name))))
 
 
 def test_a_required_field_read_on_one_node_only_is_enough():

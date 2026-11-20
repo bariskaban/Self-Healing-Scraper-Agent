@@ -53,7 +53,7 @@ _POSITIONAL_XPATH = re.compile(r"\[\s*\d+\s*\]|position\(\)|last\(\)")
 # The one position that is an anchor: `[n]` straight after the node test of a sibling step,
 # as in `//dt[.='Angebotsfrist']/following-sibling::dd[1]`, "the value next to this label" (Q2).
 _SIBLING_INDEX = re.compile(r"((?:following|preceding)-sibling::(?:\*|[A-Za-z_][\w.-]*))\[\s*\d+\s*\]")
-# What every tender must have (the brief's required fields); `id` may also come from the address.
+# What every tender should have (the brief's required fields); `id` may also come from the address.
 REQUIRED_FIELDS = ("id", "url", "title", "buyer_name", "publication_date", "submission_deadline")
 
 
@@ -601,20 +601,16 @@ def problems(recipe: AuthoredRecipe) -> list[str]:
 
 
 def _required_field_problems(recipe: AuthoredRecipe, lists: list[Node]) -> list[str]:
-    """Each required field is read by some node, and by the list when it says it carries them all.
+    """A list that says it carries every required field must read each one the recipe reads at all.
 
-    `id` may come from the address instead (`identity.from_url`). A recipe that never reads a
-    required field would deliver null for it on every tender, on every read.
+    This is a contradiction inside the recipe, so it is refused. A required field that no node
+    reads is not: that is a fact about the portal (it may not show a buyer), and the agent's
+    `propose_recipe` reports it as a warning ("No record has a ...") instead of refusing the recipe.
+    `id` may come from the address (`identity.from_url`).
     """
     out: list[str] = []
     from_address = {"id"} if recipe.identity.from_url is not None else set()
     read_somewhere = {field.name.value for node in recipe.nodes for field in node.fields} | from_address
-    for name in REQUIRED_FIELDS:
-        if name == "id" and lists:
-            continue  # the list node's own rule already says that a tender has no id
-        if name not in read_somewhere:
-            out.append(f"No node reads the required field `{name}`: every tender would be delivered without it. "
-                       "Add it to the list node or to the tender's own page.")
     for node in lists:
         if node.facts is None or not node.facts.has_all_required:
             continue
