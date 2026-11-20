@@ -43,6 +43,7 @@ class Expect(StrEnum):
 
 class Address(StrEnum):
     fetched = "fetched"    # opened by our research on 20 Nov 2026
+    other_page = "other_page"  # our research opened another page of this portal, not this one
     measured = "measured"  # measured in research/q04-page-views-measured.md
     search = "search"      # seen only in a search result or a TED notice quoting it
     survey = "survey"      # opened once in a browser by the portal survey
@@ -179,23 +180,26 @@ def read_file(path: Path = PORTALS_FILE) -> tuple[list[TestPortal], list[Exclude
     return portals, excluded
 
 
+GUESSED = frozenset({Address.example, Address.doubtful})  # addresses nobody has seen in use
+
+
 def load_portals(path: Path = PORTALS_FILE, *, include_unseen: bool = False, with_address: bool = True,
                  priority_max: int = 5, expect: Expect | None = None,
-                 trusted_only: bool = False, include_robots_forbidden: bool = False) -> list[TestPortal]:
+                 include_guessed: bool = False, include_robots_forbidden: bool = False) -> list[TestPortal]:
     """The portals to run, in priority order.
 
     By default: no unseen portal (they are held back for the final test) and only those with an
-    address. `trusted_only` keeps addresses someone opened or saw quoted (not examples, not doubtful).
+    address, and no guessed address (`example`, `doubtful`): check those in a browser first, then
+    pass `include_guessed=True` or update their `address`.
     A portal whose robots.txt forbids every path (`robots_disallow_all`) is left out unless
     `include_robots_forbidden`: the mentor wants robots.txt obeyed, so recording it is a decision.
     """
     portals, _ = read_file(path)
-    trusted = {Address.fetched, Address.measured, Address.search, Address.survey}
     out = [p for p in portals
            if (include_unseen or not p.unseen)
            and (not with_address or p.url is not None)
            and (include_robots_forbidden or not p.robots_disallow_all)
            and p.priority <= priority_max
            and (expect is None or p.expect is expect)
-           and (not trusted_only or p.address in trusted)]
+           and (include_guessed or p.address not in GUESSED)]
     return sorted(out, key=lambda p: (p.priority, p.country, p.family, p.id))
