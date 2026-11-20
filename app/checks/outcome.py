@@ -16,8 +16,14 @@ from .result import Cause, Facts, cause_of, note, observed_of, passed, suspect
 from .transport import Answer, Transport, answer_words, block_sentence, block_sign, classify_answer
 from .words import count
 
-# The first bytes each kind of file must start with.
-_MAGIC = {"PDF": b"%PDF", "ZIP": b"PK\x03\x04", "old Office": b"\xd0\xcf\x11\xe0"}
+# The first bytes each kind of file may start with. A file named .doc, .xls or .ppt is in
+# practice also an RTF text or a new-format (ZIP) file saved under the old name: both are real
+# documents, so they are accepted. A web page under such a name is caught before this test.
+_MAGIC = {
+    "PDF": (b"%PDF",),
+    "ZIP": (b"PK\x03\x04",),
+    "old Office": (b"\xd0\xcf\x11\xe0", b"PK\x03\x04", b"{\\rtf"),
+}
 _KIND_BY_EXTENSION = {
     "pdf": "PDF",
     "zip": "ZIP", "docx": "ZIP", "xlsx": "ZIP", "pptx": "ZIP",

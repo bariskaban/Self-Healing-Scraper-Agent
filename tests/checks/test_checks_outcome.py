@@ -93,6 +93,7 @@ def test_a_maintenance_page_or_no_answer_is_a_suspect_outage(answer):
 @pytest.mark.parametrize("name, first_bytes", [
     ("LV.pdf", PDF), ("unterlagen.zip", ZIP), ("Angebot.docx", ZIP), ("Preise.xlsx", ZIP),
     ("alt.doc", OLE), ("alt.xls", OLE), ("plan.dwg", b"AC1027"), ("README", b"hello"),
+    ("brief.doc", b"{\\rtf1\\ansi"), ("neu.doc", ZIP),  # RTF, or a new-format file, saved under the old name
 ])
 def test_a_file_whose_first_bytes_fit_its_kind_arrived(name, first_bytes):
     facts = DownloadFacts(file_name=name, answer=DOWNLOAD, first_bytes=first_bytes, size_bytes=1200,
@@ -107,7 +108,7 @@ def test_a_file_whose_first_bytes_fit_its_kind_arrived(name, first_bytes):
     (DownloadFacts(file_name="LV.pdf", answer=DOWNLOAD, first_bytes=b"  <html><body>", size_bytes=900), "html"),
     (DownloadFacts(file_name="LV.pdf", answer=DOWNLOAD, first_bytes=ZIP, size_bytes=900), "first_bytes"),
     (DownloadFacts(file_name="all.zip", answer=DOWNLOAD, first_bytes=PDF, size_bytes=900), "first_bytes"),
-    (DownloadFacts(file_name="alt.doc", answer=DOWNLOAD, first_bytes=ZIP, size_bytes=900), "first_bytes"),
+    (DownloadFacts(file_name="alt.doc", answer=DOWNLOAD, first_bytes=PDF, size_bytes=900), "first_bytes"),
     (DownloadFacts(file_name="plan.dwg", answer=DOWNLOAD, first_bytes=b"", size_bytes=0), "empty"),
     (DownloadFacts(file_name="LV.pdf", answer=DOWNLOAD, first_bytes=PDF, size_bytes=900, announced_size=1200), "size"),
 ])

@@ -93,10 +93,12 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 ### [ ] Q10. Failure rules
 **Owner:** Goktug
 - [x] Research: `research/q10-failure-rules.md`: rules, thresholds, state and reason text per rule, and the check names for `CheckResult`.
-- [ ] Add an `outage` severity (healing without a repair) to `app/models.py`, with the Q7 owner.
-- [ ] Checks (`app/checks/`), one function each, returning `CheckResult`.
-- [ ] State machine (`app/state.py`): checks to state and reason; keep serving last good tenders while healing.
-- [ ] No false alarm on portals with few or no open tenders (mock scenario 13).
+- [ ] Add an `outage` severity (healing without a repair) to `app/models.py`, with the Q7 owner. Open as pull request 18, waiting for a person's approval. Until then the checks carry the outage in `observed`.
+- [x] Checks (`app/checks/`), one function each, returning `CheckResult`: T1, T2, T4, O1, O2, C1 to C7, D1, F1 and the confirm step. Settings come from the environment (`CHECKS_*`).
+- [x] State machine (`app/state.py`): `decide` turns the checks of one read into the state, the reason, the `cause`, and whether a repair or a spot check follows.
+- [ ] Call the checks and `decide` from the read loop, and store the last good tenders so they stay served while healing (needs the executor and `app/db.py`).
+- [x] No false alarm on portals with few or no open tenders, in unit tests: 1 of 3 tenders withdrawn, a list emptied with and without the portal's notice.
+- [ ] The same on the mock portal (scenario 13), once it exists.
 
 ### [ ] Q11. Reuse across portals
 **Owner:** Danil
@@ -111,7 +113,8 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Incremental reads, the plan: which tenders are fetched, which are no longer listed, and the detail-page rotation (`plan_incremental_read` in `app/scheduler.py`).
 - [ ] Incremental reads, in the loop: run the plan against the executor and the store (`detail_fetched_at`, `docs_status`).
 - [x] Documents (`app/docs/`): streaming to disk with the SHA-256 computed as the bytes arrive, the 250 MB limit, files stored once under their hash, ZIP unpacking (nested too, within caps), file names, disk rules. It takes the bytes from the network layer and the file test (O2) from `app/checks/` as parameters.
-- [ ] Documents, wiring: the download through `app/fetch/` (multi-step downloads are recipe steps), the file test from `app/checks/` (covers the captcha-but-file-downloads case), and storing the records (`app/db.py`).
+- [x] Documents use the file test of `app/checks/` (`outcome_judge` in `app/docs/judge.py`): a web page or a login page in place of a file is never stored, and a captcha on a page whose file downloads changes nothing.
+- [ ] Documents, wiring: the download through `app/fetch/` (multi-step downloads are recipe steps) and storing the records (`app/db.py`).
 
 ### [ ] Q13. Read schedule
 **Owner:** Goktug for the rules; the loop: _____

@@ -3,8 +3,13 @@
 A tender that was open, has its deadline still ahead and is absent now is never
 judged by a count. Its own detail page is looked at (up to five per read): one
 that still shows the tender open means the list is broken; closed, withdrawn or
-gone is accepted. Only when so many are missing at once that chance does not
-explain it must the list also be shown to be whole.
+gone is accepted. The list must also be shown to be whole (its structure intact,
+its printed total in agreement, or the portal saying it is empty) in two cases:
+when so many are missing at once that chance does not explain it, and when a
+page we looked at does not say or does not answer. Many portals answer an error
+or send the visitor back to the list for a tender they removed, and the brief
+calls a tender that is no longer listed closed, so such a page is no alarm while
+the list itself is whole.
 """
 from __future__ import annotations
 
@@ -84,8 +89,9 @@ def confirm_missing(first: CheckResult, looks: Sequence[DetailLook], *, structur
                     printed_total_agrees: bool = False, proven_empty: bool = False) -> CheckResult:
     """C4 `known_ids_missing`, decided from the detail pages of the tenders that went missing.
 
-    For a mass disappearance the list must also be whole: its structure intact,
-    its printed total in agreement, or the portal itself saying the list is empty.
+    For a mass disappearance, and for a page that does not say or does not answer,
+    the list must also be whole: its structure intact, its printed total in
+    agreement, or the portal itself saying the list is empty.
     """
     if first.name != "known_ids_missing" or effect_of(first) is not Effect.suspect:
         raise ValueError("confirm_missing settles a suspect known_ids_missing result")
@@ -108,24 +114,32 @@ def confirm_missing(first: CheckResult, looks: Sequence[DetailLook], *, structur
         return failed(run_id, "known_ids_missing",
                       f"{facts}, but the own page of tender {still_open[0]} still shows it open.",
                       cause=Cause.breakage, observed={**observed, "still_open": still_open}, expected=first.expected)
-    if unclear:
+    list_whole = structure_intact or printed_total_agrees or proven_empty
+    not_whole = "neither the list's structure nor a printed total confirms that the list is whole"
+    if unclear and not list_whole:
         return failed(run_id, "known_ids_missing",
-                      f"{facts}, and the own page of tender {unclear[0]} does not say whether it is still open.",
-                      cause=Cause.breakage, observed={**observed, "unclear": unclear}, expected=first.expected)
-    if no_answer:
+                      f"{facts}, the own page of tender {unclear[0]} does not say whether it is still open, "
+                      f"and {not_whole}.",
+                      cause=Cause.breakage, observed={**observed, "unclear": unclear, "list_whole": False},
+                      expected=first.expected)
+    if no_answer and not list_whole:
         # Not evidence that the list is broken: the portal is not answering, so no repair.
         return failed(run_id, "known_ids_missing",
-                      f"{facts}, and the own page of tender {no_answer[0]} did not answer.",
-                      cause=Cause.outage, observed={**observed, "no_answer": no_answer}, expected=first.expected)
+                      f"{facts}, the own page of tender {no_answer[0]} did not answer, and {not_whole}.",
+                      cause=Cause.outage, observed={**observed, "no_answer": no_answer, "list_whole": False},
+                      expected=first.expected)
     pages = len(was["look_at"])
     looked = f"The {count(pages, 'page')} we looked at {'says' if pages == 1 else 'say'}"
-    if was["mass"] and not (structure_intact or printed_total_agrees or proven_empty):
+    if was["mass"] and not list_whole:
         return failed(run_id, "known_ids_missing",
-                      f"{facts}, all at once. {looked} closed or withdrawn, but neither the list's structure "
-                      "nor a printed total confirms that the list is whole.",
+                      f"{facts}, all at once. {looked} closed or withdrawn, but {not_whole}.",
                       cause=Cause.breakage, observed={**observed, "list_whole": False}, expected=first.expected)
     withdrawn = with_outcome(LookOutcome.withdrawn)
     closed = with_outcome(LookOutcome.closed) + with_outcome(LookOutcome.gone)
-    says = " and ".join(f"{len(ids)} {word}" for ids, word in ((closed, "closed"), (withdrawn, "withdrawn")) if ids)
-    return passed(run_id, "known_ids_missing", f"{facts}. {looked}: {says}.", severity=Severity.info,
-                  observed={**observed, "closed": closed, "withdrawn": withdrawn}, expected=first.expected)
+    silent = unclear + no_answer  # only reached while the list is whole: no longer listed means closed
+    said = [f"{len(ids)} {word}" for ids, word in ((closed, "closed"), (withdrawn, "withdrawn")) if ids]
+    if silent:
+        said.append(f"{len(silent)} without a clear answer, taken as closed because the list itself is whole")
+    return passed(run_id, "known_ids_missing", f"{facts}. {looked}: {' and '.join(said)}.", severity=Severity.info,
+                  observed={**observed, "closed": closed + silent, "withdrawn": withdrawn, "silent": silent},
+                  expected=first.expected)

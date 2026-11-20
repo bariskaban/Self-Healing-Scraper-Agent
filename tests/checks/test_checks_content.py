@@ -220,9 +220,28 @@ def test_c4_one_missing_tender_whose_page_still_shows_it_open_is_a_breakage():
 
 
 def test_c4_a_page_that_does_not_say_is_not_accepted_and_one_that_does_not_answer_is_an_outage():
+    # Nothing shows the list is whole: a page without a clear answer cannot be accepted.
     first = known_ids_missing("r1", tenders(3), ["T-0001", "T-0002"], now=NOW)
     assert effect_of(confirm_missing(first, looks(["T-0003"], LookOutcome.unclear))) is Effect.breakage
     assert effect_of(confirm_missing(first, looks(["T-0003"], LookOutcome.no_answer))) is Effect.outage
+
+
+@pytest.mark.parametrize("outcome", [LookOutcome.unclear, LookOutcome.no_answer])
+@pytest.mark.parametrize("whole", ["structure_intact", "printed_total_agrees", "proven_empty"])
+def test_c4_a_page_without_a_clear_answer_is_taken_as_closed_while_the_list_is_whole(outcome, whole):
+    # Portals often answer an error, or send the visitor back to the list, for a tender they removed.
+    # The brief calls a tender that is no longer listed closed, so this must not read as a failure.
+    first = known_ids_missing("r1", tenders(3), ["T-0001", "T-0002"], now=NOW)
+    result = confirm_missing(first, looks(["T-0003"], outcome), **{whole: True})
+    assert result.passed and result.severity is Severity.info
+    assert result.observed["closed"] == ["T-0003"] and result.observed["silent"] == ["T-0003"]
+    assert "taken as closed because the list itself is whole" in result.message
+
+
+def test_c4_a_page_that_still_shows_the_tender_open_is_a_breakage_even_when_the_list_looks_whole():
+    first = known_ids_missing("r1", tenders(3), ["T-0001", "T-0002"], now=NOW)
+    result = confirm_missing(first, looks(["T-0003"], LookOutcome.still_open), structure_intact=True)
+    assert effect_of(result) is Effect.breakage
 
 
 def test_c4_tenders_whose_deadline_passed_or_that_were_closed_are_not_missed():
