@@ -17,11 +17,19 @@ const dash = (portals: unknown[] = []): Dashboard =>
   ({ asOf: "2026-11-20T20:00:00Z", eurPerUsd: 0.9, settings: { attachTimeLimitMinutes: 20, ignoreRobotsTxt: false }, portals }) as Dashboard;
 
 describe("ledger source selection", () => {
-  it("cold 404 falls back to the demo snapshot", async () => {
+  it("cold 404 shows no data and says the API is offline, never the demo snapshot", async () => {
     const c = new LedgerController(async () => new Response("no", { status: 404 }), { name: "overview" });
     await c.cycle();
-    expect(c.state.source).toBe("demo");
+    expect(c.state.source).toBeNull();
+    expect(c.state.dashboard).toBeNull();
+    expect(c.state.offline).toBe(true);
     expect(c.state.everOnline).toBe(false);
+  });
+
+  it("with ?demo a cold 404 shows the demo snapshot", async () => {
+    const c = new LedgerController(async () => new Response("no", { status: 404 }), { name: "overview" }, { allowDemo: true });
+    await c.cycle();
+    expect(c.state.source).toBe("demo");
   });
 
   it("live 200 with an empty fleet is live, not offline", async () => {
@@ -34,7 +42,8 @@ describe("ledger source selection", () => {
   it("a JSON error body is not an empty success", async () => {
     const c = new LedgerController(async () => json({ error: "boom" }), { name: "overview" });
     await c.cycle();
-    expect(c.state.source).toBe("demo");
+    expect(c.state.source).toBeNull();
+    expect(c.state.offline).toBe(true);
   });
 
   it("live → offline → live", async () => {
@@ -44,18 +53,57 @@ describe("ledger source selection", () => {
     expect(c.state.source).toBe("live");
     up = false;
     await c.cycle();
-    expect(c.state.source).toBe("demo");
+    expect(c.state.source).toBe("live"); // the last live snapshot stays, marked offline
+    expect(c.state.offline).toBe(true);
     expect(c.state.everOnline).toBe(true);
     up = true;
     await c.cycle();
     expect(c.state.source).toBe("live");
+    expect(c.state.offline).toBe(false);
+  });
+
+  it("offline: opening a portal and going back still shows the last live overview", async () => {
+    let up = true;
+    const c = new LedgerController(async () => { if (!up) throw new TypeError("down"); return json(dash([portal])); }, { name: "overview" });
+    await c.cycle();
+    up = false;
+    await c.cycle();
+    c.setRoute({ name: "portal", id: "p1" });
+    await c.cycle();
+    expect(c.state.detail).toBeNull(); // nothing was ever loaded for this page, and nothing is made up
+    expect(c.state.offline).toBe(true);
+    c.setRoute({ name: "overview" });
+    expect(c.state.source).toBe("live"); // at once, not after the next failed poll
+    expect(c.state.dashboard?.portals).toHaveLength(1);
+    expect(c.state.offline).toBe(true);
+    await c.cycle();
+    expect(c.state.source).toBe("live");
+    expect(c.state.offline).toBe(true);
+    up = true;
+    await c.cycle();
+    expect(c.state.offline).toBe(false);
+  });
+
+  it("the API going down while a portal page loads does not hide the overview on the way back", async () => {
+    let up = true;
+    const c = new LedgerController(async () => { if (!up) throw new TypeError("down"); return json(dash([portal])); }, { name: "overview" });
+    await c.cycle();
+    c.setRoute({ name: "portal", id: "p1" });
+    c.setRoute({ name: "overview" }); // back before the portal page loaded: not offline yet
+    expect(c.state.source).toBeNull();
+    up = false;
+    await c.cycle();
+    expect(c.state.source).toBe("live");
+    expect(c.state.dashboard?.portals).toHaveLength(1);
+    expect(c.state.offline).toBe(true);
   });
 
   it("detail never mixes live dashboard with demo tenders", async () => {
     const c = new LedgerController(async (u) => (u.includes("tenders") ? new Response("x", { status: 500 }) : u.includes("timeline") ? json([]) : json(dash([portal]))), { name: "portal", id: "p1" });
     await c.cycle();
-    expect(c.state.source).toBe("demo");
-    expect(c.state.detail?.kind).toBe("notInDemo");
+    expect(c.state.source).not.toBe("demo");
+    expect(c.state.detail).toBeNull();
+    expect(c.state.offline).toBe(true);
   });
 
   it("live dashboard without the id shows Portal not found", async () => {

@@ -1,6 +1,6 @@
 # Dashboard API
 
-The JSON the dashboard at `GET /` reads. The Platform fills these routes from SQLite (`app/db.py`). Until they exist, the page shows its bundled demo data with a "Demo data" badge, so nothing breaks.
+The JSON the dashboard at `GET /` reads. `app/dashboard_api.py` serves the three routes from the store (SQLite, `app/db.py`, when `DATA_DIR` is set). When the API does not answer, the page says "API offline, retrying", keeps the last live snapshot it had and polls again; it never swaps in made-up portals. The bundled demo data is shown only when the address has `?demo` (for working on the page without a server), with a "Demo data" badge.
 
 - `GET /api/dashboard`: every 5 s.
 - `GET /api/portals/{id}/timeline` and `GET /portals/{id}/tenders` (the public contract route, unchanged): only while a portal's page is open.
@@ -88,6 +88,13 @@ Settings request and success shape: `{"attachTimeLimitMinutes":20,"ignoreRobotsT
 
 `costEur = costUsd × eurPerUsd` throughout, same fixed rate for the snapshot and its timelines. Server aggregates across all runs, not just those loaded on screen. Run usage may be omitted for `modelCalls:0` (known zero); for a paid call with unavailable accounting use `null`. A tool step with no model has no model charge; an LLM step with missing usage has **unknown** cost. Derive the state counts, total delivered, reads and recorded spend from `portals` in one render.
 
+What the server fills today (`app/dashboard_api.py`, with the read loop in `app/loop.py` and `app/reader.py`):
+
+- `publishedCount` and `deliveryTrend` come from each read's `publish` step, whose args hold `delivered`. A run without a publication has no `publishedCount`, and the page says "no publication", never 0.
+- `checks`, `steps` and `recipeChange` come from the SQLite store. The in-memory stand-in has none, so its runs leave them out and the page says "No checks recorded".
+- A check with our own `outage` severity (Q10) is sent as `fail`; its name and message say it was an outage.
+- `eurPerUsd` is 0.86 unless `DASHBOARD_EUR_PER_USD` is set; set it at hand-in to that day's ECB reference rate (Q9).
+- `POST /api/settings` accepts 1 to 1440 minutes. The read loop applies the change from its next attach decision and request on. It is kept in memory only: after a restart both values come from the environment again. An app without the read loop reports the defaults and changes nothing.
 
 ## Building the page
 

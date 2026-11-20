@@ -24,7 +24,10 @@ export function useHashRoute(): Route {
 
 export function useLedger(route: Route): { state: LedgerState; controller: LedgerController } {
   const controller = useMemo(
-    () => new LedgerController((u, i) => window.fetch(u, i), route),
+    () =>
+      new LedgerController((u, i) => window.fetch(u, i), route, {
+        allowDemo: new URLSearchParams(window.location.search).has("demo"),
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );

@@ -73,7 +73,7 @@ What the learn and repair agents use to see and drive a portal. **Owner:** David
 Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Research: `research/q06-language.md`. Python for the whole system; pin `playwright` to the base image's version.
 - [x] Dockerfile at the repo root: base image with Python 3.12 and Chromium, quick build, `docker build .` works for linux/amd64. CI builds it on every pull request (`.github/workflows/ci.yml`).
-- [x] Default command starts the app on port 8080. For now it serves a placeholder page; the API and the dashboard replace it (G1, G3).
+- [x] Default command starts the app on port 8080, with the API and the dashboard (G1, G3).
 
 ### [ ] Q7. Schemas
 **Owner:** Baris. Core done and usable now; three small follow-ups left.
@@ -148,6 +148,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] G1, wiring the worker: with `DATA_DIR` the app runs on the read loop (`app/loop.py`, one read in `app/reader.py`). Until the learning agent exists, only the mock portal mounted at `/mock` can be attached (`builtin_learner` in `app/main.py`).
 - [x] G2. `app/db.py` on top of `app/schema.sql`: the eight `Store` methods the API calls, and the worker's writes (portal state, runs, checks, steps, snapshots, recipes, publishing tenders and documents). One read and one write connection, each behind a lock (research in `research/q15-storage.md`). Tests in `tests/test_db.py`.
 - [x] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
+  - [x] No demo data in place of a down API: the page says "API offline, retrying"; the demo snapshot only with `?demo`.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
 - [ ] G5. Video, at most 3 minutes, including the dashboard (mock portal break and repair makes a good demo).
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging.
