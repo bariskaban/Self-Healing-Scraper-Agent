@@ -10,6 +10,7 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from app import logs
 from app.docs.archive import looks_like_archive, unpack
 from app.docs.ids import provisional_file_id
 from app.docs.names import choose_name, unique_names
@@ -110,6 +111,9 @@ def announced_too_large(announced: Announced, limit: int) -> bool:
     return announced.size_bytes is not None and announced.size_bytes > limit
 
 
+log = logs.get("docs")
+
+
 def store_document(download: Download, announced: Announced, *, store: FileStore, judge: Judge,
                    portal_id: str, tender_id: str, first_position: int = 0) -> DocumentResult:
     """Stream, judge, hash, unpack and store one document; return its records and links."""
@@ -121,8 +125,11 @@ def store_document(download: Download, announced: Announced, *, store: FileStore
     name = choose_name(announced.name, header(headers, "content-disposition"),
                        download.final_url or announced.source_url, content_type or announced.content_type)
     result = DocumentResult()
+    log.debug("portal %s tender %s: storing '%s' (HTTP %s, %s, announced %s bytes) from %s", portal_id, tender_id, name,
+              download.status, content_type or "no type", announced.size_bytes, logs.safe_url(announced.source_url))
 
     def skip(reason: SkipReason, note: str, size: int | None = None) -> DocumentResult:
+        log.info("portal %s tender %s: file skipped (%s): %s", portal_id, tender_id, reason.value, note)
         rec = FileRecord(file_id=provisional_file_id(portal_id, tender_id, announced.source_url),
                          size_bytes=size, content_type=content_type, source_url=announced.source_url,
                          skipped=reason)
@@ -172,8 +179,12 @@ def store_document(download: Download, announced: Announced, *, store: FileStore
                 _link_entries(result, unpacked.leaves(), unpacked.paths, portal_id, tender_id,
                               first_position)
                 result.notes.append(f"Unpacked '{name}': {len(unpacked.leaves())} entries.")
+                log.debug("portal %s tender %s: archive '%s' unpacked into %d file(s)", portal_id, tender_id, name,
+                          len(unpacked.leaves()))
                 return result  # writer exits and drops the archive's own bytes
         blob = writer.commit()
+    log.debug("portal %s tender %s: '%s' stored as %s, %d bytes, sha256 %s", portal_id, tender_id, name, blob.file_id,
+              blob.size_bytes, blob.sha256[:12])
     result.files.append(FileRecord(
         file_id=blob.file_id, sha256=blob.sha256, size_bytes=blob.size_bytes,
         content_type=content_type or announced.content_type, storage_path=blob.storage_path,

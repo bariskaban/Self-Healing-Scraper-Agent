@@ -32,11 +32,12 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ValidationError
 
+from app import logs
 from app.agent.settings import DEFAULT_AGENT_SETTINGS, AgentSettings
 from app.config import cost_usd
 from app.models import AgentStep, StepKind, TokenUsage
 
-log = logging.getLogger("watchtower.agent")
+log = logs.get("agent")
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
@@ -239,6 +240,8 @@ class Runner:
             reasoning: str | None = None, portal_id: str | None = None) -> Outcome:
         """Run one agent to its answer. Never raises for what the model or a tool does."""
         out = Outcome(answer=None)
+        log.debug("%s starts for portal %s: model %s, up to %d call(s)%s, %d tool(s), prompt %s", job, portal_id, model,
+                  max_turns, f" and ${max_usd:.2f}" if max_usd is not None else "", len(tools), prompt.id)
         by_name = {tool.name: tool for tool in tools}
         answer = (answer_type.__name__, strict_schema(answer_type))
         turns: list[_Turn] = []
@@ -299,6 +302,8 @@ class Runner:
                 out.answer = answer_type.model_validate_json(reply.text)
             except ValidationError as error:
                 message = _validation_message(error)
+                log.warning("%s: the final answer did not validate%s: %s", job, " (second time)" if retried else "",
+                            logs.clip(message, 200))
                 if retried:
                     return stop(f"its final answer was invalid twice: {message}")
                 retried = True
@@ -334,6 +339,10 @@ class Runner:
                             f"{call.name} failed: {_one_line(str(problem), 120)}")
         steps.add(StepKind.tool, call.name, said.summary, args=args if isinstance(args, dict) else None,
                   result=said.text, duration_ms=int((time.monotonic() - began) * 1000), error=error)
+        (log.warning if error else log.debug)("tool %s(%s) took %d ms, %d chars back%s: %s", call.name,
+                                              logs.clip(logs.safe_mapping(args), 140), int((time.monotonic() - began) * 1000),
+                                              len(said.text), f", ERROR {logs.clip(error, 100)}" if error else "",
+                                              logs.clip(said.summary, 160))
         return said
 
     @staticmethod
@@ -384,9 +393,13 @@ class OpenAIModel:
                                           "strict": True}}
         if reasoning:
             request["reasoning"] = {"effort": reasoning}
+        log.debug("model request: %s, %d input item(s), %d tool(s), reasoning=%s, instructions %d chars", model,
+                  len(input), len(tools), reasoning, len(instructions))
+        began = time.monotonic()
         try:
             response = self._client.responses.create(**request)
         except openai.OpenAIError as error:
+            log.warning("model request failed after %.1fs: %s", time.monotonic() - began, type(error).__name__)
             # The message of an API error names the fault, never the key.
             raise ModelError(f"{type(error).__name__}: {_one_line(str(error), 300)}") from None
         items = [item.to_dict() for item in response.output]

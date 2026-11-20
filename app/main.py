@@ -21,7 +21,8 @@ import asyncio
 import hashlib
 import os
 import re
-from collections.abc import AsyncIterator, Callable
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -29,11 +30,12 @@ from pathlib import Path
 from typing import Any, TypeVar
 from urllib.parse import urlsplit
 
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app import logs
 from app.dashboard_api import add_dashboard_routes
 from app.checks import CheckSettings
 from app.db import Database
@@ -48,6 +50,8 @@ from app.scheduler import SchedulerSettings
 from app.models import CreatedId, Portal, PortalCreate, RunAccepted, url_key, utcnow
 
 T = TypeVar("T")
+
+log = logs.get("app")
 
 PORTAL_ID_LENGTH = 12
 # A time of day, a space, and an offset at the end: the space was a "+" before URL decoding.
@@ -123,7 +127,9 @@ def agent_hooks(agents: Any, *, mock_by_model: bool = False
     says the model shall learn it too; and it stays the fallback when the model finds no recipe.
     """
     if agents is None:
+        log.info("no agents: OPENAI_API_KEY is not set, so only the mock portal can be learned and nothing is repaired")
         return builtin_learner, None, None
+    log.info("agents on: learn, repair and spot check call the model%s", " (the mock portal too)" if mock_by_model else "")
 
     def result(found: Any) -> Learned | NotLearned:
         if found.recipe is None:
@@ -134,14 +140,18 @@ def agent_hooks(agents: Any, *, mock_by_model: bool = False
     def learn(portal: Portal, run_id: str) -> Learned | NotLearned | None:
         known = builtin_learner(portal, run_id)
         if known is not None and not mock_by_model:
+            log.debug("portal %s: the hand-written recipe is used, no model call", portal.id)
             return known
+        log.debug("portal %s: asking the learn agent", portal.id)
         learned = result(agents.learn(portal, run_id))
         if isinstance(learned, NotLearned) and known is not None:
+            log.warning("portal %s: the model found no recipe; the hand-written one is the fallback", portal.id)
             return Learned(recipe=known.recipe, timezone=known.timezone, country_code=known.country_code,
                            model_calls=learned.model_calls, usage=learned.usage)
         return learned
 
     def repair(portal: Portal, recipe: Any, failed: Any, run_id: str) -> Learned | NotLearned | None:
+        log.debug("portal %s: asking the repair agent (%d failed check(s))", portal.id, len(failed))
         return result(agents.repair(portal, recipe, failed, run_id))
 
     def spot_check(portal: Portal, records: Any, finding: str, run_id: str) -> SpotChecked | None:
@@ -179,6 +189,7 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
     database: tests hand in one on a scripted model. Without it the agents are built on OpenAI
     when OPENAI_API_KEY is set, and else there are none.
     """
+    logs.configure_logging()
     opened: Database | None = None  # a database this app opened itself, and closes on shutdown
     if store is None:
         store, default_worker = default_store()
@@ -234,6 +245,22 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
             opened.close()
 
     app = FastAPI(title="Watchtower", docs_url="/api-docs", redoc_url=None, lifespan=lifespan)
+    log.info("app ready: store=%s worker=%s data_dir=%s fetch_mode=%s", type(store).__name__, type(worker).__name__,
+             os.environ.get("DATA_DIR") or "(memory)", fetcher.settings.mode.value if fetcher is not None else "n/a")
+
+    @app.middleware("http")
+    async def access_log(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        began = time.monotonic()
+        try:
+            response = await call_next(request)
+        except Exception:
+            log.exception("%s %s raised", request.method, request.url.path)
+            raise
+        took = (time.monotonic() - began) * 1000
+        (log.warning if response.status_code >= 500 else log.debug)(
+            "%s %s%s -> %d in %.0f ms", request.method, request.url.path,
+            f"?{logs.clip(request.url.query, 80)}" if request.url.query else "", response.status_code, took)
+        return response
     # The dashboard may be developed on another port; the API holds nothing private.
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
     if os.environ.get("MOCK_PORTAL", "1").strip().lower() not in ("0", "false", "no", "off"):
@@ -266,6 +293,7 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
         url = body.url.strip()
         portal, created = await on_db(
             store.add_portal, Portal(id=portal_id_for(url), url=url, url_key=url_key(url)))
+        log.info("portal %s %s: %s", portal.id, "added" if created else "already known", logs.safe_url(url))
         if created:
             worker.attach(portal)
         return JSONResponse(CreatedId(id=portal.id).model_dump(), status_code=201)
@@ -284,6 +312,7 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
     async def delete_portal(portal_id: str) -> Response:
         """Remove a portal. Its tasks are cancelled at once and its records removed."""
         await known(portal_id)
+        log.info("portal %s: delete asked", portal_id)
         worker.forget(portal_id)
         await on_db(store.delete_portal, portal_id)
         return Response(status_code=204)
@@ -292,6 +321,7 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
     async def refresh_portal(portal_id: str) -> JSONResponse:
         """Read the portal again now. Answers with the id of the run that is running or was started."""
         run_id = worker.refresh(await known(portal_id))
+        log.debug("portal %s: refresh answered with run %s", portal_id, run_id)
         return JSONResponse(RunAccepted(runId=run_id).model_dump(), status_code=202)
 
     @app.get("/portals/{portal_id}/tenders")

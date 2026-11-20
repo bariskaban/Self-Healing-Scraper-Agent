@@ -15,6 +15,10 @@ import threading
 import time
 from collections.abc import Callable
 
+from app import logs
+
+log = logs.get("fetch.limiter")
+
 
 class PortalLimiter:
     """Books request slots per portal. Thread-safe."""
@@ -52,6 +56,7 @@ class PortalLimiter:
         """Wait, blocking this thread, until the portal may receive the next request."""
         wait = self.reserve(portal_id)
         if wait > 0:
+            log.debug("portal %s: waiting %.2fs for its slot (one request per %.2fs)", portal_id, wait, self.interval(portal_id))
             self._sleep(wait)
 
     async def acquire_async(self, portal_id: str) -> None:
@@ -71,6 +76,7 @@ class PortalLimiter:
             if current >= self.slowest_interval:
                 return True
             self._interval[portal_id] = min(current * 2, self.slowest_interval)
+            log.debug("portal %s: interval %.1fs -> %.1fs (T2)", portal_id, current, self._interval[portal_id])
             return False
 
     def at_slowest(self, portal_id: str) -> bool:
@@ -84,6 +90,7 @@ class PortalLimiter:
         with self._lock:
             current = self._interval.get(portal_id, self.base_interval)
             self._interval[portal_id] = max(current, 1.0 / requests_per_second)
+            log.debug("portal %s: limited to %s requests/s, interval %.1fs", portal_id, requests_per_second, self._interval[portal_id])
 
     def hold(self, portal_id: str, seconds: float) -> None:
         """No request to this portal for `seconds` from now (a Retry-After)."""
@@ -92,6 +99,7 @@ class PortalLimiter:
         with self._lock:
             until = self._clock() + seconds
             self._next_free[portal_id] = max(self._next_free.get(portal_id, until), until)
+            log.debug("portal %s: no request for %.1fs (Retry-After or pause)", portal_id, seconds)
 
     def forget(self, portal_id: str) -> None:
         """Drop what is known of a deleted portal."""

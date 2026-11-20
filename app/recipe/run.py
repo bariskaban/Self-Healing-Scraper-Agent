@@ -28,6 +28,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
+from app import logs
 from app.checks import Answer, LookOutcome, Transport, classify_answer, html_paths, json_paths
 from app.docs import Announced, Download
 from app.extract import ParseContext
@@ -42,6 +43,8 @@ from app.recipe.schema import (
     Request, Via,
 )
 from app.recipe.settings import DEFAULT_RECIPE_SETTINGS, RecipeSettings
+
+log = logs.get("recipe")
 
 __all__ = [
     "CachedPage", "DetailRead", "DryRun", "Exchange", "Item", "ListRead", "NotCached", "PageCache", "PageSeen",
@@ -538,6 +541,10 @@ def _read_rows(recipe: AuthoredRecipe, node: Node, doc: Doc, target: _Target, se
     return new
 
 
+@logs.timed(log, "read_list", lambda recipe, source, portal, **k: f"portal {portal.id}{' first page only' if k.get('first_page_only') else ''}",
+            lambda r: f"{r.pages} page(s), {r.rows} row(s), {len(r.items)} tender(s), printed total {r.printed_total}, "
+                      f"reached end {r.reached_end}, {len(r.dropped)} dropped, {len(r.duplicate_ids)} duplicate(s), "
+                      f"{len(r.exchanges)} request(s), problems {logs.clip(r.problems, 200)}")
 def read_list(recipe: AuthoredRecipe, source: Fetch, portal: Portal, *, first_page_only: bool = False,
               settings: RecipeSettings = DEFAULT_RECIPE_SETTINGS, tap: Tap | None = None,
               clock: Callable[[], float] = time.monotonic) -> ListRead:
@@ -733,6 +740,9 @@ def _documents(node: Node, doc: Doc, target: _Target, source: Fetch, values: Map
     return found
 
 
+@logs.timed(log, "read_detail", lambda recipe, source, portal, item, **k: f"portal {portal.id} tender {item.tender_id}",
+            lambda r: f"{len(r.fields)} field(s), documents {None if r.documents is None else len(r.documents)}, "
+                      f"complete {r.complete}, {len(r.exchanges)} request(s), problems {logs.clip(r.problems, 200)}")
 def read_detail(recipe: AuthoredRecipe, source: Fetch, portal: Portal, item: Item, *,
                 settings: RecipeSettings = DEFAULT_RECIPE_SETTINGS, tap: Tap | None = None) -> DetailRead:
     """Walk one tender's edges: its detail page, its documents, whatever the recipe names.
@@ -901,6 +911,9 @@ class DryRun:
         return bool(self.records) and not self.problems
 
 
+@logs.timed(log, "dry_run", lambda recipe, pages, **k: f"on {k.get('url')}",
+            lambda r: f"{len(r.records)} record(s), {r.rows} row(s), {r.pages} page(s), ok={r.ok}, missing pages {len(r.missing_pages)}, "
+                      f"problems {logs.clip(r.problems, 200)}")
 def dry_run(recipe: AuthoredRecipe, pages: PageCache | Iterable[CachedPage] | Mapping[str, Any], *, url: str,
             timezone: str | None = None, max_details: int | None = None,
             settings: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> DryRun:

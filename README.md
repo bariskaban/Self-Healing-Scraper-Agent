@@ -149,6 +149,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] G2. `app/db.py` on top of `app/schema.sql`: the eight `Store` methods the API calls, and the worker's writes (portal state, runs, checks, steps, snapshots, recipes, publishing tenders and documents). One read and one write connection, each behind a lock (research in `research/q15-storage.md`). Tests in `tests/test_db.py`.
 - [x] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
   - [x] No demo data in place of a down API: the page says "API offline, retrying"; the demo snapshot only with `?demo`.
+- [x] Debug logs across the backend (`app/logs.py`): `LOG_LEVEL=debug` (per area: `LOG_LEVEL_FETCH=debug`), `LOG_FILE`, `LOG_FORMAT=json` (the container's default). Requests, checks, decisions, state changes, database writes, documents, agent calls; a key never reaches a line.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
   - [ ] On hand-in day, set `EUR_PER_USD` to that day's ECB reference rate: the default of 0.90 is a placeholder, and both the dashboard and the README's costs use it. A value that is not a number (a decimal comma, for one) stops the app at start; a blank one keeps the default.
 - [ ] G5. Video, at most 3 minutes, including the dashboard (mock portal break and repair makes a good demo).
