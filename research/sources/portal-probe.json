@@ -1,0 +1,458 @@
+{
+  "probed_at": "2026-11-20T15:42:09+00:00",
+  "client": "WatchtowerProbe/0.2 (hackathon research; one request per page)",
+  "results": [
+    {
+      "url": "https://patterno.de/de/vergabe-portale",
+      "status": 200,
+      "final_url": "https://www.patterno.de/de/vergabe-portale",
+      "elapsed_ms": 250,
+      "bytes": 295414,
+      "sha256": "954fcd0131ccc7782267730be0078e87baed421ff43ce5d5e7fecff21aaa5a1b",
+      "headers": {
+        "server": "Vercel",
+        "content-type": "text/html; charset=utf-8",
+        "content-length": "295414",
+        "etag": "\"9ea533f28000d3dbcaa51e624e930c31\""
+      },
+      "cookie_names": [],
+      "title": "Vergabe-Portale Deutschland, Übersicht aller Ausschreibungsplattformen | Patterno | Patterno",
+      "markers": [],
+      "rows_in_tables": 0,
+      "links": [
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale#main-content",
+          "text": "Zum Hauptinhalt springen"
+        },
+        {
+          "href": "https://www.patterno.de/de",
+          "text": "Patterno"
+        },
+        {
+          "href": "https://www.patterno.de/en/vergabe-portale",
+          "text": "EN"
+        },
+        {
+          "href": "https://hit.patterno.de/",
+          "text": "Login"
+        },
+        {
+          "href": "https://www.patterno.de/demo",
+          "text": "30-Minuten-Demo buchen Demo buchen"
+        },
+        {
+          "href": "https://www.patterno.de/demo",
+          "text": "Demo buchen"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/coverage",
+          "text": "Vollständige Coverage Alle 4.500+ Portale. 29 Länder. Eine Liste. Filtern Sie nach Land, Portal-Typ und Domain. Jedes Vergabeportal, das Patterno indexiert, durchsuchbar an einem Ort. 🇩🇪 Deutschland 🇦"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/evergabe-online",
+          "text": "01 evergabe-online.de eVergabe-Online Beschaffungsamt des Bundesministeriums des Innern und für Heimat (BeschA), Bonn, eine Bundesoberbehörde im Geschäftsbereich des BMI. eVergabe-Online, e-Vergabe-Pl"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/dtvp",
+          "text": "02 dtvp.de DTVP DTVP Deutsches Vergabeportal GmbH (Berlin), Joint Venture von Bundesanzeiger Verlag GmbH (Köln) und cosinex GmbH (Bochum). DTVP, Deutsches Vergabeportal Bundesweite E-Vergabe-Plattform"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/aumass",
+          "text": "03 aumass.de AUMASS aumass GmbH & Co. KG, Ludwigsstraße 6, 93047 Regensburg. Gegründet 2008 von Dipl.-Ing. Christoph Vockerodt. Eigenständiger kommerzieller Anbieter, kein Joint Venture mit Bund oder "
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/itwo-tender",
+          "text": "04 rib.de iTWO Tender RIB Software SE (Stuttgart), seit Juli 2020 hundertprozentige Tochter der Schneider Electric SE. iTWO Tender, RIB e-Vergabe (meinauftrag.rib.de) Bundesweite Bieterplattform der R"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/deutsche-evergabe",
+          "text": "05 deutsche-evergabe.de Deutsche eVergabe Healy Hudson GmbH, Murnaustraße 10, 65189 Wiesbaden (Amtsgericht Wiesbaden, HRB 12076). Tochtergesellschaft der Healy Hudson Holding AG. Deutsche eVergabe, E-"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabemarktplatz-brandenburg",
+          "text": "06 brandenburg.de VMP Brandenburg Inhaltlich verantwortlich nach § 5 TMG: Ministerium des Innern und für Kommunales des Landes Brandenburg (MIK), Henning-von-Tresckow-Straße 9-13, 14467 Potsdam. Techn"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/subreport-elvis",
+          "text": "07 subreport-elvis.de subreport ELViS subreport Verlag Schawe GmbH (Köln-Kalk), inhabergeführter Verlag, gegründet 1918 durch Ewald Schawe, GmbH-Struktur seit 1989. subreport ELViS, Elektronisches Ver"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabe-niedersachsen",
+          "text": "08 niedersachsen.de Vergabe Niedersachsen Land Niedersachsen, die zentrale Vergabeplattform wird vom Niedersächsischen Ministerium für Wirtschaft, Verkehr, Bauen und Digitalisierung verantwortet; tech"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/evergabe-nrw",
+          "text": "09 nrw.de eVergabe NRW d-NRW AöR (Dortmund) für die Hauptdomain evergabe.nrw.de, technisch realisiert auf der cosinex VMP-Plattform; Schwester-Instanz evergabe.blb.nrw.de betrieben durch Bau- und Lieg"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabe24",
+          "text": "10 vergabe24.de Vergabe24 Vergabe24 GmbH (Verbund regionaler Amtsblatt- und Staatsanzeiger-Verlage; federführend Staatsanzeiger für Baden-Württemberg GmbH & Co. KG, Stuttgart). Technische Plattform: N"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/deutsches-ausschreibungsblatt",
+          "text": "11 deutsches-ausschreibungsblatt.de Deutsches Ausschreibungsblatt Deutsches Ausschreibungsblatt GmbH, Düsseldorf (Handelsregister Amtsgericht Düsseldorf HRB 625). Geschäftsführung laut Impressum: Cole"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/bi-medien",
+          "text": "12 bi-medien.de B_I Medien B_I MEDIEN GmbH, Faluner Weg 33, 24109 Kiel. Geschäftsführer: Lasse Lommel. Eingetragen beim Amtsgericht Kiel unter HRB 4476. USt-IdNr. DE156448835. Zusätzliche Niederlassun"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/subreport",
+          "text": "13 subreport.de subreport subreport Verlag Schawe GmbH (Köln-Kalk), inhabergeführter Fachverlag, gegründet 1918 durch Ewald Schawe, seit 1989 als GmbH organisiert. subreport, Recherchedienst & Verlags"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/tender24",
+          "text": "14 tender24.de Tender24 Administration Intelligence AG (AI AG), Würzburg, Teil der Prof. Thome Gruppe Tender24, Bekanntmachungsportal der Administration Intelligence AG Bekanntmachungsportal von öffen"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabe-hessen",
+          "text": "15 hessen.de Vergabe Hessen Land Hessen, die zentrale Vergabeplattform wird vom Hessischen Ministerium für Wirtschaft, Energie, Verkehr, Wohnen und ländlichen Raum (HMWVW) in Wiesbaden verantwortet; t"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/evergabe-de",
+          "text": "16 evergabe.de eVergabe.de eVergabe.de GmbH, Messering 5, 01067 Dresden (Amtsgericht Dresden HRB 28209) eVergabe.de, kommerzielle Vergabeplattform der eVergabe.de GmbH (Dresden) Kommerzielle Vergabepl"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabe-rlp",
+          "text": "17 rlp.de Vergabe RLP Land Rheinland-Pfalz, der technische Plattformbetrieb und der zentrale Helpdesk werden vom **Landesamt für Digitales und Infrastruktur (LDI Rheinland-Pfalz)** mit Sitz in Mainz w"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/evergabe-bayern",
+          "text": "18 bayern.de eVergabe Bayern Freistaat Bayern, die Bekanntmachungs- und Bieterplattform `bayvebe.bayern.de` wird nach Angaben des Betreibers vom Bayerischen Staatsministerium der Finanzen und für Heim"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/deutsche-bahn-vergabe",
+          "text": "19 db.de DB Bieterportal Deutsche Bahn AG (DB Beschaffung / DB Procurement), Berlin. Das Portal wird konzernweit für die Vergabestellen der DB-Konzerngesellschaften betrieben. Bieterportal Deutsche Ba"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/sachsen-vergabe",
+          "text": "20 sachsen-vergabe.de Sachsen Vergabe Freistaat Sachsen, Staatsbetrieb Sächsisches Immobilien- und Baumanagement (SIB), Riesaer Straße 7h, 01129 Dresden, im Geschäftsbereich des Sächsischen Staatsmini"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabe-westfalen",
+          "text": "21 vergabe-westfalen.de Vergabe Westfalen d-NRW Anstalt öffentlichen Rechts (Dortmund) gemeinsam mit cosinex GmbH (Bochum, technischer Plattformbetreiber). Die NRW-eVergabe-Familie wird zentral koordi"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabekooperation-berlin",
+          "text": "22 vergabekooperation.berlin Vergabekooperation Berlin Land Berlin, die zentrale Vergabeplattform wird durch das Land Berlin verantwortet; die Senatsverwaltung für Wirtschaft, Energie und Betriebe ist"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabe-metropoleruhr",
+          "text": "23 metropoleruhr.de Vergabe Metropole Ruhr Bereitgestellt durch die d-NRW AöR (Dortmund) in Zusammenarbeit mit der GKD Recklinghausen auf Basis der cosinex VMPSatellite-Technologie. Inhaltliche Auftra"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/autobahn-vergabe",
+          "text": "24 autobahn.de Autobahn Vergabe Die Autobahn GmbH des Bundes (Sitz: Berlin), eine bundeseigene Gesellschaft des Bundesverkehrsministeriums Autobahn GmbH Vergabe, AI Vergabeplattform der Autobahn GmbH "
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/evergabe-hamburg",
+          "text": "25 hamburg.de eVergabe Hamburg Freie und Hansestadt Hamburg, die zentrale eVergabe-Plattform wird von der Behörde für Finanzen und Bezirke (Finanzbehörde) verantwortet, die in Hamburg als zentrale Ste"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vergabe-baden-wuerttemberg",
+          "text": "26 landbw.de Vergabe BW (landbw.de) Land Baden-Württemberg, die landeseigene Vergabeplattform unter landbw.de wird vom Land Baden-Württemberg verantwortet. Die federführende Zuständigkeit für das Verg"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vmp-rheinland",
+          "text": "27 vmp-rheinland.de VMP Rheinland Inhaltlich verantwortlich nach § 5 TMG: Landschaftsverband Rheinland (LVR), Kennedy-Ufer 2, 50679 Köln. Der LVR ist eine Körperschaft des öffentlichen Rechts mit komm"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/had",
+          "text": "28 had.de HAD Auftragsberatungsstelle Hessen e.V. (ABSt Hessen), Karl-Glässing-Straße 8, 65183 Wiesbaden. Eingetragen im Vereinsregister des Amtsgerichts Wiesbaden unter VR 1469. Gemeinschaftseinricht"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/staatsanzeiger-eservices",
+          "text": "29 staatsanzeiger-eservices.de Staatsanzeiger eServices Staatsanzeiger eServices GmbH, verbunden mit der Bayerischen Staatszeitung (München). Nicht identisch mit der Staatsanzeiger für Baden-Württembe"
+        },
+        {
+          "href": "https://www.patterno.de/de/vergabe-portale/vmstart",
+          "text": "30 vmstart.de VMStart Sammeldomain. Für die volumenstärkste Instanz `vergabe.vmstart.de` (Vergabeplattform der Metropolregion Rhein-Neckar) ist laut Impressum der Verband Region Rhein-Neckar (Körpersc"
+        },
+        {
+          "href": "https://www.patterno.de/demo",
+          "text": "30-Minuten-Demo buchen"
+        },
+        {
+          "href": "https://www.patterno.de/de",
+          "text": "Patterno"
+        },
+        {
+          "href": "https://linkedin.com/company/patterno",
+          "text": ""
+        },
+        {
+          "href": "https://www.patterno.de/de/produkte/hit",
+          "text": "Patterno HIT"
+        },
+        {
+          "href": "https://www.patterno.de/de/produkte/bid",
+          "text": "Patterno-BID"
+        },
+        {
+          "href": "https://www.patterno.de/de/about",
+          "text": "Über uns"
+        },
+        {
+          "href": "https://applicant.notion.site/careers-at-patterno",
+          "text": "Careers"
+        },
+        {
+          "href": "https://www.patterno.de/de/partner",
+          "text": "Partnerprogramm"
+        },
+        {
+          "href": "https://www.patterno.de/de/ausschreibungen",
+          "text": "Ausschreibungen"
+        },
+        {
+          "href": "https://www.patterno.de/de/ausschreibungen/berlin",
+          "text": "Ausschreibungen Berlin"
+        },
+        {
+          "href": "https://www.patterno.de/de/ausschreibungen/nrw",
+          "text": "Ausschreibungen NRW"
+        },
+        {
+          "href": "https://www.patterno.de/de/ausschreibungen/it",
+          "text": "Ausschreibungen IT"
+        },
+        {
+          "href": "https://www.patterno.de/de/ausschreibungen/bundeswehr",
+          "text": "Ausschreibungen Bundeswehr"
+        },
+        {
+          "href": "https://www.patterno.de/de/resources/blog",
+          "text": "Blog"
+        },
+        {
+          "href": "https://www.patterno.de/de/resources/akademie",
+          "text": "Akademie"
+        },
+        {
+          "href": "https://www.patterno.de/de/resources/akademie/glossar",
+          "text": "Glossar"
+        },
+        {
+          "href": "https://www.patterno.de/de/resources/reports/vergabemarkt-2026",
+          "text": "Vergabemarkt Report"
+        },
+        {
+          "href": "https://www.patterno.de/de/legal/privacy",
+          "text": "Datenschutz"
+        },
+        {
+          "href": "https://www.patterno.de/de/legal/imprint",
+          "text": "Impressum"
+        },
+        {
+          "href": "https://www.patterno.de/de/legal/terms",
+          "text": "AGB"
+        },
+        {
+          "href": "https://www.patterno.de/de/legal/anti-spam",
+          "text": "Anti-Spam-Richtlinie"
+        }
+      ]
+    },
+    {
+      "url": "https://www.dtvp.de/",
+      "status": 200,
+      "final_url": "https://dtvp.de/",
+      "elapsed_ms": 281,
+      "bytes": 94093,
+      "sha256": "52e0354add19a0df0bda2b3a558b5fccd5de5744e1266efa903fdd6d86780628",
+      "headers": {
+        "server": "wadp2",
+        "content-type": "text/html; charset=UTF-8",
+        "content-length": "94093",
+        "etag": "\"ea37967c41ce582bf1816413d707ebd2\"",
+        "last-modified": "Fri, 20 Nov 2026 15:17:39 GMT"
+      },
+      "cookie_names": [],
+      "title": "Deutsches Vergabeportal | DTVP | E-Vergabe-Plattform",
+      "markers": [],
+      "rows_in_tables": 0
+    },
+    {
+      "url": "https://www.evergabe.de/",
+      "status": 200,
+      "final_url": "https://www.evergabe.de/",
+      "elapsed_ms": 218,
+      "bytes": 216306,
+      "sha256": "d759f51ed213368d2b7a28be43012a6f7243d732060ec4878a59b8656cab2a9d",
+      "headers": {
+        "server": "CloudWAF",
+        "content-type": "text/html; charset=utf-8",
+        "content-length": "216306",
+        "etag": "\"qfujobi9re4mib\""
+      },
+      "cookie_names": [
+        "2a538f1d-a204-4b76-923d-3f7b4b64b7cc",
+        "CLOUDWAFSESID",
+        "CLOUDWAFSESTIME"
+      ],
+      "title": "Ausschreibungen finden &amp; veröffentlichen – mit evergabe.de",
+      "markers": [
+        "recaptcha"
+      ],
+      "rows_in_tables": 0
+    },
+    {
+      "url": "https://evergabe.nrw.de/VMPSatellite",
+      "status": null,
+      "error": "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1007)>",
+      "error_kind": "tls",
+      "elapsed_ms": 62
+    },
+    {
+      "url": "https://vergabe.vmstart.de/NetServer",
+      "status": 200,
+      "final_url": "https://vergabe.vmstart.de/NetServer/",
+      "elapsed_ms": 875,
+      "bytes": 48422,
+      "sha256": "9497c282b1eb6bafa7978a402347ddcc7f88a8736866865ffa0bd4d4bca0e72a",
+      "headers": {
+        "server": "elb",
+        "content-type": "text/html;charset=UTF-8"
+      },
+      "cookie_names": [],
+      "title": "AI Vergabeplattform - Administration Intelligence AG",
+      "markers": [],
+      "rows_in_tables": 70
+    },
+    {
+      "url": "https://www.subreport.de/",
+      "status": 200,
+      "final_url": "https://subreport.de/",
+      "elapsed_ms": 2469,
+      "bytes": 145237,
+      "sha256": "474575ecf66d61e6d5761e1f734f2c000ec485bf971cb51887fc1017ada31a15",
+      "headers": {
+        "server": "Apache",
+        "content-type": "text/html; charset=UTF-8"
+      },
+      "cookie_names": [],
+      "title": "Home - subreport - Ihr Partner für Ausschreibungen, Aufträge, eVergabe und mehr",
+      "markers": [
+        "password_field"
+      ],
+      "rows_in_tables": 0
+    },
+    {
+      "url": "https://ted.europa.eu/en/",
+      "status": 200,
+      "final_url": "https://ted.europa.eu/en/",
+      "elapsed_ms": 563,
+      "bytes": 209509,
+      "sha256": "29780fe7dc781d8af89813c61be550aae3b63266a266d6aa72bc3ccb315675db",
+      "headers": {
+        "server": "CloudFront",
+        "content-type": "text/html;charset=UTF-8"
+      },
+      "cookie_names": [
+        "COOKIE_SUPPORT",
+        "GUEST_LANGUAGE_ID",
+        "JSESSIONID",
+        "route"
+      ],
+      "title": "TED - EU Tenders, the Supplement to the Official Journal - TED",
+      "markers": [
+        "aws_waf"
+      ],
+      "rows_in_tables": 0
+    },
+    {
+      "url": "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?page=0&size=1",
+      "status": 200,
+      "final_url": "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?page=0&size=1",
+      "elapsed_ms": 281,
+      "bytes": 1226,
+      "sha256": "df76d746d5bc1e7099198dd834e7f5a17356c67944b824dc4e8b7be10ce7a402",
+      "headers": {
+        "content-type": "application/json;charset=UTF-8",
+        "content-length": "1226"
+      },
+      "cookie_names": [
+        "TS0148cb27"
+      ],
+      "title": null,
+      "markers": [],
+      "rows_in_tables": 0
+    },
+    {
+      "url": "https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons",
+      "status": 503,
+      "final_url": "https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons",
+      "elapsed_ms": 219,
+      "bytes": 10596,
+      "sha256": "08a94ff5456029bc595712fc5f9a0b425b553ddc292754cb2dc58caea87eeffd",
+      "headers": {
+        "content-type": "text/html"
+      },
+      "cookie_names": [],
+      "title": "PLACE - Plate-forme des achats de l'Etat",
+      "markers": [],
+      "rows_in_tables": 0
+    },
+    {
+      "url": "https://www.boamp.fr/",
+      "status": 200,
+      "final_url": "https://www.boamp.fr/pages/entreprise-accueil/",
+      "elapsed_ms": 328,
+      "bytes": 80469,
+      "sha256": "a67dd0d63b892563098a9aac9bcf136434f7516fb4574c90930a844cc3343896",
+      "headers": {
+        "server": "openresty",
+        "content-type": "text/html; charset=utf-8"
+      },
+      "cookie_names": [],
+      "title": null,
+      "markers": [],
+      "rows_in_tables": 0
+    },
+    {
+      "url": "https://contrataciondelestado.es/wps/portal/plataforma",
+      "status": null,
+      "error": "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:1007)>",
+      "error_kind": "tls",
+      "elapsed_ms": 125
+    },
+    {
+      "url": "https://ezamowienia.gov.pl/",
+      "status": 200,
+      "final_url": "https://ezamowienia.gov.pl/pl/",
+      "elapsed_ms": 609,
+      "bytes": 53220,
+      "sha256": "4e2e9973f16fadebce3b05e98e22ecad0df1ebf17bec2e539ea1eb80fb6c77f3",
+      "headers": {
+        "content-type": "text/html; charset=UTF-8"
+      },
+      "cookie_names": [
+        "current_role"
+      ],
+      "title": "Portal Dostępowy |",
+      "markers": [
+        "password_field"
+      ],
+      "rows_in_tables": 0
+    },
+    {
+      "url": "https://platformazakupowa.pl/",
+      "status": 200,
+      "final_url": "https://platformazakupowa.pl/",
+      "elapsed_ms": 891,
+      "bytes": 208592,
+      "sha256": "33cbb098b009d6b0ef7135b1df70971df16d85657898e8920593167e23d1f47d",
+      "headers": {
+        "server": "nginx/1.30.7",
+        "content-type": "text/html; charset=UTF-8"
+      },
+      "cookie_names": [],
+      "title": "Strona główna - Platforma Zakupowa",
+      "markers": [
+        "password_field"
+      ],
+      "rows_in_tables": 0
+    }
+  ]
+}
