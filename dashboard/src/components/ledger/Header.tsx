@@ -1,6 +1,7 @@
 import { Monitor, Moon, Plus, Settings as Gear, Sun, WifiOff } from "lucide-react";
 import type { LedgerState } from "@/types";
 import type { ThemePref } from "./viewState";
+import { PagesNav } from "../pages/PagesNav";
 
 /** Our own mark: a small watchtower on an indigo tile. */
 export function TowerMark({ className }: { className?: string }) {
@@ -42,6 +43,7 @@ export function Header(props: {
             : <><a href="#/" className="hover:text-foreground">Portal overview</a><span aria-hidden>/</span><span className="text-secondary-text">Portal detail</span></>}
         </nav>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2 text-sm">
+          <PagesNav />
           <SourceStatus state={state} now={now} />
           <button type="button" className="pill-ghost !px-2.5 xl:!px-3.5" onClick={props.onTheme} aria-label={`Theme: ${themeLabel}. Switch theme`} title={`Theme: ${themeLabel}`}>
             <ThemeIcon aria-hidden className="size-4" /> <span className="hidden xl:inline">{themeLabel}</span>
