@@ -36,6 +36,7 @@ Every read runs these steps in order. Thresholds marked * are in the tables that
 | T1 | Timeout, DNS or TLS failure, connection reset, HTTP 408, 500, 502, 503, 504, 520 to 524 | Up to 3 tries in the read, with a randomised, growing pause (2 s, up to 30 s). A `Retry-After` of up to 60 s is obeyed in place. | **Outage** |
 | T2 | HTTP 429. Or HTTP 403 or 503 that carries `Retry-After`, or that started when we were sending faster than the portal allows | Halve this portal's request rate (down to one request per 10 s), wait, go on. The slower rate is kept for the portal. | **Outage** only if it still happens at the slowest rate |
 | T3 | Signs of a login or bot wall | Looked at only when Step 2 says the content did not arrive | see Step 2 |
+| T4 | The portal's certificate does not verify in the plain HTTP client | Never switch verification off. Try the page once through the browser, which completes certificate chains a plain client does not. If that works, the recipe reads this portal through the browser. | **Outage**, with the certificate named in the reason |
 
 ### Step 2: did what we asked for arrive?
 
@@ -74,6 +75,7 @@ A spot check (C3 changed, C7) is one small model call that must quote the page f
 | Pass, empty | `serving` | none | "The portal lists no open tenders at 14:02. Its own 'no results' notice is shown, and the 4 tenders we knew are closed." |
 | Outage | `healing` at once; `failed` after 60 minutes without an answer | none | "The portal has not answered since 14:07 (HTTP 503, three tries). Still delivering the 23 tenders read at 14:02. Next try 14:09. The recipe is unchanged." |
 | Outage, long | `failed` | none | "The portal has been unreachable for 3 hours (DNS failure). This is not a login block. We check again every 6 hours and on every refresh." |
+| Outage, certificate | `healing`, then `failed` as any outage | none | "The portal's certificate cannot be verified (incomplete chain), in the plain client and in the browser. We do not read a site we cannot verify." |
 | Block | `failed` at once, after one confirming fetch | none | "Login required: the tender list redirects to /anmelden and shows a password field. We do not log in." or "Bot protection blocks the list (Cloudflare challenge). We do not solve captchas." |
 | Breakage | `healing`, repair starts | yes | "The list reads 9 tenders but the portal prints 23, also on a second read. Repairing; still delivering the 23 tenders read at 14:02." |
 | Breakage, repair budget used | `failed` | none after | "The layout changed at 14:07. Three repair attempts failed (list locator, paging, full re-learn). A person is needed." |
@@ -201,6 +203,15 @@ Looked at only when the outcome is missing (O1, O2).
 - e-Zamówienia, Poland (**read** and checked twice): "z jednego adresu IP można wysłać maksymalnie 30 zapytań w ciągu minuty, po przekroczeniu tego limitu system zwróci odpowiedź HTTP 403 (Forbidden)". 30 requests a minute is half of what our own rule allows.
 - Retries: Google SRE book, "per-request retry budget of up to three attempts" and "Always use randomized exponential backoff when scheduling retries"; AWS, "the no-jitter exponential backoff approach is the clear loser". The SRE numbers are for internal services, so they are precedent by analogy. Scrapy retries 408, 429, 500, 502, 503, 504, 522, 524 twice, with no pause; Crawlee three times.
 - Crawlee's "blocked" codes are 401, 403 and 429, and it checks three page selectors; Scrapy has no block detection.
+
+### Measured from a team laptop (20 Nov 2026)
+
+`research/tools/probe_portals.py`, one plain request each to 13 public portal pages:
+
+- **Two of 13 failed certificate verification** with Python's default trust: `evergabe.nrw.de` ("unable to get local issuer certificate") and `contrataciondelestado.es` ("self signed certificate in certificate chain"). The Spanish site verified from the research machine, so the result depends on the client's trust store. This is why rule T4 exists: a reader on plain HTTP alone would report both as down.
+- **Markers without a block.** `evergabe.de` carries a reCAPTCHA marker, `subreport.de` and `ezamowienia.gov.pl` a password field, `ted.europa.eu` an AWS WAF marker; all four answered 200 with their page. Presence proves nothing, which is the outcome rule in Step 2.
+- **The same site treats clients differently.** `ted.europa.eu` answered 200 to the laptop and an empty 202 to the research machine in a data centre.
+- France's national platform answered 503 to both machines.
 
 ### Alerting practice (**read**)
 

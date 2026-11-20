@@ -14,14 +14,18 @@ block. A block is the finding we want to record.
 """
 
 import hashlib
+import http.cookiejar
 import json
 import re
+import socket
+import ssl
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 # Candidate portals. Add the ones in our test set; remove any we should not touch.
 URLS = [
@@ -40,7 +44,12 @@ URLS = [
     "https://platformazakupowa.pl/",
 ]
 
-CLIENT = "WatchtowerProbe/0.1 (hackathon research; one request per page)"
+# Pages whose links we keep (address and link text), to read a portal list as data.
+KEEP_LINKS = {"https://patterno.de/de/vergabe-portale"}
+
+CLIENT = "WatchtowerProbe/0.2 (hackathon research; one request per page)"
+# Cookies are kept, as any browser would: some portals redirect for ever without them.
+OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 KEEP = [
     "server", "content-type", "content-length", "www-authenticate", "retry-after",
     "location", "cf-mitigated", "x-amzn-waf-action", "etag", "last-modified",
@@ -59,12 +68,45 @@ MARKERS = {
 }
 
 
+class Links(HTMLParser):
+    """Collect every link on a page as (address, visible text)."""
+
+    def __init__(self, base: str) -> None:
+        super().__init__()
+        self.base, self.links, self._href, self._text = base, [], None, []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self._href, self._text = dict(attrs).get("href"), []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._href:
+            self.links.append({"href": urljoin(self.base, self._href), "text": " ".join(" ".join(self._text).split())[:200]})
+            self._href = None
+
+
+def error_kind(error: Exception) -> str:
+    """Name the failure the way the failure rules do (Q10): tls, dns, timeout or other."""
+    reason = getattr(error, "reason", error)
+    if isinstance(reason, ssl.SSLError) or "CERTIFICATE_VERIFY_FAILED" in str(error):
+        return "tls"
+    if isinstance(reason, socket.gaierror):
+        return "dns"
+    if isinstance(reason, (socket.timeout, TimeoutError)) or "timed out" in str(error):
+        return "timeout"
+    return "other"
+
+
 def probe(url: str) -> dict:
     request = urllib.request.Request(url, headers={"User-Agent": CLIENT, "Accept": "*/*"})
     started = time.monotonic()
     row: dict = {"url": url}
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with OPENER.open(request, timeout=30) as response:
             body = response.read(2_000_000)
             row.update(status=response.status, final_url=response.geturl())
             headers = response.headers
@@ -73,7 +115,7 @@ def probe(url: str) -> dict:
         row.update(status=error.code, final_url=error.geturl())
         headers = error.headers
     except Exception as error:  # DNS, TLS, timeout: an outage as far as we can tell
-        row.update(status=None, error=f"{type(error).__name__}: {error}")
+        row.update(status=None, error=f"{type(error).__name__}: {error}", error_kind=error_kind(error))
         row["elapsed_ms"] = round((time.monotonic() - started) * 1000)
         return row
     text = body.decode("utf-8", errors="replace")
@@ -86,7 +128,12 @@ def probe(url: str) -> dict:
         cookie_names=sorted({c.split("=", 1)[0].strip() for c in headers.get_all("set-cookie") or []}),
         title=" ".join(title.group(1).split())[:160] if title else None,
         markers=sorted(name for name, pattern in MARKERS.items() if re.search(pattern, text, flags=re.I)),
+        rows_in_tables=len(re.findall(r"<tr[\s>]", text, flags=re.I)),
     )
+    if url in KEEP_LINKS:
+        parser = Links(row["final_url"])
+        parser.feed(text)
+        row["links"] = parser.links[:5000]
     return row
 
 
@@ -100,13 +147,14 @@ def main() -> None:
             time.sleep(wait)
         last_call[host] = time.monotonic()
         row = probe(url)
-        print(row.get("status"), url, row.get("markers", row.get("error", "")))
+        note = str(row.get("markers", row.get("error", ""))).encode("ascii", "replace").decode()
+        print(row.get("status"), url, note)
         rows.append(row)
     out = Path(__file__).resolve().parents[1] / "sources" / "portal-probe.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(
         {"probed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "client": CLIENT, "results": rows},
-        indent=2, ensure_ascii=False) + "\n")
+        indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"wrote {out}")
 
 
