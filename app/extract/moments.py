@@ -11,7 +11,9 @@ The order and the refusals are the point of this file (CONVENTIONS.md rules 3 an
    our own reading (day, month word, year, time, offset), which is then confirmed by dateparser,
    restricted to absolute dates, day before month, day, month and year required. The text is
    refused when the two disagree, when it holds anything else with digits in it, when it names a
-   zone we do not read, or when it gives the time as a word ("midi", "noon"). dateparser sees the
+   zone we do not read, when it gives the time as a word ("midi", "noon"), or when the time
+   follows a word that is not a lead-in of the month's language ("à", "um", "om", "at", "ore":
+   the table `_LEAD_INS`), as in "dans 12 h", which is a duration. dateparser sees the
    text as written first. Only when it cannot read that at all does it see the same text with
    the parts we read spelled plainly ("1er" as "1", "16 h 30" as "16:30:00", "Maerz" as "März"),
    so it still refuses the words around the date that it does not know.
@@ -80,6 +82,23 @@ for _lang, _names in _MONTHS.items():
     for _number, _words in enumerate(_names, start=1):
         for _word in _words.split():
             _MONTH_WORDS.setdefault(_word, {})[_lang] = _number
+
+# What may stand between the date and its time, by language: "12 décembre 2026 à 12 h",
+# "9. Dezember 2026 um 10 Uhr", "9 dicembre 2026 alle ore 12:00". After any other word the number
+# may be something else ("dans 12 h" is a duration, "après 12 h" is not a deadline at twelve).
+_LEAD_INS: dict[str, tuple[str, ...]] = {
+    "de": ("um",),
+    "fr": ("à", "a"),
+    "es": ("a las", "a la"),
+    "nl": ("om",),
+    "pl": ("o", "godz.", "godz", "o godz.", "o godz"),
+    "it": ("ore", "alle", "alle ore"),
+    "en": ("at",),
+}
+# A comma or a dash may come before the lead-in, or stand alone: "2026, 10 Uhr", "2026 - 12:00".
+_LEAD_IN_MARKS = ",-–—"
+# A word that belongs to the year and comes before all of that: "9 grudnia 2026 r. godz. 10:00".
+_YEAR_WORDS: dict[str, tuple[str, ...]] = {"pl": ("roku", "r.", "r")}
 
 _MONTH_ALT = "|".join(sorted(map(re.escape, _MONTH_WORDS), key=len, reverse=True))
 # Day, month word, four-digit year: "9. Dezember 2026", "15 de diciembre de 2026", "12 déc. 2026".
@@ -320,6 +339,8 @@ def _by_words(text: str, context: ParseContext) -> tuple[Moment | None, str | No
     spelled = rest
     if times:
         t = times[0]
+        if not _is_lead_in(rest[:t.start()], languages):
+            return None, "time after a word that is not a lead-in"
         try:
             wall = time(int(t.group(1)), *(int(part or 0) for part in t.groups()[1:]))
         except ValueError:
@@ -345,6 +366,21 @@ def _by_words(text: str, context: ParseContext) -> tuple[Moment | None, str | No
     if (seen.hour, seen.minute, seen.second) != ((wall.hour, wall.minute, wall.second) if wall else (0, 0, 0)):
         return None, "time readings disagree"
     return Moment(own_day, wall, offset, name), None
+
+
+def _is_lead_in(between: str, languages: list[str]) -> bool:
+    """Whether the text between the date and the time is nothing, a comma or dash, or a lead-in.
+
+    The lead-ins are those of the languages the month word belongs to, the portal's first.
+    """
+    words = between.casefold().strip()
+    for language in languages:
+        for year_word in _YEAR_WORDS.get(language, ()):
+            if words == year_word or words.startswith((year_word + " ", year_word + ",")):
+                words = words[len(year_word):]
+                break
+    words = words.strip().lstrip(_LEAD_IN_MARKS).strip()
+    return not words or any(words in _LEAD_INS.get(language, ()) for language in languages)
 
 
 def _month_of(word: str, language: str | None) -> tuple[int | None, list[str]]:
