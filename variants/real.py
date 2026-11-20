@@ -102,7 +102,10 @@ class CloneFetch:
             self.clone.add(page)
         body = page.body if isinstance(page.body, bytes) else page.body.encode()
         if self.altered(page):
-            body = _redesigned(body, page.content_type or "")
+            try:
+                body = _redesigned(body, page.content_type or "")
+            except (UnicodeDecodeError, ValueError):  # a page that is not UTF-8, or not the JSON it says: left as it is
+                pass
         head = httpx.Headers({"content-type": page.content_type} if page.content_type else {})
         return Fetched(url=address, final_url=page.final_url or address, status=page.status, headers=head, body=body,
                        answer=Answer(status=page.status, page_load=page_load))
@@ -162,7 +165,7 @@ def usage_of(result) -> dict:
 
 
 def run_portal(spec, runner: Runner, settings: AgentSettings, models: ModelSettings, clones: Path,
-               scenarios: list[str]) -> dict:
+               scenarios: list[str], earlier: dict | None = None) -> dict:
     portal = Portal(id=spec.id, url=spec.url, url_key=url_key(spec.url))
     clone = Clone(clones / f"{spec.id}.json")
     live = Fetcher.from_env()
@@ -172,12 +175,20 @@ def run_portal(spec, runner: Runner, settings: AgentSettings, models: ModelSetti
         fetch = CloneFetch(clone, live)
         steps = StepLog(f"real-{spec.id}-{int(time.time())}")
         began = time.time()
-        learned = learn(portal, fetch=fetch, runner=runner, steps=steps, models=models, settings=settings)
-        out["learn"] = {"learned": learned.recipe is not None, "seconds": round(time.time() - began),
+        if earlier and earlier.get("recipe"):  # learned in an earlier run: only the scenarios run again
+            from app.agent.learn import AgentResult
+            learned = AgentResult(recipe=AuthoredRecipe.model_validate(earlier["recipe"]),
+                                  timezone=earlier.get("timezone"))
+            out["learn"] = earlier["learn"]
+        else:
+            learned = learn(portal, fetch=fetch, runner=runner, steps=steps, models=models, settings=settings)
+        if "learn" not in out:
+            out["learn"] = {"learned": learned.recipe is not None, "seconds": round(time.time() - began),
                         "requests": learned.requests, "live_requests": fetch.live_requests, "reason": learned.reason,
                         **usage_of(learned),
                         "refused": sum(1 for s in steps.steps if "not accepted" in s.summary),
-                        "steps": [f"{s.kind.value} {s.name}: {s.summary}" for s in steps.steps if s.kind.value != "llm"]}
+                            "steps": [f"{s.kind.value} {s.name}: {s.summary}" for s in steps.steps
+                                      if s.kind.value != "llm"]}
         if learned.recipe is None:
             return out
         recipe = learned.recipe
@@ -269,6 +280,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--out", required=True, help="JSON file for the results (recipes and steps included)")
     parser.add_argument("--clones", default="recordings/clones", help="where the fetched pages are kept")
     parser.add_argument("--scenarios", default="list,detail")
+    parser.add_argument("--resume", action="append", default=[],
+                        help="a results file of an earlier run: a portal learned there is not learned again")
     args = parser.parse_args(argv)
     if os.environ.get("FETCH_MODE", "").strip().lower() != "live":
         sys.exit("This script reads live portals. Set FETCH_MODE=live by hand, and only when a person said so "
@@ -283,10 +296,11 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(f"Not in bench/portals.toml, held back, or forbidden by robots.txt: {', '.join(unknown)}")
     settings, models = AgentSettings.from_env(), ModelSettings.from_env()
     runner = Runner(OpenAIModel(key, settings), settings)
+    earlier = {r["portal"]: r for path in args.resume for r in json.loads(Path(path).read_text(encoding="utf-8"))}
     results = []
     for portal_id in args.ids or list(specs):
         results.append(run_portal(specs[portal_id], runner, settings, models, Path(args.clones),
-                                  [s for s in args.scenarios.split(",") if s]))
+                                  [s for s in args.scenarios.split(",") if s], earlier.get(portal_id)))
         print(line(results[-1]), flush=True)
         Path(args.out).write_text(json.dumps(results, indent=1, default=str), encoding="utf-8")
 

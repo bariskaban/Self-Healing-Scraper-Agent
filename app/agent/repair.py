@@ -10,6 +10,7 @@ are not built.
 from __future__ import annotations
 
 import json
+from urllib.parse import urlsplit
 from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -58,12 +59,16 @@ def repair(portal: Portal, recipe: AuthoredRecipe, failed: Sequence[CheckResult]
     current = authored(recipe)
     space = Workspace(portal, fetch, max_requests=settings.repair_max_requests, settings=settings, recipes=recipes)
     space.recipe = current
+    space.known = {record.tender_id: record for record in known}
     result, warnings = space.check()  # what the current recipe gives on the portal as it is now
     today = space.report(result, warnings).text
     space.accepted = space.passed = None  # the unchanged recipe is never the repair
+    parts = urlsplit(portal.url)
+    root = f"{parts.scheme}://{parts.netloc}/"
     checks = "\n".join(f"- {row.name}: {row.message}" for row in failed) or "- (no check was named)"
     task = "\n\n".join([
-        f"The portal's address: {portal.url}\nIts time zone: {portal.timezone or 'unknown'}",
+        f"The portal's address when it was learned: {portal.url}\nThe domain's root, the one address that can be "
+        f"relied on: {root}\nIts time zone: {portal.timezone or 'unknown'}",
         f"The checks that failed on the last read:\n{checks}",
         "The dry run of the current recipe on the portal as it is now:\n" + today,
         "Tenders of the last good read (the repaired recipe must give these again, with these ids):\n"

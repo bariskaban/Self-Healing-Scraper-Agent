@@ -34,6 +34,12 @@ class AgentSettings:
     # a timeout, a connection error or a 5xx answer.
     model_timeout_seconds: float = 120.0
     model_retries: int = 2
+    # A call the API refuses for its rate limit (429) is tried again after the wait the API names,
+    # or after this many seconds times the number of the wait; never longer than the maximum
+    # (CONVENTIONS.md, rule 8: a Retry-After of up to 60 s is obeyed), and this many times at most.
+    rate_limit_waits: int = 5
+    rate_limit_wait_seconds: float = 15.0
+    rate_limit_wait_max_seconds: float = 60.0
     # Reasoning effort per job; blank sends none. Q9 could not confirm the levels of every model.
     reasoning_learn: str = "medium"
     reasoning_repair: str = "medium"

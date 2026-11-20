@@ -202,3 +202,25 @@ def test_between_two_batches_of_dropped_steps_each_call_only_adds_to_the_one_bef
     assert appended.count(True) >= 10
     assert max(len(text) for text in inputs) / settings.chars_per_token < settings.context_tokens * 1.3
     assert len({r["cache_key"] for r in model.requests}) == 1 and model.requests[0]["cache_key"] == "learn-run1"
+
+
+def test_a_rate_limit_is_waited_out_and_the_call_tried_again():
+    waited: list[float] = []
+    limit = lambda seconds=None: ModelError("RateLimitError: 429", rate_limited=True, retry_after=seconds)  # noqa: E731
+    model = ScriptedModel([limit(7.0), limit(), limit(500.0), [call("echo", text="a")], GOOD])
+    steps = StepLog("run1")
+    out = Runner(model, AgentSettings(), sleep=waited.append).run(
+        job="learn", model="gpt-6.2-sol", prompt=PROMPT, task="the task", tools=[echo()], answer_type=Answer,
+        max_turns=5, max_usd=None, steps=steps)
+    assert out.answer is not None and out.model_calls == 2      # the refused calls are not counted or paid
+    assert waited == [7.0, 30.0, 60.0]                          # the API's wait, ours growing, never over the maximum
+    assert sum(1 for step in steps.steps if step.name == "learn_rate_limited") == 3
+
+
+def test_a_rate_limit_that_does_not_pass_ends_the_run_after_the_waits_allowed():
+    waited: list[float] = []
+    model = ScriptedModel([ModelError("RateLimitError: 429", rate_limited=True)] * 10)
+    out = Runner(model, AgentSettings(rate_limit_waits=2), sleep=waited.append).run(
+        job="learn", model="gpt-6.2-sol", prompt=PROMPT, task="t", tools=[], answer_type=Answer, max_turns=5,
+        max_usd=None, steps=StepLog("run1"))
+    assert out.answer is None and "RateLimitError" in out.stopped and len(waited) == 2 and len(model.requests) == 3

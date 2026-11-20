@@ -98,7 +98,14 @@ class ModelReply:
 
 
 class ModelError(Exception):
-    """A model call that got no usable answer, after the client's own retries."""
+    """A model call that got no usable answer, after the client's own retries.
+
+    `rate_limited` says the API refused it for the rate limit (HTTP 429); `retry_after` is the
+    wait in seconds the API named, when it named one."""
+
+    def __init__(self, message: str, *, rate_limited: bool = False, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.rate_limited, self.retry_after = rate_limited, retry_after
 
 
 class Model(Protocol):
@@ -206,8 +213,27 @@ class _Turn:
 class Runner:
     """Runs agents on one model client. One instance for the process; `run` blocks."""
 
-    def __init__(self, model: Model, settings: AgentSettings = DEFAULT_AGENT_SETTINGS) -> None:
-        self.model, self.settings = model, settings
+    def __init__(self, model: Model, settings: AgentSettings = DEFAULT_AGENT_SETTINGS,
+                 sleep: Callable[[float], None] = time.sleep) -> None:
+        self.model, self.settings, self._sleep = model, settings, sleep
+
+    def _respond(self, steps: StepLog, job: str, **request: Any) -> ModelReply:
+        """One model call. A rate limit is waited out and tried again, a few times: several portals
+        learning at once share one limit of tokens a minute, and a learn must not die of that."""
+        waits = 0
+        while True:
+            try:
+                return self.model.respond(**request)
+            except ModelError as error:
+                if not error.rate_limited or waits >= self.settings.rate_limit_waits:
+                    raise
+                waits += 1
+                pause = min(error.retry_after or self.settings.rate_limit_wait_seconds * waits,
+                            self.settings.rate_limit_wait_max_seconds)
+                steps.add(StepKind.note, f"{job}_rate_limited",
+                          f"The model's rate limit was reached; waiting {pause:.0f} s before trying again "
+                          f"(wait {waits} of at most {self.settings.rate_limit_waits}).")
+                self._sleep(pause)
 
     def _size(self, items: Sequence[dict[str, Any]]) -> int:
         """About how many tokens these items are as input."""
@@ -270,9 +296,9 @@ class Runner:
             began = time.monotonic()
             try:
                 dropped = self._keep_from(task, turns, dropped)
-                reply = self.model.respond(model=model, instructions=prompt.text,
-                                           input=self._input(task, turns, dropped), tools=tools, answer=answer,
-                                           reasoning=reasoning or None, cache_key=cache_key)
+                reply = self._respond(steps, job, model=model, instructions=prompt.text,
+                                      input=self._input(task, turns, dropped), tools=tools, answer=answer,
+                                      reasoning=reasoning or None, cache_key=cache_key)
             except ModelError as error:
                 return stop(f"the model call failed: {error}")
             took = int((time.monotonic() - began) * 1000)
@@ -401,6 +427,14 @@ class OpenAIModel:
             request["prompt_cache_key"] = cache_key
         try:
             response = self._client.responses.create(**request)
+        except openai.RateLimitError as error:
+            wait = None
+            try:
+                wait = float(error.response.headers.get("retry-after") or "")
+            except (AttributeError, ValueError):
+                pass
+            raise ModelError(f"RateLimitError: {_one_line(str(error), 300)}", rate_limited=True,
+                             retry_after=wait) from None
         except openai.OpenAIError as error:
             # The message of an API error names the fault, never the key.
             raise ModelError(f"{type(error).__name__}: {_one_line(str(error), 300)}") from None
