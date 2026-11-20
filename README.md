@@ -128,6 +128,9 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging.
 - [ ] G7. Team decision on the Patterno participant declaration (required for the track prize and the final).
 - [ ] G8. Submit the repository link in the hackathon submission.
+- [ ] G9. Recipe schema before the agents fan out. One agent writes the Q1 recipe format as a Pydantic model (`Recipe.body`, `recipe/v1`) and a person approves it. Only then do agents start on the executor, learner, repairer, checks and reuse, which all build against it.
+- [ ] G10. Add to `CLAUDE.md`: no agent sends requests to a live portal. Each test portal is recorded once at the fetch layer (`FETCH_MODE=record`) and agents work from the recordings only (`FETCH_MODE=replay`). Several agents testing the same portal at once would break the 1 request per second rule.
+- [ ] G11. Model calls in tests are mocked or replayed, never live. Development uses its own OpenAI key with a spending cap, separate from the judging key (G6).
 
 ## Files so far
 
