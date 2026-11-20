@@ -66,7 +66,7 @@ What the learn and repair agents use to see and drive a portal. **Owner:** David
 - [x] Conventions: `CONVENTIONS.md`.
 - [ ] Team agrees on the project layout in `CONVENTIONS.md`.
 - [ ] Agents SDK spike (about 1 h): two tools, Pydantic `output_type`, `max_turns`, usage logged, runs in Docker.
-- [ ] `app/agent/runner.py`: budgets, token and cost bookkeeping, `AgentStep` logging.
+- [x] `app/agent/runner.py`: budgets, token and cost bookkeeping, `AgentStep` logging.
 - [ ] Learn agent (`app/agent/learn.py`) and repair agent (`app/agent/repair.py`), with prompts in `app/agent/prompts/` (needs Q1 to Q4).
 
 ### [x] Q6. Language
@@ -98,7 +98,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Research: `research/q09-models-cost.md`. Learn and repair on `gpt-6.2-sol`, spot checks on `gpt-6-luna`; per the audit, quote the cost per portal only once measured.
 - [x] `app/config.py`: model per job (`MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK`) and the price table with its date.
 - [ ] Pick models from the benchmark (needs Q8).
-- [ ] Cost per portal (attach and repair) for the hand-in README.
+- [ ] Cost per portal (attach and repair) for the hand-in README. Measured on the mock portal only so far (`DESIGN.md`, Cost per portal): a learn $0.12 to $0.14, a repair $0.08 to $0.10, on `gpt-6.2-sol`. No real portal has been measured.
 
 ### [ ] Q10. Failure rules
 **Owner:** Goktug

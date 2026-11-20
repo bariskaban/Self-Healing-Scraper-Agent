@@ -362,15 +362,15 @@ Models from Q9, on the Responses API; the benchmark and the price decide between
 
 A request over 272K input tokens is billed at twice the input and 1.5 times the output rate for the whole request, which is one more reason the learner trims its context.
 
-The README quotes only measured numbers (audit of Q9). The estimates below hold only if every learner call stays near 30K input tokens.
+The README quotes only measured numbers (audit of Q9). The measured figures so far are from the mock portal only, a small server-rendered portal with a list and a page per tender; a real portal will cost more, and none has been measured. The estimates below hold only if every learner call stays near 30K input tokens.
 
 | Case | Model calls | Estimate (Q9) | Measured |
 | --- | --- | --- | --- |
-| Attach, new software | Learner rounds and one spot check | about $1.68 on Sol, $0.84 on Terra; $7.74 on Sol if the context grows uncached | to be measured |
+| Attach, new software | Learner rounds and one spot check | about $1.68 on Sol, $0.84 on Terra; $7.74 on Sol if the context grows uncached | $0.12 to $0.14 on Sol: 9 to 11 calls, 191K to 274K input tokens of which 80% to 89% cached, 3K to 5K output (4 learns of the mock portal, 20 Nov 2026; no spot check runs after a learn) |
 | Attach, known software | One spot check | about $0.003 | to be measured |
 | Regular read | None | $0 | 0 |
 | Read with C3 changed or C7 | One spot check | about $0.003 | to be measured |
-| Repair | One to three attempts and one spot check | about $0.70 an attempt on Sol | to be measured |
+| Repair | One to three attempts and one spot check | about $0.70 an attempt on Sol | $0.08 to $0.10 an attempt on Sol: 7 to 8 calls, 161K to 188K input tokens, 3K output (2 repairs of the mock portal's changed layout, 20 Nov 2026; both passed on the first attempt) |
 
 ## Architecture
 
