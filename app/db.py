@@ -775,8 +775,12 @@ class Database:
         for f in files:
             con.execute(file_sql, _file_values(f))
         con.execute("DELETE FROM tender_files WHERE portal_id = ? AND tender_id = ?", (portal_id, tender_id))
+        # A tender links a file once (the key is portal, tender, file). Two documents of one tender can hold the
+        # same bytes (TenderNed's ZIPs repeat entries), which is one file: the first link, and its name, wins.
+        seen: set[str] = set()
+        unique = [l for l in links if not (l.file_id in seen or seen.add(l.file_id))]
         con.executemany(_insert("tender_files", ("portal_id", "tender_id", "file_id", "file_name", "position")),
-                        [(portal_id, tender_id, l.file_id, l.file_name, l.position) for l in links])
+                        [(portal_id, tender_id, l.file_id, l.file_name, l.position) for l in unique])
 
     def known_tenders(self, portal_id: str) -> list[TenderRecord]:
         """Every tender stored for a portal, whatever its state: the worker's view for planning
