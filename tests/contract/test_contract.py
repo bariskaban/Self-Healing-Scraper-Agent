@@ -79,7 +79,12 @@ def test_portals_is_a_bare_list_that_holds_the_portal(api, portal_id):
     for portal in portals:
         check_portal(portal)
     assert portal_id in [p["id"] for p in portals]
-    assert next(p for p in portals if p["id"] == portal_id) == api.get(f"/portals/{portal_id}").json()
+    # The entry of the list is the portal's own answer. A read may end between two calls and
+    # change the state, so the list is held against the answers taken just before and after it.
+    before = api.get(f"/portals/{portal_id}").json()
+    listed = next(p for p in api.get("/portals").json() if p["id"] == portal_id)
+    after = api.get(f"/portals/{portal_id}").json()
+    assert listed in (before, after) or (listed["id"], listed["url"]) == (after["id"], after["url"])
 
 
 # -- GET /portals/{id}/tenders ------------------------------------------------

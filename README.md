@@ -147,8 +147,8 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [ ] G1, wiring the worker: the read loop replaces `DatabaseIdleWorker` (`app/standin_worker.py`), which records runs and reads nothing.
 - [x] G2. `app/db.py` on top of `app/schema.sql`: the eight `Store` methods the API calls, and the worker's writes (portal state, runs, checks, steps, snapshots, recipes, publishing tenders and documents). One read and one write connection, each behind a lock (research in `research/q15-storage.md`). Tests in `tests/test_db.py`.
 - [ ] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
-  - [x] The page (`dashboard/`, built into `app/dashboard/static/`) and its routes (`app/dashboard_api.py`, `docs/DASHBOARD_API.md`) on the store. Tests in `tests/test_dashboard_api.py`.
-  - [ ] Shows real attaches and repairs once the read loop writes runs, checks, steps and each read's published count.
+  - [x] The page (`dashboard/`, built into `app/dashboard/static/`) and its routes (`app/dashboard_api.py`, `docs/DASHBOARD_API.md`) on the store and the read loop. Tests in `tests/test_dashboard_api.py`.
+  - [x] No demo data in place of a down API: the page says "API offline, retrying"; the demo snapshot only with `?demo`.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
 - [ ] G5. Video, at most 3 minutes, including the dashboard (mock portal break and repair makes a good demo).
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging.
