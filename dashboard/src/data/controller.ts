@@ -128,8 +128,17 @@ export class LedgerController {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     // keep dashboard (header/strip) but drop detail so the new route skeletons once
-    this.set({ ...this.state, route, detail: null, source: route.name === "overview" ? this.state.source : null });
+    this.set({ ...this.state, route, detail: null, source: route.name === "overview" ? this.overviewSource() : null });
     if (this.running) void this.cycle();
+  }
+
+  /**
+   * The source of the overview when no cycle has committed for it. While the API is offline the
+   * dashboard kept from the last live answer is still the last live snapshot (a failed request
+   * never loads the demo), so the overview goes on showing it instead of a skeleton that never ends.
+   */
+  private overviewSource(offline = this.state.offline): LedgerState["source"] {
+    return this.state.source ?? (offline && this.state.dashboard ? "live" : null);
   }
 
   /** Runs one cycle; resolves after committing (or discarding a stale result). */
@@ -154,7 +163,7 @@ export class LedgerController {
     }
     if (gen !== this.gen) return; // obsolete
     this.ac = null;
-    if (failed) this.set({ ...this.state, offline: true });
+    if (failed) this.set({ ...this.state, offline: true, source: route.name === "overview" ? this.overviewSource(true) : this.state.source });
     if (loaded) {
       const live = loaded.source === "live";
       const now = (this.opts.now ?? Date.now)();

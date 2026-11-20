@@ -62,6 +62,42 @@ describe("ledger source selection", () => {
     expect(c.state.offline).toBe(false);
   });
 
+  it("offline: opening a portal and going back still shows the last live overview", async () => {
+    let up = true;
+    const c = new LedgerController(async () => { if (!up) throw new TypeError("down"); return json(dash([portal])); }, { name: "overview" });
+    await c.cycle();
+    up = false;
+    await c.cycle();
+    c.setRoute({ name: "portal", id: "p1" });
+    await c.cycle();
+    expect(c.state.detail).toBeNull(); // nothing was ever loaded for this page, and nothing is made up
+    expect(c.state.offline).toBe(true);
+    c.setRoute({ name: "overview" });
+    expect(c.state.source).toBe("live"); // at once, not after the next failed poll
+    expect(c.state.dashboard?.portals).toHaveLength(1);
+    expect(c.state.offline).toBe(true);
+    await c.cycle();
+    expect(c.state.source).toBe("live");
+    expect(c.state.offline).toBe(true);
+    up = true;
+    await c.cycle();
+    expect(c.state.offline).toBe(false);
+  });
+
+  it("the API going down while a portal page loads does not hide the overview on the way back", async () => {
+    let up = true;
+    const c = new LedgerController(async () => { if (!up) throw new TypeError("down"); return json(dash([portal])); }, { name: "overview" });
+    await c.cycle();
+    c.setRoute({ name: "portal", id: "p1" });
+    c.setRoute({ name: "overview" }); // back before the portal page loaded: not offline yet
+    expect(c.state.source).toBeNull();
+    up = false;
+    await c.cycle();
+    expect(c.state.source).toBe("live");
+    expect(c.state.dashboard?.portals).toHaveLength(1);
+    expect(c.state.offline).toBe(true);
+  });
+
   it("detail never mixes live dashboard with demo tenders", async () => {
     const c = new LedgerController(async (u) => (u.includes("tenders") ? new Response("x", { status: 500 }) : u.includes("timeline") ? json([]) : json(dash([portal]))), { name: "portal", id: "p1" });
     await c.cycle();

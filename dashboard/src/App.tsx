@@ -21,7 +21,7 @@ function useAnnouncements(state: LedgerState) {
     if (!p) return;
     const out: string[] = [];
     if (p.source !== state.source && state.source) out.push(state.source === "live" ? "Connected to live API." : state.everOnline ? "API offline, showing demo data. Retrying." : "Showing demo data.");
-    else if (!p.offline && state.offline && state.source !== "demo") out.push("API offline, retrying. Showing the last update.");
+    else if (!p.offline && state.offline && state.source !== "demo") out.push(state.dashboard ? "API offline, retrying. Showing the last update." : "API offline, retrying. No data yet.");
     else if (p.offline && !state.offline && state.source === "live") out.push("Connected to live API.");
     if (p.dashboard && state.dashboard) {
       const before = new Map(p.dashboard.portals.map((x) => [x.id, x.state]));
