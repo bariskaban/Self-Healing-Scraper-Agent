@@ -35,6 +35,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.dashboard_api import add_dashboard_routes
+from app.checks import CheckSettings
 from app.db import Database
 from app.docs import DocsSettings, FileStore
 from app.interfaces import Store, Worker
@@ -42,6 +43,8 @@ from app.memory_store import IdleWorker, MemoryStore
 from app.fetch import Fetcher
 from app.loop import ReadLoop
 from app.reader import Learned, Reader
+from app.recipe.settings import RecipeSettings
+from app.scheduler import SchedulerSettings
 from app.models import CreatedId, Portal, PortalCreate, RunAccepted, url_key, utcnow
 
 T = TypeVar("T")
@@ -149,9 +152,13 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
     fetcher: Fetcher | None = None
     if worker is None:  # our own database and no worker given: the read loop
         fetcher = fetch or Fetcher.from_env()
-        reader = Reader(opened, fetcher, documents, learn=builtin_learner,
+        # Every number of ours comes from the environment (CLAUDE.md): READ_INTERVAL_SECONDS,
+        # ATTACH_TIME_LIMIT_SECONDS, the check thresholds, the executor's ceilings.
+        schedule = SchedulerSettings.from_env()
+        reader = Reader(opened, fetcher, documents, learn=builtin_learner, checks=CheckSettings.from_env(),
+                        schedule=schedule, recipes=RecipeSettings.from_env(),
                         ignore_robots=fetcher.settings.ignore_robots_txt)
-        worker = ReadLoop(opened, reader, fetcher)
+        worker = ReadLoop(opened, reader, fetcher, schedule=schedule)
 
     database = ThreadPoolExecutor(max_workers=1, thread_name_prefix="watchtower-db")
 
