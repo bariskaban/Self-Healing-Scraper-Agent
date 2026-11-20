@@ -1,5 +1,4 @@
-
-# Research: Watchtower real-portal test set (Patterno seed + candidates)
+# Q8. Test portals: real-portal test set (Patterno seed and candidates)
 
 Date of research: 20 Nov 2026. Fetch budget used: 22 of 45 (max 3 per portal respected). Searches are not counted as fetches.
 

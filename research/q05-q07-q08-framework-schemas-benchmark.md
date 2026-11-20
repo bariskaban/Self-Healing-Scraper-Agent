@@ -1,4 +1,4 @@
-# Research: Q5 framework, Q7 schemas, Q8 benchmark
+# Q5, Q7 and Q8. Agent framework, schemas and benchmark
 
 Owner: Baris. Researched 2026-11-20. Sources were checked on that date; library versions and docs change fast.
 
@@ -110,4 +110,4 @@ Owner: Baris. Researched 2026-11-20. Sources were checked on that date; library 
 * `tests/test_models.py`
 * `CONVENTIONS.md`
 * `docs/BENCHMARK.md`
-* `docs/research/Q5_Q7_Q8.md` (this file)
+* `research/q05-q07-q08-framework-schemas-benchmark.md` (this file)

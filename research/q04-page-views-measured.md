@@ -1,7 +1,6 @@
+# Q4. Page views measured on real portals
 
-# Q4 Page Views Measured (20 Nov 2026)
-
-For David's Q4 ("what page view does the learning agent see"). Board: Agent Board. Tokens = tiktoken `o200k_base`. Budget: ~60K input tokens per request.
+Measured 20 Nov 2026. For David's Q4 ("what page view does the learning agent see"). Board: Agent Board. Tokens = tiktoken `o200k_base`. Budget: ~60K input tokens per request.
 
 ## Recommendation
 

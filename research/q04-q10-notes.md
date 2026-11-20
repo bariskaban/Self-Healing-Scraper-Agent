@@ -1,4 +1,4 @@
-# Notes for other owners' questions (Q4, Q10)
+# Q4 and Q10. Notes for other owners' questions
 
 From Danil's research run, 20 Nov 2026. Each point was fact-checked; numbers use the papers' own wording.
 
