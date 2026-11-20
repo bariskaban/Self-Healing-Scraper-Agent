@@ -16,6 +16,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    # Also a runtime dependency (app/fetch); listed here too because CI installs only this group
+    # for the contract test, whose client is httpx.
+    "httpx>=0.27",
     "pytest>=8.3",
 ]
 
