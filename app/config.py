@@ -73,12 +73,22 @@ class ModelSettings:
             learn=env.get("MODEL_LEARN", defaults.learn).strip(),
             repair=env.get("MODEL_REPAIR", defaults.repair).strip(),
             check=env.get("MODEL_CHECK", defaults.check).strip(),
-            eur_per_usd=float(env.get("EUR_PER_USD", defaults.eur_per_usd)),
+            eur_per_usd=_rate(env.get("EUR_PER_USD"), defaults.eur_per_usd),
         )
 
     def priced(self) -> dict[str, bool]:
         """For each job, whether its model has a price in the table (a startup check can warn)."""
         return {job: getattr(self, job) in PRICES for job in ("learn", "repair", "check")}
+
+
+def _rate(raw: str | None, default: float) -> float:
+    """EUR_PER_USD as a number. An error names the variable, so an operator can tell what to fix."""
+    if raw is None:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        raise ValueError(f"EUR_PER_USD must be a number such as 0.87, got {raw!r}") from None
 
 
 def api_key(environ: Mapping[str, str] | None = None) -> str | None:

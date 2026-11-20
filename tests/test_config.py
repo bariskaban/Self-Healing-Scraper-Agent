@@ -74,3 +74,82 @@ def test_api_key_blank_is_none():
     assert api_key({}) is None
     assert api_key({"OPENAI_API_KEY": "   "}) is None
     assert api_key({"OPENAI_API_KEY": "sk-test"}) == "sk-test"
+
+
+# The table of research/q09-models-cost.md ("Model facts"), typed in again here, so that a slip
+# in app/config.py fails a test: (input, cached input, output) and the same over 272K input.
+# gpt-6-sol's long rates are the file's "2x in, 1.5x out", with the cached rate doubled too.
+Q9_TABLE = {
+    "gpt-6.2-sol": ((2, 0.10, 10), (4, 0.20, 15)),
+    "gpt-6.1-sol": ((2, 0.10, 10), (4, 0.20, 15)),
+    "gpt-6-sol": ((2, 0.20, 10), (4, 0.40, 15)),
+    "gpt-6.1-terra": ((1, 0.05, 5), (2, 0.10, 7.50)),
+    "gpt-6-luna": ((0.10, 0.01, 0.50), (0.20, 0.02, 0.75)),
+    "gpt-6.2-astra": ((8, 0.40, 40), (16, 0.80, 60)),
+    "gpt-5.6-terra": ((2, 0.20, 12), (4, 0.40, 18)),
+    "gpt-5.6-luna": ((0.20, 0.02, 1.20), (0.40, 0.04, 1.80)),
+    "gpt-5.4-mini": ((0.75, 0.075, 4.50), (None, None, None)),
+}
+
+
+def test_price_table_is_q9s_table_with_its_date():
+    from datetime import date
+
+    from app.config import PRICES_AS_OF, PRICES_SOURCE
+
+    got = {m: ((p.input, p.cached_input, p.output), (p.long_input, p.long_cached_input, p.long_output))
+           for m, p in PRICES.items()}
+    assert got == Q9_TABLE
+    assert PRICES_AS_OF == date(2026, 11, 20)  # the day Q9 read the pricing page
+    assert PRICES_SOURCE.startswith("https://developers.openai.com/")
+
+
+def test_long_context_also_changes_the_cached_rate():
+    # 300K input of which 200K cached, 10K output: (100K x 4 + 200K x 0.20 + 10K x 15) / 1M.
+    assert cost_usd("gpt-6.2-sol", 300_000, 10_000, cached_input_tokens=200_000) == pytest.approx(0.59)
+
+
+def test_the_272k_rule_is_per_request_not_per_run():
+    # Q9's learn is 360K input over 12 calls; no single call is over 272K, so none is billed long.
+    per_call = sum(cost_usd("gpt-6.2-sol", 30_000, 8_000) for _ in range(12))
+    assert per_call == pytest.approx(1.68)
+    assert cost_usd("gpt-6.2-sol", 360_000, 96_000) == pytest.approx(2.88)  # what a run total would give
+
+
+def test_reasoning_tokens_are_not_a_separate_charge():
+    # Q9: 8K output = 3K visible + 5K reasoning. The caller passes output_tokens as OpenAI reports it.
+    assert cost_usd("gpt-6.2-sol", 0, 8_000) == pytest.approx(0.08)
+
+
+def test_negative_output_or_cached_counts_raise():
+    with pytest.raises(ValueError):
+        cost_usd("gpt-6-luna", 10, -1)
+    with pytest.raises(ValueError):
+        cost_usd("gpt-6-luna", 10, 10, cached_input_tokens=-1)
+
+
+@pytest.mark.parametrize("raw", ["", "abc", "0,87"])
+def test_bad_eur_rate_names_the_variable(raw):
+    with pytest.raises(ValueError, match="EUR_PER_USD"):
+        ModelSettings.from_env({"EUR_PER_USD": raw})
+
+
+def test_settings_and_errors_never_show_the_key():
+    key = "sk-test-not-a-real-key-0123456789"
+    with pytest.raises(ValueError) as error:
+        ModelSettings.from_env({"OPENAI_API_KEY": key, "EUR_PER_USD": "abc"})
+    settings = ModelSettings.from_env({"OPENAI_API_KEY": key})
+    assert key not in f"{settings!r} {settings} {error.value!r} {settings.priced()}"
+
+
+def test_import_needs_no_key_and_no_openai(monkeypatch):
+    import importlib
+    import sys
+
+    import app.config
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delitem(sys.modules, "openai", raising=False)
+    importlib.reload(app.config)
+    assert "openai" not in sys.modules
+    assert app.config.api_key() is None
