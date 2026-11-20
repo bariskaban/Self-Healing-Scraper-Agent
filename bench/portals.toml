@@ -28,6 +28,9 @@
 #                 survey   opened once in a browser by the portal survey, not checked again
 #                 example  a buyer subdomain nobody has confirmed: check before recording
 #                 doubtful evidence points to another address (see note)
+#   robots_disallow_all
+#               true: its robots.txt forbids every path to every robot (research/audit.md, Q3).
+#               The mentor: robots.txt is obeyed. `load_portals()` leaves it out by default.
 #   note        one line
 
 # == 1. Poland ==
@@ -295,6 +298,7 @@ kind = "server_html"
 expect = "serve"
 priority = 4
 address = "fetched"
+robots_disallow_all = true
 note = "Its HTML refused a plain client twice on 20 Nov (Q10); the Atom feed answers. Detail pages link files without login."
 
 # == 5. Germany ==
