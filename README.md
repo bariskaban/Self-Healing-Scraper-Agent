@@ -14,7 +14,7 @@ An agent that attaches to European public procurement portals on its own, watche
 
 - **Baris:** Q5, Q7, Q8
 - **David:** Q1, Q3, Q4
-- **Dan:** Q2, Q9, Q11
+- **Danil:** Q2, Q9, Q11
 - **Goktug:** Q6, Q10, Q12
 - **Goktug (research only, build not assigned):** Q13, Q14
 - **Not assigned yet:** G1 to G11
@@ -30,7 +30,7 @@ How we represent what the LLM learned about a portal. **Owner:** David
 - [ ] Executor tests on recorded pages.
 
 ### [ ] Q2. Field locators
-What the recipe stores to find each field and link, and how a break is detected. **Owner:** Dan
+What the recipe stores to find each field and link, and how a break is detected. **Owner:** Danil
 - [x] Research: `research/q02-locators.md`. Two or three locators and value checks per field; per the audit, a single surviving locator counts only when it equals the last good value.
 - [ ] Locator types in the recipe (CSS, XPath, label, JSON path, fallbacks).
 - [ ] Value checks per field (dates parse, deadline after publication, CPV 8 digits, country 2 letters).
@@ -77,14 +77,14 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 ### [ ] Q8. Benchmark
 **Owner:** Baris
 - [x] Design: `docs/BENCHMARK.md`.
-- [ ] Mock portal with variants and the 16 scenarios (`mock_portal/`, 3 to 4 h).
+- [ ] Mock portal with variants and the 25 scenarios in `docs/BENCHMARK.md` (`mock_portal/`, 3 to 4 h).
 - [ ] Record and replay mode in `app/fetch/`, together with the Q4 owner (1 to 2 h).
 - [ ] Real test set: 8+ portals, 4+ countries, 3+ software packages, 1 to 2 behind login or captcha. Candidates in `research/q08-test-portals.md`; still to add Italian and Polish platforms (`research/patterno-landscape.md`) and record them.
 - [ ] Gold labels: open-id list per portal plus 5 checked tenders each (about 1.5 h, split).
 - [ ] Harness and scorer (`bench/run.py`, 2 to 3 h).
 
 ### [ ] Q9. OpenAI models and cost
-**Owner:** Dan
+**Owner:** Danil
 - [x] Research: `research/q09-models-cost.md`. Learn and repair on `gpt-6.2-sol`, spot checks on `gpt-6-luna`; per the audit, quote the cost per portal only once measured.
 - [ ] `app/config.py`: model per job (`MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK`) and the price table with its date.
 - [ ] Pick models from the benchmark (needs Q8).
@@ -99,10 +99,10 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [ ] No false alarm on portals with few or no open tenders (mock scenario 13).
 
 ### [ ] Q11. Reuse across portals
-**Owner:** Dan
+**Owner:** Danil
 - [x] Research: `research/q11-reuse.md`. Host, path or brand match makes a candidate, trusted only after a canary read; per the audit, also match on page structure.
 - [ ] Fingerprint detector (`Portal.fingerprint`).
-- [ ] Reuse rule: try a stored recipe with the same fingerprint first; trust it only if it passes every check plus a spot check.
+- [ ] Reuse rule: candidates by host, path, brand text or page structure; trust one only after the canary read, the full first read and a spot check (DESIGN.md, Reuse).
 
 ### [ ] Q12. Large portals
 **Owner:** Goktug

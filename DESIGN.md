@@ -96,7 +96,7 @@ The brief leaves these open. We decide them once, here, so every part is built t
 - **Documents not fetched yet.** `documents` is null on that tender, never `[]`: an empty list says the tender has no documents (Q12).
 - **`changedSince`.** A `+` in the offset arrives as a space when the caller does not percent-encode it; we accept both. A value we cannot parse answers 400.
 - **Refresh during a repair.** Answers with the repair's `runId`. A repair run ends with a full verifying read and publishes on success, so when that run finishes the tenders are fresh.
-- **Refresh on a `failed` portal.** Checks it at once with the old recipe, at most once a minute, with no model call (Q14).
+- **Refresh on a `failed` portal.** Checks it at once with the old recipe, at most once a minute. The check makes no model call; it starts a repair only when the page structure is one we have not seen before (Q14).
 - **Extra fields.** We add our own fields to runs and portals (cost, failed checks, a summary in words). We never rename or drop one from the contract.
 
 ### Tender record
@@ -179,12 +179,12 @@ A portal is reported `serving` only while its reads pass every check. `healing` 
 
 One versioned JSON document per portal, validated against a Pydantic schema and stored with every run that used it. It is a **typed navigation graph** (Q1): flat `nodes` and `edges` arrays that refer to node ids, written by the model through OpenAI's strict structured output. Strict output means no maps with free keys, no nesting beyond what the schema names, and only the node kinds and actions in the closed sets below (audit of Q1).
 
-- **Node kinds** (closed set): an HTML page, a JSON API, a browser state, a feed, a documents node, and a reference to another platform's recipe for documents held elsewhere. A JavaScript app becomes a JSON API node once its API is found. Generated Python is allowed only as a rare `custom_code` node, run in a sandbox.
+- **Node kinds** (closed set): an HTML page, a JSON API, a browser state, a feed, a documents node, a reference to another platform's recipe for documents held elsewhere, and `custom_code`. A JavaScript app becomes a JSON API node once its API is found. `custom_code` is generated Python, run in a sandbox, and allowed only as a rare escape hatch.
 - **Actions** (closed set): follow a link, next page, call an API (GET, or POST with a query in the body), submit a form, for each item, download. Cookies are kept for the session, and hidden form fields are carried from one step to the next, because some portals page through form posts. A multi-step document download is a chain of these actions (audit of Q1).
 - **Paging**: next-page link, page parameter, API offset or cursor, form post, or a "load more" button; for an API, the page-size parameter and its maximum (Q12).
 - **Identity**: where a tender's `id` comes from, and its learned shape. It must be an identifier the portal issues, never a row position or a hash of ours. When it appears both in the URL and on the page, the two must agree (Q2).
 - **Fields** (Q2): each field holds two or three locators and a value spec. Preference: JSON path, then a label anchor ("Angebotsfrist"), then a relative CSS or XPath on ids, attributes or text; never an absolute XPath, an `nth-child` position or a default value. The value spec parses and normalises: date format and the zone of the portal's country, CPV, status and procedure words in the local language mapped to the contract's values.
-- **What the checks read** (Q10, Q12): the locator of the printed total and whether it counts closed tenders; the empty-state marker learned at attach; the structure fingerprint of list and detail pages with this portal's floor; whether the list alone carries every required field; whether an all-documents ZIP exists; the portal's own change marks; its time zone.
+- **What the checks read** (Q10, Q12): the locator of the printed total and whether it counts closed tenders; the empty-state marker learned at attach; the structure fingerprint of list and detail pages with this portal's floor; whether the list alone carries every required field; whether an all-documents ZIP exists; the portal's own change marks. The portal's time zone is not in the recipe: it lives on the portal record (`Portal.timezone`).
 - **Family and host** (Q11): the software family, a block of per-host settings (page size, filters, language), and the canary used when the recipe is reused elsewhere.
 - **Expectations**: fill rate of each field and the id pattern, updated after every passing read.
 
@@ -228,7 +228,7 @@ From Q10. A read is judged by evidence that does not depend on how many tenders 
 
 **Step 1: did each request get an answer?**
 
-- **T1**: timeout, DNS or TLS failure, connection reset, 408, 5xx. Up to 3 tries with randomised, growing pauses; a `Retry-After` of up to 60 s is obeyed in place. Persists: **Outage**.
+- **T1**: timeout, DNS or TLS failure, connection reset, HTTP 408, 500, 502, 503, 504, 520 to 524. Up to 3 tries with randomised, growing pauses; a `Retry-After` of up to 60 s is obeyed in place. Persists: **Outage**.
 - **T2**: 429, or a 403 or 503 carrying `Retry-After`. Halve this portal's request rate, down to one request per 10 seconds, and keep the slower rate. A 403 can be a rate limit: Poland's national portal answers 403 above 30 requests a minute.
 - **T4**: a certificate that does not verify. Never switch verification off; try the page once through the browser, which completes chains a plain client does not.
 
@@ -244,8 +244,8 @@ From Q10. A read is judged by evidence that does not depend on how many tenders 
 | --- | --- | --- |
 | C1 complete | Paging reached its end; no id twice; when the portal prints a total, exactly that many, after one re-read of the list | **Breakage** |
 | C2 shape | Every value parses; the id has its learned shape; the deadline is after publication; codes and enums hold; no value contains markup | The value is sent as null, never published wrong; it counts as lost in C3 |
-| C3 known tenders reproduce | For tenders in this read and the last good one: how many lost a required value, how many changed one (thresholds 2, 3, 5, 14 lost for 3, 10, 50, 500 known) | Lost: suspect, confirm. Changed: spot check. |
-| C4 known open tenders still listed | Tenders open with a deadline ahead that are now absent: look at up to 5 of their detail pages | One still open: **Breakage**. All closed or withdrawn: accept and set the status. |
+| C3 known tenders reproduce | For tenders in this read and the last good one: how many lost a required value, how many changed one. Thresholds for 3, 10, 50, 500 known tenders: 2, 3, 5, 14 lost; 3, 3, 6, 22 changed. | Lost: suspect, confirm. Changed: spot check. |
+| C4 known open tenders still listed | Tenders open with a deadline ahead that are now absent: look at up to 5 of their detail pages. When 3, 5, 9 or 42 are missing for 3, 10, 50, 500 known, the list's structure must also be intact or the printed total agree. | One still open, or the extra condition fails: **Breakage**. All closed or withdrawn: accept and set the status. |
 | C5 new tenders as complete | Nulls per required field among new rows against earlier good rows, Fisher's exact test at 1 in 1,000 | Suspect, confirm |
 | C6 canary | Two known detail pages and one known file are fetched again on every read | Fails twice: **Breakage** |
 | C7 structure | The sorted set of tag-and-class paths (key paths for JSON), ignoring text, row positions and numeric ids, differs from the stored one by more than this portal's floor | Spot check; never a failure alone |
@@ -339,8 +339,8 @@ The 10 minutes is ours and waits on the mentors.
 
 From Q11 and Patterno's own portal list (`research/patterno-landscape.md`).
 
-- **Why it matters.** Of Patterno's 4,657 portals, the ten largest platforms hold half of all portal addresses (`ezamawiajacy.pl`, `e-marchespublics.com`, `logintrade.net`, `acquistitelematici.it`, `tuttogare.it`, and others), and Italy and Poland together are half the list. A recipe per large platform covers up to half of Patterno's portals: that is the Approach argument. 1,229 platforms have a single address and each needs its own learning.
-- **Candidates**, with no model call: any match on host, URL path or brand text in the title or footer; and any stored recipe whose structure fingerprint matches the new portal's pages, which is the only signal a test portal built from the same template as an earlier one carries (audit of Q11). A fingerprint is a hint, never a key: the same `/NetServer/` path runs under two vendors.
+- **Why it matters.** Patterno covers 4,657 portals; of the 4,286 portal addresses it lists, the ten largest platforms hold half (`ezamawiajacy.pl`, `e-marchespublics.com`, `logintrade.net`, `acquistitelematici.it`, `tuttogare.it`, and others), and Italy and Poland together are half the list. A recipe per large platform covers up to half of Patterno's portals: that is the Approach argument. 1,229 platforms have a single address and each needs its own learning.
+- **Candidates**, with no model call: any match on host, URL path or brand text in the title or footer; and any stored recipe whose structure fingerprint matches the new portal's pages, which is the only signal a test portal built from the same template as an earlier one carries (audit of Q11). A fingerprint is a hint, never a key: one platform can run different versions for different buyers, and a URL path such as `/NetServer/` is not proof of one vendor.
 - **Trust.** A candidate must pass a canary read, one list page and five detail pages with every deterministic check; then the full first read, which does the real check; then one spot check. Fail: triage first, then the other candidates, then a cold learn with the rejected recipe as a draft.
 - **Documents held elsewhere.** A portal whose documents sit on another platform reaches them through a reference node and reuses that platform's recipe (Q1).
 - **Seed library.** The judges start a fresh container and no service of ours may feed it, so the recipes we learn on our test set ship in the image, committed to the repo as JSON. Recipes learned at run time join the same library.
@@ -421,7 +421,6 @@ What the research needs added (audit of Q7):
 - **What a failed portal remembers**: the page structure we gave up on, the time of the next check, today's repair count; and a per-portal request rate for portals that state their own limit (Q14, Q10).
 - **Read bookkeeping**: a hash of each tender's list row, and a place to hold records before the gate (Q12).
 - **Check results** as Q10 names them, including a suspect that cleared (a passed row, severity `info`, the first observation in `observed`), and room for a first observation and its confirmation in one run.
-- **The portal's time zone** in the recipe or the portal record.
 - **`pyproject.toml`**, which does not exist yet although `app/models.py` needs pydantic.
 
 ### Rules the worker enforces
@@ -480,7 +479,7 @@ A script that plays the judges: it calls every route the way the brief describes
 
 ### Mock portal
 
-Three templates (a server-rendered table with paging, a JavaScript app on a JSON API, a multi-step document download), each in a small size that finishes inside 10 minutes and a large one that does not (Q12). The full scenario list and the metrics are in `docs/BENCHMARK.md`; the audit of Q8 asks for exact metric definitions before it can score.
+Three templates (a server-rendered table with paging, a JavaScript app on a JSON API, a multi-step document download), each in a small size that finishes inside 10 minutes and a large one that does not (Q12). The switches below are the ones the design depends on; `docs/BENCHMARK.md` numbers every scenario and defines the metrics. The audit of Q8 asks for exact metric definitions before the benchmark can score.
 
 | Switch | Expected outcome |
 | --- | --- |
@@ -495,7 +494,7 @@ Three templates (a server-rendered table with paging, a JavaScript app on a JSON
 | Down for over an hour, then back | `failed` after 60 minutes, `serving` at the next check; 0 model calls |
 | 429, and 403 with `Retry-After` | Slows down; stays `serving` |
 | Login wall in front of the documents, then removed | `failed` with the reason, then `serving` at the next check; 0 model calls |
-| Layout changed twice in a row | Two repairs at most; 2 model-backed attempts (Q14) |
+| Layout changed twice in a row | One repair per change, two in all, each on a structure not seen before (Q14) |
 | Captcha shown, files still download | Stays `serving` |
 | List emptied, with the portal's "no tenders" notice | Stays `serving`; the tenders become `closed` |
 | List emptied, without the notice | Must not pass: confirm, then `healing` |

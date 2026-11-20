@@ -3,7 +3,7 @@
 Goal: compare Q1 recipe models, Q4 agent tools and Q9 models on equal terms, scored the way the judges score.
 
 ## Two test beds
-1. **Mock portal** (fully deterministic, main ground for Notice and Repair). A small FastAPI app with ~30 seeded tenders in several languages, served in switchable variants. Our test harness flips variants; the system under test never sees the switch.
+1. **Mock portal** (fully deterministic, main ground for Notice and Repair). A small FastAPI app with ~30 seeded tenders in several languages, served in switchable variants, plus a large variant whose documents take more than 10 minutes to fetch, so both sides of the records gate are exercised (Q12). Our test harness flips variants; the system under test never sees the switch.
 2. **Real portals** (Attach realism). 8+ portals, 4+ countries, 3+ software packages, mix of server pages, JS apps and multi-step downloads, plus 1 to 2 behind a login or captcha. Run against recorded traffic.
 
 ## Replaying real portals
@@ -19,7 +19,7 @@ Match predicted tenders to gold by `id` (fallback: `url`).
 * **Documents**: file recall by sha256 (fallback: name and size); bytes correct = our sha256 equals the gold file's.
 * **State accuracy**: the harness polls `GET /portals/{id}` every 10 s; each poll is right if the state matches the scenario's expected state. Also **time to notice** (change to `healing`) and **false alarms** (healing or failed on an unchanged portal).
 * **Repair success**: back to `serving` with tender recall at least 0.95 within 15 minutes of the change. Also repair tokens and euros.
-* **Cost**: tokens and euros per attach and per repair, from the `portal_costs` view. **Model calls during regular reads must be 0.**
+* **Cost**: tokens and euros per attach and per repair, from the `portal_costs` view. **Model calls during regular reads must be 0**, except a spot check when C3 (changed values) or C7 (structure) fires (Q10).
 * **Time to attach** and **HTTP requests per attach**.
 
 ## Gold labels
@@ -40,11 +40,23 @@ Each runs: attach, wait for `serving`, apply change, refresh, poll states, score
 9. Captcha on the list page: expect `failed` with a captcha reason.
 10. Captcha shown but files still download: expect `serving` (no false alarm).
 11. Login wall: expect `failed`.
-12. Transient 500 errors and slow answers: expect no state change.
+12. Transient 500 errors and slow answers that recover within the read's retries: expect no state change.
 13. Portal legitimately has 0 open tenders ("no results" text): expect `serving`.
 14. A tender gets cancelled: expect `withdrawn`.
 15. Entry URL becomes a summary page linking to the list.
 16. A ZIP over 250 MB (streamed, not stored): expect it to be skipped, others delivered.
+
+Added from the answers to Q10, Q12 and Q14:
+
+17. Paging cut to one page while the portal still prints its total: C1 fails; expect `healing`.
+18. 429, and 403 with `Retry-After`: expect the portal's request rate to halve and the state to stay `serving`.
+19. List emptied without the "no results" notice: must not pass; expect the confirm step, then `healing`.
+20. One tender's deadline moved on its detail page only: seen by the rotation; `lastChangedAt` moves; stays `serving`.
+21. Answers 503 for 3 minutes, then recovers: `healing` with "not answering", then `serving`; 0 model calls.
+22. Down for over an hour, then back: `failed` after 60 minutes, `serving` at the next check; 0 model calls.
+23. Login wall shown, then removed: `failed` with the reason, then `serving` at the next check; 0 model calls.
+24. Layout changed twice in a row: one repair per change, two in all.
+25. Large variant: `serving` at the records gate with `documents` null on tenders whose files are not in yet; complete later.
 
 ## What is automated, what is checked by eye
 * Automated: scoring, state polling, scenario switching, cost, attach time, the "0 model calls per read" assertion.
