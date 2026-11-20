@@ -1,0 +1,77 @@
+"""The learning and repair agent (docs/BUILD-PLAN.md, stream B).
+
+`Agents` is what the app wires into the reader: a learner, a repairer and a spot checker, as
+the protocols of `app/reader.py` ask for them. `Agents.from_env` gives None when no
+OPENAI_API_KEY is set; the app then runs without a model.
+
+Every model call goes through `app/agent/runner.py`, and nothing outside this package imports
+`openai` (CLAUDE.md).
+"""
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import Any
+
+from app.agent.learn import AgentResult, learn
+from app.agent.repair import repair
+from app.agent.runner import Model, ModelError, ModelReply, OpenAIModel, Runner, Said, StepLog, Tool, ToolCall
+from app.agent.settings import DEFAULT_AGENT_SETTINGS, AgentSettings
+from app.agent.spotcheck import SpotResult, pages_for, spot_check
+from app.config import ModelSettings, api_key
+from app.fetch.interface import Fetch
+from app.models import CheckResult, Portal, TenderRecord
+from app.recipe.schema import AuthoredRecipe
+from app.recipe.settings import DEFAULT_RECIPE_SETTINGS, RecipeSettings
+
+__all__ = ["AgentResult", "AgentSettings", "Agents", "Model", "ModelError", "ModelReply", "OpenAIModel", "Runner",
+           "Said", "SpotResult", "StepLog", "Tool", "ToolCall", "learn", "repair", "spot_check"]
+
+
+class Agents:
+    """The three jobs of the model, on one model client, one network layer and one database.
+
+    Each method blocks (the reader calls them in a worker thread), writes its steps under the
+    run it is given, and returns None-like results instead of raising.
+    """
+
+    def __init__(self, model: Model, fetch: Fetch, database: Any, *, models: ModelSettings | None = None,
+                 settings: AgentSettings = DEFAULT_AGENT_SETTINGS,
+                 recipes: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> None:
+        self.runner = Runner(model, settings)
+        self.fetch, self.db = fetch, database
+        self.models = models or ModelSettings.from_env()
+        self.settings, self.recipes = settings, recipes
+
+    @classmethod
+    def from_env(cls, fetch: Fetch, database: Any, environ: Mapping[str, str] | None = None, *,
+                 recipes: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> "Agents | None":
+        """The agents on OpenAI when OPENAI_API_KEY is set, else None."""
+        key = api_key(environ)
+        if key is None:
+            return None
+        settings = AgentSettings.from_env(environ)
+        return cls(OpenAIModel(key, settings), fetch, database, models=ModelSettings.from_env(environ),
+                   settings=settings, recipes=recipes)
+
+    def _steps(self, run_id: str) -> StepLog:
+        return StepLog.on_database(self.db, run_id, self.settings)
+
+    def learn(self, portal: Portal, run_id: str) -> AgentResult:
+        return learn(portal, fetch=self.fetch, runner=self.runner, steps=self._steps(run_id), models=self.models,
+                     settings=self.settings, recipes=self.recipes)
+
+    def repair(self, portal: Portal, recipe: AuthoredRecipe, failed: Sequence[CheckResult], run_id: str
+               ) -> AgentResult:
+        try:
+            known = self.db.known_tenders(portal.id)
+        except Exception:  # the last good tenders are a help to the model, not a need
+            known = []
+        return repair(portal, recipe, failed, fetch=self.fetch, runner=self.runner, steps=self._steps(run_id),
+                      known=known, models=self.models, settings=self.settings, recipes=self.recipes)
+
+    def spot_check(self, portal: Portal, records: Sequence[TenderRecord], finding: str, run_id: str
+                   ) -> SpotResult | None:
+        steps = self._steps(run_id)
+        pages = pages_for(portal, records, self.fetch, self.settings)
+        return spot_check(pages, runner=self.runner, steps=steps, finding=finding, models=self.models,
+                          settings=self.settings, portal_id=portal.id)

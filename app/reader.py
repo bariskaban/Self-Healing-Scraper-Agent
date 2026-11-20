@@ -37,14 +37,14 @@ from app.checks import (
     known_tenders_reproduce, list_outcome, null_rates, paging_complete, printed_total, robots_check, shape,
     shape_problems, stale, structure, structure_floor, transport_check, without_bad_values,
 )
-from app.checks.result import Cause, failed, observed_of
+from app.checks.result import Cause, failed, observed_of, passed
 from app.db import Database, UnknownPortal
 from app.docs import Announced, DocumentResult, FileStore, announced_too_large, outcome_judge, provisional_file_id
 from app.docs.names import choose_name
 from app.fetch.interface import Fetch, FetchFailed, RobotsForbidden, RobotsUnavailable
 from app.models import (
     AgentStep, CheckResult, DocsStatus, FileRecord, Portal, PortalState, Recipe, Run, RunResult, RunStats,
-    SkipReason, StepKind, TenderFile, TenderRecord, utcnow,
+    SkipReason, StepKind, TenderFile, TenderRecord, TokenUsage, utcnow,
 )
 from app.recipe.resolve import FieldRead
 from app.recipe.run import DetailRead, Exchange, Item, ListRead, judge_look, known_item, read_detail, read_list, settle
@@ -73,15 +73,45 @@ class Learned:
     country_code: str | None = None
     fingerprint: str | None = None
     model_calls: int = 0
+    usage: TokenUsage = field(default_factory=TokenUsage)
+
+
+@dataclass(frozen=True)
+class NotLearned:
+    """A learn or a repair that found no recipe but did spend model calls: why, and what it cost.
+
+    A learner may answer None instead when it spent nothing."""
+
+    reason: str
+    model_calls: int = 0
+    usage: TokenUsage = field(default_factory=TokenUsage)
+
+
+@dataclass(frozen=True)
+class SpotChecked:
+    """What the model's spot check found (Q10; CONVENTIONS.md, rule 2)."""
+
+    passed: bool
+    message: str
+    model_calls: int = 0
+    usage: TokenUsage = field(default_factory=TokenUsage)
 
 
 class Learner(Protocol):
-    def __call__(self, portal: Portal, run_id: str) -> Learned | None: ...
+    def __call__(self, portal: Portal, run_id: str) -> Learned | NotLearned | None: ...
 
 
 class Repairer(Protocol):
     def __call__(self, portal: Portal, recipe: RecipeBody, failed: Sequence[CheckResult], run_id: str
-                 ) -> Learned | None: ...
+                 ) -> Learned | NotLearned | None: ...
+
+
+class SpotChecker(Protocol):
+    """Checks the values of some of `records` against their pages with the model. None when it
+    could not be done; the finding then counts as it does without a model."""
+
+    def __call__(self, portal: Portal, records: Sequence[TenderRecord], finding: str, run_id: str
+                 ) -> SpotChecked | None: ...
 
 
 @dataclass
@@ -96,6 +126,8 @@ class Incident:
     repairs_today: int = 0
     repairs_day: str | None = None
     given_up_structures: set[str] = field(default_factory=set)
+    learns_today: int = 0  # learns that called the model, counted like repairs: a refresh cannot buy more
+    learns_day: str | None = None
     failed_at: datetime | None = None
     failed_checks: int = 0
     last_check_at: datetime | None = None
@@ -121,11 +153,12 @@ class Reader:
 
     def __init__(self, database: Database, fetch: Fetch, files: Callable[[], FileStore], *,
                  learn: Learner | None = None, repair: Repairer | None = None,
+                 spot_check: SpotChecker | None = None,
                  checks: CheckSettings = DEFAULT_CHECKS, schedule: SchedulerSettings = DEFAULT_SCHEDULE,
                  recipes: RecipeSettings = DEFAULT_RECIPE_SETTINGS, now: Callable[[], datetime] = utcnow,
                  ignore_robots: bool = False) -> None:
         self.db, self.fetch, self._files = database, fetch, files
-        self.learn, self.repair = learn, repair
+        self.learn, self.repair, self.spot_check = learn, repair, spot_check
         self.checks, self.schedule, self.recipes = checks, schedule, recipes
         self.now, self.ignore_robots = now, ignore_robots
 
@@ -172,6 +205,8 @@ class _Read:
         self.seq = 0
         self.stats = RunStats()
         self.model_calls = 0
+        self.usage = TokenUsage()
+        self.why_not: str | None = None  # why the learner or the repairer found no recipe
         self.started = reader.now()
 
     # -- small helpers --
@@ -182,6 +217,14 @@ class _Read:
         took = int((time.monotonic() - started) * 1000) if started is not None else None
         self.db.add_step(AgentStep(run_id=self.run.id, seq=self.seq, kind=StepKind.note, name=name,
                                    summary=summary, duration_ms=took, error=error, args=args))
+
+    def after_agent(self, result: Learned | NotLearned | SpotChecked | None) -> None:
+        """Count what an agent spent, and go on numbering steps after the ones it wrote itself
+        under this run (two steps with one number are an IntegrityError)."""
+        if result is not None:
+            self.model_calls += result.model_calls
+            self.usage = self.usage.add(result.usage)
+        self.seq = max([self.seq, *(step.seq for step in self.db.list_steps(self.run.id))])
 
     def add(self, *results: CheckResult | None) -> None:
         for result in results:
@@ -229,15 +272,30 @@ class _Read:
     def _learn(self) -> Learned | None:
         if self.r.learn is None:
             return None
+        incident, day = self.incident, self.r.now().date().isoformat()
+        if incident.learns_day != day:
+            incident.learns_day, incident.learns_today = day, 0
+        # A learn that calls the model is paid for. A portal without a recipe is read again on
+        # every check and every refresh, so the learns of a day are capped like its repairs (Q14).
+        if incident.learns_today >= self.r.checks.repairs_per_day > 0:
+            self.why_not = (f"the model already tried {incident.learns_today} time(s) today and no recipe of "
+                            "its passed a full read; it tries again tomorrow")
+            return None
         began = time.monotonic()
         learned = self.r.learn(self.portal, self.run.id)
+        self.after_agent(learned)
+        if learned is not None and learned.model_calls:
+            incident.learns_today += 1
+        if isinstance(learned, NotLearned):
+            self.why_not = learned.reason
+            return None
         if learned is not None:
-            self.model_calls += learned.model_calls
             self.step("learn", f"Learned how to read the portal: {learned.recipe.rationale}", began)
         return learned
 
     def _finish_without_recipe(self) -> ReadOutcome:
-        reason = ("No recipe could be learned for this portal, so nothing can be read. A person is needed."
+        why = f" The learner says: {self.why_not.rstrip('.')}." if self.why_not else ""
+        reason = (f"No recipe could be learned for this portal, so nothing can be read.{why} A person is needed."
                   if self.r.learn is not None else
                   "This build has no learner for this portal, so nothing can be read.")
         self.step("learn", reason, error="no recipe")
@@ -350,13 +408,32 @@ class _Read:
                        settings=self.r.checks))
         decision = self._decide(records, known_by_id, unlisted, now)
         if decision.spot_check_needed:
-            # No model is wired into the loop yet (stream B): a finding that only the spot check
-            # can settle counts as a breakage, so that it is never published unchecked.
             asked = next((row for row in self.results.values() if effect_of(row) is Effect.spot_check), None)
-            self.add(failed(run_id, "spot_check", "The values could not be checked against the page: "
-                            f"{asked.message if asked else 'a check asked for the model.'}", cause=Cause.breakage))
+            self.add(self._spot_check(asked, records, details))
             decision = self._decide(records, known_by_id, unlisted, now)
         return decision, records, unlisted, details
+
+    def _spot_check(self, asked: CheckResult | None, records: dict[str, TenderRecord],
+                    details: dict[str, DetailRead]) -> CheckResult:
+        """The model's look at the values (CONVENTIONS.md, rule 2: the one model call a regular read
+        may make). Without a model, or when the check could not be done, the finding counts as a
+        breakage, so that it is never published unchecked."""
+        finding = asked.message if asked else "a check asked for the model."
+        found: SpotChecked | None = None
+        if self.r.spot_check is not None:
+            began = time.monotonic()
+            # The tenders whose own page was read now come first: their values are this read's.
+            some = [records[t] for t in details if t in records] + [r for t, r in records.items() if t not in details]
+            found = self.r.spot_check(self.portal, some, finding, self.run.id)
+            self.after_agent(found)
+            if found is not None:
+                self.step("spot_check", found.message, began, error=None if found.passed else "values not confirmed")
+        if found is None:
+            return failed(self.run.id, "spot_check", f"The values could not be checked against the page: {finding}",
+                          cause=Cause.breakage)
+        if found.passed:
+            return passed(self.run.id, "spot_check", found.message)
+        return failed(self.run.id, "spot_check", found.message, cause=Cause.breakage)
 
     def _read_details(self, items: Sequence[Item]) -> dict[str, DetailRead]:
         began = time.monotonic()
@@ -504,6 +581,7 @@ class _Read:
         self.run = self.run.model_copy(update={
             "finished_at": self.r.now(), "result": RunResult.ok if ok else RunResult.failed,
             "state_after": state, "reason_after": reason, "stats": self.stats, "model_calls": self.model_calls,
+            "usage": self.usage,
             "recipe_version": self.portal.recipe_version, "error": error})
         self.db.save_run(self.run)
 
@@ -684,18 +762,20 @@ class _Read:
         failed_rows = [row for row in self.results.values() if not row.passed]
         self._save_portal(decision.state, reason, decision.cause)
         fixed = self.r.repair(self.portal, self.body, failed_rows, self.run.id)
-        if fixed is None:
+        self.after_agent(fixed)
+        if fixed is None or isinstance(fixed, NotLearned):
+            why = f" It says: {fixed.reason.rstrip('.')}." if isinstance(fixed, NotLearned) and fixed.reason else ""
             incident.repairs_tried.append("the repairer found no recipe")
-            self.step("repair", "The repairer found no recipe that reads the portal.", began, error="no recipe")
+            self.step("repair", f"The repairer found no recipe that reads the portal.{why}", began,
+                      error="no recipe")
             return reason
-        self.model_calls += fixed.model_calls
         # Verify the new recipe with a full read of its own before it replaces the old one.
         trial = _Read(self.r, self.portal_id, self.run, incident, False, self.cancel)
         trial.portal, trial.attach, trial.known = self.portal, False, self.known
         trial.body = RecipeBody.from_authored(fixed.recipe)
-        trial.seq, trial.model_calls = self.seq, self.model_calls
+        trial.seq, trial.model_calls, trial.usage = self.seq, self.model_calls, self.usage
         trial_decision, records, unlisted, details = trial._read_and_decide()
-        self.seq = trial.seq
+        self.seq, self.model_calls, self.usage = trial.seq, trial.model_calls, trial.usage
         if not trial_decision.read_passed:
             incident.repairs_tried.append(f"a new recipe that failed {trial_decision.decided_by or 'its checks'}")
             self.step("repair", f"The repaired recipe did not pass its read: {trial_decision.reason}", began,
@@ -815,4 +895,5 @@ def new_run(portal: Portal, trigger) -> Run:
                state_before=portal.state)
 
 
-__all__ = ["HOLD_STEP", "Incident", "Learned", "Learner", "PUBLISH_STEP", "ROW_HASH", "ReadOutcome", "Reader", "Repairer", "new_run"]
+__all__ = ["HOLD_STEP", "Incident", "Learned", "Learner", "NotLearned", "PUBLISH_STEP", "ROW_HASH", "ReadOutcome",
+           "Reader", "Repairer", "SpotChecked", "SpotChecker", "new_run"]
