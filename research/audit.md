@@ -78,6 +78,52 @@ Checked against the live TenderNed, e-Zamówienia and Spanish feed APIs, and ven
 
 **Confirmed and worth keeping:** TenderNed's public API needs no login (only its XML endpoint does); e-Zamówienia allows 30 requests a minute and answers 403 beyond that; the Spanish feed.
 
+## Q5 Agent framework
+
+Checked against the `openai-agents` 0.25.0 package source, and by running it against a local stand-in for OpenAI's API.
+
+**Confirmed and worth keeping:** the SDK uses the Responses API by default. Only `/v1/responses` was called in the test run. That settles the worry from Q9. If no model is named it picks its own default, so always name one.
+
+**Still to fix:** two things the answer relies on are not in the SDK.
+
+1. **With `output_type` set, the SDK does not keep going until the answer is valid.** Invalid JSON raises an error after one request. "Validated output or retry" (`CONVENTIONS.md`, rule 10) has to be our code.
+2. **A tool that raises when the budget is used up does not stop the run.** The SDK hands the error to the model and carries on to `max_turns`: 8 more requests in the test. The budget has to stop the run from outside the tool.
+3. The default `max_turns` is 10, not "permissive" (checked twice in the source). Setting it explicitly is still right.
+4. PydanticAI was set aside because its portability buys little. But the answer itself says its usage limits cap requests, tool calls and tokens per run, which is items 1 and 2. The comparison should weigh that against one more thing to learn.
+5. Numbers without support: the 150-line fallback loop, the 1-hour spike.
+
+## Q7 Schemas
+
+Checked by running the tests on a copy (19 pass on Python 3.12 and 3.13) and by comparing the models with the contract, the tables, and the answers to Q10, Q12 and Q14.
+
+**Confirmed and worth keeping:** the API models produce the contract's answers; the tables match the models field for field.
+
+**Still to fix, so the models can carry the other answers:**
+
+1. **An outage.** A failed check sends a portal to `healing`, which today implies a repair. Q10 needs `healing` without one (see "Names for `CheckResult`" in [q10-failure-rules.md](q10-failure-rules.md)).
+2. **A tender whose documents are not in yet.** `documents` cannot be null in the API model, though the contract allows null for a required field, and a file's id is the hash of its bytes, so a file not yet fetched has none. Q12's early gate needs both.
+3. **What a failed portal remembers** (Q14): the page structure we gave up on, the time of the next check, today's repair count. `Portal.fingerprint` is the software, not the page structure. There is also no per-portal request rate for portals that state their own limit.
+4. **Read bookkeeping** (Q12): no hash of a tender's list row, and nowhere to hold records before the gate.
+5. Smaller: internal times without a zone are accepted; a partly known place of performance sends nested nulls; the same file twice in one tender breaks the table's key; one row per run and check name cannot hold a first observation and its confirmation.
+6. eForms references: `publicationDate` cites BT-05, which is the notice's dispatch date (checked in `app/models.py`); the procedure-type map misses two codes; the link to SDK 1.12 is dead, the current one is 1.16.0.
+7. **There is no `pyproject.toml`**, though `app/models.py` needs pydantic. The repo's own rule is that every package is declared there.
+8. `CONVENTIONS.md` rule 2, no model call in a regular read, needs one exception: Q10 makes one small spot-check call when a portal's structure has changed.
+
+## Q8 Benchmark
+
+Checked against the judging criteria, the failure rules in Q10 and the sequences in Q14, and a few of the listed portals.
+
+**Confirmed and worth keeping:** the two test beds, a mock portal plus real portals replayed from recordings, and recording at our own fetch layer.
+
+**Still to fix:**
+
+1. **Several metrics would not come out the same for two people.** State accuracy does not say what the right state is at each moment after a change. Time to notice has no defined start (the change, the refresh, or our next read) and no meaning for scenarios that should end `failed` or stay `serving`. Field scores do not say when two values count as equal (whitespace, the same instant in two offsets, lists). False alarms have no unchanged control portal to be counted on.
+2. **The 16 scenarios miss cases the other answers need:** an outage that lasts past the retries and then ends; a rate limit (429, and 403 with `Retry-After`); a list emptied without its notice; paging cut to one page; a repair budget used up; the three sequences in Q14 with their model-call counts; one tender's detail changed only on its detail page; a large portal for Q12's state rule; and a measure of our own request rate at the mock portal.
+3. **"The open-id list is cheap" does not hold for large portals.** The file's own Austrian portal shows 175,140 results. And the 1,707 given for TenderNed is every publication since 1 November, of which about a third are contract notices.
+4. **Five labelled tenders per portal cannot show a per-portal error rate**: with five clean tenders the rate is only known to be under about 60%. Forty across all portals bound it at about 7.5% overall. Two minutes per tender is also short when a tender has 12 files to hash.
+5. Spain's HTML pages refuse a plain client (seen twice today), so that row of the portal list will not behave as described.
+6. Numbers without support: 8 to 10 person-hours, recall 0.95, 15 minutes, the weight of 2 on errors.
+
 ## Q6, Q10, Q12, Q13, Q14: our own check
 
 **Checked a second time, by a separate run or against the saved source:**
