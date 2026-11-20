@@ -111,6 +111,21 @@ class CloneFetch:
                        answer=Answer(status=page.status, page_load=page_load))
 
 
+def live_fetcher() -> Fetcher:
+    """The network layer, live. Behind an HTTPS proxy (HTTPS_PROXY, as in a cloud session) its own
+    transport would connect directly and fail to resolve hosts, so it is handed one that uses the proxy."""
+    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+    if not proxy:
+        return Fetcher.from_env()
+    import ssl
+
+    from app.checks import CheckSettings
+
+    context = ssl.create_default_context(cafile=os.environ.get("SSL_CERT_FILE") or None)
+    return Fetcher(FetchSettings.from_env(), CheckSettings.from_env(),
+                   transport=httpx.HTTPTransport(proxy=proxy, verify=context))
+
+
 def capped(recipe: AuthoredRecipe) -> AuthoredRecipe:
     nodes = [node.model_copy(update={"paging": node.paging.model_copy(update={"max_pages": LIST_PAGES})})
              if node.role is NodeRole.list and node.paging is not None else node for node in recipe.nodes]
@@ -168,7 +183,7 @@ def run_portal(spec, runner: Runner, settings: AgentSettings, models: ModelSetti
                scenarios: list[str], earlier: dict | None = None) -> dict:
     portal = Portal(id=spec.id, url=spec.url, url_key=url_key(spec.url))
     clone = Clone(clones / f"{spec.id}.json")
-    live = Fetcher.from_env()
+    live = live_fetcher()
     out: dict = {"portal": spec.id, "url": spec.url, "kind": str(getattr(spec.kind, "value", spec.kind)),
                  "expect": str(getattr(spec.expect, "value", spec.expect))}
     try:
