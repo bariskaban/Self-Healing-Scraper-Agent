@@ -16,7 +16,8 @@ An agent that attaches to European public procurement portals on its own, watche
 - **David:** Q1, Q3, Q4
 - **Dan:** Q2, Q9, Q11
 - **Goktug:** Q6, Q10, Q12
-- **Not assigned yet:** Q13, Q14, G1 to G8
+- **Goktug (research only, build not assigned):** Q13, Q14
+- **Not assigned yet:** G1 to G8
 
 ## Questions and what is left
 
@@ -61,7 +62,7 @@ What the learn and repair agents use to see and drive a portal. **Owner:** David
 
 ### [ ] Q6. Language
 Python only, or TypeScript for part of it. **Owner:** Goktug
-- [ ] Research: write up in `docs/research/Q6.md`. (Nothing in Q5, Q7 or Q8 needs anything but Python.)
+- [x] Research: `research/q06-language.md`. Python for the whole system; pin `playwright` to the base image's version.
 - [ ] Dockerfile at the repo root: base image with Python 3.12 and Chromium, quick build, `docker build .` works for linux/amd64.
 - [ ] Default command starts API and dashboard on port 8080.
 
@@ -91,7 +92,8 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 
 ### [ ] Q10. Failure rules
 **Owner:** Goktug
-- [ ] Research: write up in `docs/research/Q10.md`: rules, thresholds, state and reason text per rule.
+- [x] Research: `research/q10-failure-rules.md`: rules, thresholds, state and reason text per rule, and the check names for `CheckResult`.
+- [ ] Add an `outage` severity (healing without a repair) to `app/models.py`, with the Q7 owner.
 - [ ] Checks (`app/checks/`), one function each, returning `CheckResult`.
 - [ ] State machine (`app/state.py`): checks to state and reason; keep serving last good tenders while healing.
 - [ ] No false alarm on portals with few or no open tenders (mock scenario 13).
@@ -104,18 +106,21 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 
 ### [ ] Q12. Large portals
 **Owner:** Goktug
-- [ ] Research: write up in `docs/research/Q12.md`: read order, state rule, request math for 100, 1,000 and 5,000 tenders.
+- [x] Research: `research/q12-large-portals.md`: read order, state rule, request math for 100, 1,000 and 5,000 tenders (`research/tools/q12_request_math.py`).
+- [ ] Ask the mentors how long the harness waits and whether `serving` may have documents pending; the 10-minute rule depends on it.
 - [ ] Incremental reads: details and files only for new or changed tenders (`detail_fetched_at`, `docs_status`).
 - [ ] Documents (`app/docs/`): multi-step downloads, streaming, ZIP unpacking, sha256, 250 MB limit, captcha-but-file-downloads case.
 
 ### [ ] Q13. Read schedule
 **Owner:** _____
-- [ ] Team agrees on the proposal: list re-read every 15 minutes for serving portals; details and files only for new or changed tenders; refresh starts a read or returns the running read's `runId`. (`closed` is already computed at answer time, Q7.)
+- [x] Research: `research/q13-read-schedule.md`. It replaces the 15 minutes with: every 2 minutes, or 10 times the list's read time, at most 30 minutes.
+- [ ] Team agrees on that rule. Details and files only for new or changed tenders; refresh starts a read or returns the running read's `runId`. (`closed` is already computed at answer time, Q7.)
 - [ ] Scheduler (`app/scheduler.py`).
 
 ### [ ] Q14. Retrying failed portals
 **Owner:** _____
-- [ ] Team agrees on the interval. Proposal says 6 hours; that is longer than the judges' test run. Suggest 30 to 60 minutes for the model-free check, keeping the one-repair cap.
+- [x] Research: `research/q14-failed-retry.md`. Check on every refresh, and on our own after 5 minutes, 15 minutes, 1 hour, then every 6 hours; one repair only when the page is one we have not already failed on.
+- [ ] Team agrees on that rule.
 - [ ] Recheck job in the scheduler (`RunTrigger.recheck`).
 
 ### [ ] G. Work outside any one question
@@ -136,4 +141,4 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - `tests/test_models.py`: tests for the schemas (Q7)
 - `CONVENTIONS.md`: project layout and rules (Q5)
 - `docs/BENCHMARK.md`: benchmark design (Q8)
-- `docs/research/Q5_Q7_Q8.md`: research write-up for Q5, Q7 and Q8
+- `research/`: one file per question, the register in `research/README.md`, and the end check of every answer in `research/audit.md`
