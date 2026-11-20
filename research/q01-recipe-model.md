@@ -48,7 +48,9 @@ Use a **typed navigation graph with fixed node and edge kinds**. Each node has a
 
 FTS was chosen because it has both a documented OCDS API and an HTML front end. In testing, the HTML notice pages returned **bot-detection blocks** to our research fetcher, while the OCDS JSON route worked. That pattern is exactly why the recipe prefers the API. Field paths below come from the [FTS API documentation](https://www.find-tender.service.gov.uk/apidocumentation/1.0/GET-ocdsReleasePackages) and from a release package we fetched (notice 085175-2025, a UK6 award notice).
 
-**Limits of what we verified.** We saw no `tender.tenderPeriod.endDate` in a live tender release. The award notice had `standstillPeriod.endDate = "2026-01-05T23:59:59+00:00"`. FTS docs give the date pattern `YYYY-MM-DDThh:mm:ssTZD`. So deadlines very likely carry an offset, but check one live UK4 notice first.
+**Limits of what we verified.** We saw no `tender.tenderPeriod.endDate` in a live tender release. The award notice had `standstillPeriod.endDate = "2026-01-05T23:59:59+00:00"`. FTS docs give the date pattern `YYYY-MM-DDThh:mm:ssTZD`. So deadlines very likely carry an offset, but check one live UK4 notice first. The `placeOfPerformance` and `procurementMethodDetails` paths were not seen in a live tender release either; check them on the same notice.
+
+**Corrected against the output contract** (20 Nov 2026): `publicationDate` is a date, not a datetime. `procedureType` and `contractNature` are mapped to the contract's values instead of passing the portal's words through (OCDS `goods` is our `supplies`). CPV check digits are dropped before the 8-digit check. `placeOfPerformance` is an object with `postalCode`, `city` and `countryCode`, left out when items disagree. Files over 250 MB are skipped, as the brief allows.
 
 ```json
 {
@@ -78,19 +80,31 @@ FTS was chosen because it has both a documented OCDS API and an HTML front end. 
         "description":      {"path": "$.tender.description"},
         "buyerName":        {"path": "$.buyer.name",
                              "fallback": "$.parties[?(@.roles contains 'buyer')].name"},
-        "publicationDate":  {"path": "$.date", "type": "datetime_tz"},
+        "publicationDate":  {"path": "$.date", "type": "date"},
         "submissionDeadline": {"path": "$.tender.tenderPeriod.endDate", "type": "datetime_tz",
                                "require_offset": true},
         "status":           {"path": "$.tender.status",
                              "map": {"active": "open", "planned": null, "complete": "closed",
                                      "cancelled": "withdrawn", "unsuccessful": "closed"}},
-        "procedureType":    {"path": "$.tender.procurementMethodDetails"},
-        "contractNature":   {"path": "$.tender.mainProcurementCategory"},
+        "procedureType":    {"path": "$.tender.procurementMethodDetails",
+                             "map_contains": {"open": "open", "restricted": "restricted",
+                                              "negotiated": "negotiated",
+                                              "competitive dialogue": "other",
+                                              "competitive flexible": "other"},
+                             "unmatched": null,
+                             "note": "free text; always mapped to the contract enum, never passed through"},
+        "contractNature":   {"path": "$.tender.mainProcurementCategory",
+                             "map": {"goods": "supplies", "works": "works", "services": "services"}},
         "cpvCodes":         {"paths": ["$.tender.classification[?(@.scheme=='CPV')].id",
                                        "$.tender.items[*].additionalClassifications[?(@.scheme=='CPV')].id",
                                        "$.tender.lots[*]..additionalClassifications[?(@.scheme=='CPV')].id"],
-                             "pattern": "^\\d{8}$", "unique": true},
-        "placeOfPerformance": {"path": "$.tender.items[*].deliveryAddresses[*].region"}
+                             "drop_check_digit": true, "pattern": "^\\d{8}$", "unique": true},
+        "placeOfPerformance": {"object": {
+                                 "postalCode":  {"path": "$.tender.items[0].deliveryAddresses[0].postalCode"},
+                                 "city":        {"path": "$.tender.items[0].deliveryAddresses[0].locality"},
+                                 "countryCode": {"path": "$.tender.items[0].deliveryAddresses[0].countryName",
+                                                 "map": "iso3166_alpha2"}},
+                               "on_conflicting_items": "omit"}
       },
       "edges": [{"action": "for_each_item", "to": "docs"}]
     },
@@ -112,7 +126,7 @@ FTS was chosen because it has both a documented OCDS API and an HTML front end. 
     }
   ],
   "download": {"client": "httpx", "stream": true, "hash": "sha256", "unzip": true,
-               "max_bytes": 5000000000},
+               "skip_over_bytes": 250000000},
   "validators": [
     "id unique and stable across two reads",
     "submissionDeadline has UTC offset or is null",
@@ -151,15 +165,6 @@ Total ~11 h. That is too much for one person in 24 h, so split it across two peo
 - **Q10 (failure rules):** "Bot detection on HTML but the API works" means `serving`, not `failed`. Mark the portal `failed` only when every route needs login or a captcha. Use the JAIR result (verification recall 0.95, precision 0.73) as a reason to require two consecutive bad reads before entering `healing`.
 - **Q11 (reuse across portals):** Platform fingerprints plus `subrecipe_ref` nodes, such as the external e-sourcing portals linked from FTS, are the reuse mechanism.
 - **Q12 (large portals):** Use watermark-based incremental reads (`updatedFrom` with overlap, cursors). Load metadata first, then documents round-robin. Report progress during `integrating`, because full document sets won't fit in minutes at 1 req/s.
-
-## Caveats
-
-- Several token figures come from vendor or tutorial blogs (TestDino, RenderScreenshot, DeepWiki), not peer-reviewed papers. Treat them as order-of-magnitude figures.
-- The AutoScraper break-even of about 10-30 pages per domain is our own calculation from the paper's Table 6 (GPT-4-Turbo timings), not a figure the paper states.
-- Our subagent could not fetch raw HTML byte counts, the PLACSP feed, or a live FTS tender-stage release. The FTS `tenderPeriod.endDate` path and offset are inferred from the docs and must be checked first.
-- Co-Scraper (June 2026) and several other cited works are recent preprints that have not been peer reviewed.
-
----
 
 ## Caveats
 
