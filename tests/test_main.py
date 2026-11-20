@@ -1,4 +1,7 @@
-"""Tests for app/main.py. Run: pytest tests/test_main.py"""
+"""The page at GET /. Run: pytest tests/test_main.py
+
+The API routes are tested in tests/test_api.py and tests/contract/.
+"""
 from fastapi.testclient import TestClient
 
 from app.main import app
