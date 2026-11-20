@@ -49,7 +49,7 @@ def test_learn_returns_the_recipe_that_passed_its_dry_run():
     assert {"open_page", "try_locator", "propose_recipe", "replace_node"} <= set(first["tools"])
     assert first["instructions"].startswith("You learn how to read one public procurement portal")
     assert steps.steps[-1].name == "learn_done" and "$" in steps.steps[-1].summary
-    assert {step.prompt_id for step in steps.steps if step.kind is StepKind.llm} == {"learn/system@1"}
+    assert {step.prompt_id for step in steps.steps if step.kind is StepKind.llm} == {"learn/system@2"}
     # The recipe really reads the portal: a dry run on the pages the learn fetched gives the tenders.
     assert all(step.summary and "\n" not in step.summary for step in steps.steps)
 

@@ -143,7 +143,7 @@ def test_a_portal_nobody_knows_is_learned_on_attach_and_served(site):
     assert kinds.count(StepKind.llm) == 3 and kinds.count(StepKind.tool) == 2
     names = [step.name for step in mine]
     assert names.index("learn_done") < names.index("learn") < names.index("read_list") < names.index("publish")
-    assert all(step.prompt_id == "learn/system@1" and step.usage for step in mine if step.kind is StepKind.llm)
+    assert all(step.prompt_id == "learn/system@2" and step.usage for step in mine if step.kind is StepKind.llm)
     assert recipe is not None and recipe.version == 1 and recipe.rationale == mock_recipe().rationale
     assert len(s.model.requests) == 3
 
