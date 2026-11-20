@@ -21,5 +21,8 @@ RUN python -c "import tomllib; print('\n'.join(tomllib.load(open('pyproject.toml
 COPY app/ ./app/
 
 ENV DATA_DIR=/data
+# The container reads real portals. Everywhere else the fetch layer replays recordings unless told
+# otherwise, so an agent or a test never reaches a live portal by accident (CLAUDE.md).
+ENV FETCH_MODE=live
 EXPOSE 8080
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

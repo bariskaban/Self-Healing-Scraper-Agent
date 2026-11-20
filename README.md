@@ -53,11 +53,12 @@ Goal-directed exploration vs site mapping, and structured sources to try first. 
 ### [ ] Q4. Agent tools
 What the learn and repair agents use to see and drive a portal. **Owner:** David
 - [x] Research: `research/q04-agent-tools.md`, with token counts measured on real pages in `research/q04-page-views-measured.md`.
-- [ ] Fetch layer (`app/fetch/`): 1 request/s per portal for httpx and every browser sub-request; block images, fonts, media, stylesheets. Redirect hops and WebSockets get past `page.route`, so redirects are walked by our client and WebSockets blocked (audit of Q4).
+- [x] Fetch interface and HTTP side (`app/fetch/`): `Fetch` in `app/fetch/interface.py`; one request start per second per portal, redirects walked hop by hop, rules T1 and T2, robots.txt obeyed (`IGNORE_ROBOTS_TXT` for a test), downloads as `app/docs` takes them. Tests in `tests/fetch/`.
+- [ ] Browser side: Playwright through the same limiter (every sub-request via `context.route`); block images, fonts, media, stylesheets, third-party origins; script cache; service workers off; WebSockets blocked; network capture. `browse` already replays recorded pages.
 - [ ] Network capture to find JSON APIs (`NetworkEntry`, `looks_like_tender_list`).
 - [ ] Compact page view for the model.
 - [ ] Agent tools (`app/agent/tools.py`): fetch page, page view, list links, click or fill, test locator, download file.
-- [ ] Login and captcha detection (feeds Q10).
+- [x] Login and captcha detection (feeds Q10): `app/fetch/answer.py` reads login redirects, password fields, bot-wall headers and pages, captcha markers and maintenance pages into `Answer`.
 
 ### [ ] Q5. Agent framework and conventions
 **Owner:** Baris
@@ -86,7 +87,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 **Owner:** Baris
 - [x] Design: `docs/BENCHMARK.md`.
 - [ ] Mock portal with variants and the 25 scenarios in `docs/BENCHMARK.md` (`mock_portal/`, 3 to 4 h).
-- [ ] Record and replay mode in `app/fetch/`, together with the Q4 owner (1 to 2 h).
+- [x] Record and replay mode in `app/fetch/` (`FETCH_MODE`; replay is the default, the Dockerfile sets live).
 - [ ] Real test set: 8+ portals, 4+ countries, 3+ software packages, 1 to 2 behind login or captcha. Candidates in `research/q08-test-portals.md`; still to add Italian and Polish platforms (`research/patterno-landscape.md`) and record them.
 - [ ] Gold labels: open-id list per portal plus 5 checked tenders each (about 1.5 h, split).
 - [ ] Harness and scorer (`bench/run.py`, 2 to 3 h).
