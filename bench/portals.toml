@@ -1,0 +1,650 @@
+# Test portals for end-to-end runs (Q8). Read with `bench.portals.load_portals()`.
+#
+# Sources: research/q08-test-portals.md (fetched 20 Nov 2026), research/q04-page-views-measured.md,
+# research/patterno-landscape.md with research/sources/patterno-coverage.json (buyer counts),
+# research/mentor-answers.md (what the judges are likely to use), and a portal survey of 20 Nov
+# checked against those files and against search results.
+#
+# Never fetch these from an agent session or a test (CLAUDE.md). A person records them once with
+# FETCH_MODE=record; everything else works from the recordings.
+#
+# Fields
+#   id          short slug, unique
+#   name        what the portal is called
+#   country     two letters
+#   family      the portal software or platform, as research/patterno-landscape.md names it
+#   url         the address a run starts from; absent when no source gives one yet
+#   kind        server_html | json_api | js_app | mixed | unknown
+#   expect      serve (should reach serving) | fail_login (should end failed, login wall)
+#               | unavailable (down or suspended when checked: a control, not a success case)
+#   unseen      true: held back for the final test. Do not record, learn or debug on it before.
+#   priority    1 Poland (named by the mentor) . 2 Italy . 3 France . 4 NL, AT, ES . 5 Germany
+#               (the mentor: test portals "probably won't be German")
+#   buyer_sites how many portal addresses Patterno lists on this platform (coverage data)
+#   address     how sure we are of `url`:
+#                 fetched  opened by our research on 20 Nov 2026
+#                 measured measured in research/q04-page-views-measured.md
+#                 search   seen only in a search result or a TED notice quoting it
+#                 survey   opened once in a browser by the portal survey, not checked again
+#                 example  a buyer subdomain nobody has confirmed: check before recording
+#                 doubtful evidence points to another address (see note)
+#   note        one line
+
+# == 1. Poland ==
+
+[[portal]]
+id = "ezamawiajacy-nfz"
+name = "Marketplanet ezamawiajacy, NFZ"
+country = "PL"
+family = "ezamawiajacy.pl"
+url = "https://nfz.ezamawiajacy.pl/pn/nfz/demand/notice/publicpzp/current/list"
+kind = "server_html"
+expect = "serve"
+priority = 1
+buyer_sites = 595
+address = "survey"
+note = "Largest platform in Patterno's list. The path pattern is confirmed by a TED notice for the buyer inneko."
+
+[[portal]]
+id = "ezamawiajacy-inneko"
+name = "Marketplanet ezamawiajacy, Inneko"
+country = "PL"
+family = "ezamawiajacy.pl"
+url = "https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list"
+kind = "server_html"
+expect = "serve"
+priority = 1
+buyer_sites = 595
+address = "search"
+note = "A second buyer of the same family, for the reuse test (Q11). Address quoted in a 2023 TED notice."
+
+[[portal]]
+id = "logintrade-mpk-wroclaw"
+name = "Logintrade, MPK Wroclaw"
+country = "PL"
+family = "logintrade.net"
+url = "https://mpk-wroclaw.logintrade.net/"
+kind = "unknown"
+expect = "serve"
+priority = 1
+buyer_sites = 203
+address = "example"
+note = "Subdomain not confirmed by search."
+
+[[portal]]
+id = "eb2b-gddkia"
+name = "eB2B, GDDKiA (national roads)"
+country = "PL"
+family = "eb2b.com.pl"
+url = "https://gddkia.eb2b.com.pl/"
+kind = "unknown"
+expect = "serve"
+priority = 1
+buyer_sites = 91
+address = "search"
+note = "NIK audit: GDDKiA's Wroclaw branch has used gddkia.eb2b.com.pl since October 2018."
+
+[[portal]]
+id = "platformazakupowa"
+name = "platformazakupowa.pl (Open Nexus)"
+country = "PL"
+family = "platformazakupowa.pl"
+url = "https://platformazakupowa.pl/all"
+kind = "server_html"
+expect = "serve"
+unseen = true
+priority = 1
+address = "fetched"
+note = "Keep unseen until the final test (Q8). The detail page fetched showed no documents section."
+
+[[portal]]
+id = "ezamowienia"
+name = "e-Zamowienia (national platform)"
+country = "PL"
+family = "ezamowienia.gov.pl"
+url = "https://ezamowienia.gov.pl/mp-client/search/list"
+kind = "mixed"
+expect = "serve"
+priority = 1
+address = "fetched"
+note = "The list is a JavaScript app; notice pages are server HTML. Its notice API allows 30 requests a minute."
+
+# == 2. Italy ==
+
+[[portal]]
+id = "acquistitelematici-118sicilia"
+name = "Acquisti Telematici (DigitalPA), 118 Sicilia"
+country = "IT"
+family = "acquistitelematici.it"
+url = "https://118sicilia.acquistitelematici.it/"
+kind = "unknown"
+expect = "serve"
+priority = 2
+buyer_sites = 184
+address = "example"
+note = "Platform in use by Sicilian bodies; this subdomain not confirmed."
+
+[[portal]]
+id = "tuttogare-andria"
+name = "TuttoGare, Comune di Andria"
+country = "IT"
+family = "tuttogare.it"
+url = "https://andria.tuttogare.it/"
+kind = "unknown"
+expect = "serve"
+priority = 2
+buyer_sites = 162
+address = "example"
+note = "Platform used by the Sicilian region since 2024; this subdomain not confirmed."
+
+[[portal]]
+id = "maggiolicloud-demanio"
+name = "Maggioli cloud, Agenzia del Demanio"
+country = "IT"
+family = "maggiolicloud.it"
+url = "https://agenziademanio-appalti.maggiolicloud.it/"
+kind = "unknown"
+expect = "serve"
+priority = 2
+buyer_sites = 126
+address = "example"
+note = "Subdomain not confirmed; cuc-pantelleria.maggiolicloud.it was seen in a search result."
+
+[[portal]]
+id = "traspare-acapescara"
+name = "Traspare, ACA Pescara"
+country = "IT"
+family = "traspare.com"
+url = "https://acapescara.traspare.com/"
+kind = "unknown"
+expect = "serve"
+priority = 2
+buyer_sites = 106
+address = "example"
+note = "Subdomain not confirmed; ismett.traspare.com was seen in a search result."
+
+# == 3. France ==
+
+[[portal]]
+id = "e-marchespublics-afpa"
+name = "e-marchespublics, AFPA"
+country = "FR"
+family = "e-marchespublics.com"
+url = "https://afpa.e-marchespublics.com/"
+kind = "unknown"
+expect = "serve"
+priority = 3
+buyer_sites = 573
+address = "example"
+note = "Second-largest platform in Patterno's list. Subdomain not confirmed; cmar-auvergne-rhonealpes.e-marchespublics.com was seen."
+
+[[portal]]
+id = "achatpublic-aura"
+name = "achatpublic, Auvergne-Rhone-Alpes"
+country = "FR"
+family = "achatpublic.com"
+url = "https://auvergnerhonealpes.achatpublic.com/"
+kind = "unknown"
+expect = "serve"
+priority = 3
+buyer_sites = 58
+address = "doubtful"
+note = "TED gives the region's buyer profile as marchespublics.auvergnerhonealpes.eu; some of its lots are on achatpublic.com."
+
+[[portal]]
+id = "safetender"
+name = "Safetender"
+country = "FR"
+family = "safetender.com"
+kind = "unknown"
+expect = "serve"
+priority = 3
+buyer_sites = 38
+note = "Third-largest French platform in Patterno's list. No buyer address yet."
+
+[[portal]]
+id = "maximilien"
+name = "Maximilien (Ile-de-France)"
+country = "FR"
+family = "maximilien.fr"
+url = "https://marches.maximilien.fr/"
+kind = "unknown"
+expect = "serve"
+priority = 3
+address = "example"
+note = "Regional platform; address not confirmed by search."
+
+[[portal]]
+id = "marches-securises"
+name = "marches-securises.fr"
+country = "FR"
+family = "marches-securises.fr"
+kind = "unknown"
+expect = "serve"
+priority = 3
+note = "Regional platform named in Q11. No address recorded yet."
+
+[[portal]]
+id = "place"
+name = "PLACE (marches-publics.gouv.fr)"
+country = "FR"
+family = "atexo-place"
+url = "https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons"
+kind = "unknown"
+expect = "unavailable"
+priority = 3
+address = "fetched"
+note = "Showed a suspension notice on 20 Nov 2026. A control for honest reporting; retest before using it as a success case."
+
+# == 4. Netherlands, Austria, Spain ==
+
+[[portal]]
+id = "tenderned"
+name = "TenderNed"
+country = "NL"
+family = "tenderned"
+url = "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?page=0&size=20"
+kind = "json_api"
+expect = "serve"
+priority = 4
+address = "fetched"
+note = "Public JSON API, no key, page size up to 100; one ZIP per tender. The human list is https://www.tenderned.nl/announcements/overview."
+
+[[portal]]
+id = "eproc-austria"
+name = "eProcurement Austria (BMDW)"
+country = "AT"
+family = "bmdw-eproc"
+url = "https://ausschreibungen.usp.gv.at/at.gv.bmdw.eproc-p/public/tenderlist?load=true"
+kind = "server_html"
+expect = "serve"
+unseen = true
+priority = 4
+address = "fetched"
+note = "Keep unseen until the final test (Q8). 25 rows a page, offset paging, 175,140 results."
+
+[[portal]]
+id = "vemap"
+name = "vemap (Austria)"
+country = "AT"
+family = "vemap.com"
+kind = "unknown"
+expect = "serve"
+priority = 4
+buyer_sites = 52
+note = "Largest Austrian platform in Patterno's list. No buyer address yet."
+
+[[portal]]
+id = "vergabeportal-at"
+name = "vergabeportal.at"
+country = "AT"
+family = "vergabeportal.at"
+kind = "unknown"
+expect = "serve"
+priority = 4
+buyer_sites = 48
+note = "Second-largest Austrian platform in Patterno's list. No buyer address yet."
+
+[[portal]]
+id = "placsp"
+name = "PLACSP (Plataforma de Contratacion del Sector Publico)"
+country = "ES"
+family = "placsp"
+url = "https://contrataciondelestado.es/wps/portal/plataforma"
+kind = "server_html"
+expect = "serve"
+priority = 4
+address = "fetched"
+note = "Its HTML refused a plain client twice on 20 Nov (Q10); the Atom feed answers. Detail pages link files without login."
+
+# == 5. Germany ==
+
+[[portal]]
+id = "evergabe-nrw"
+name = "Vergabemarktplatz NRW"
+country = "DE"
+family = "cosinex-vmpsatellite"
+url = "https://evergabe.nrw.de/VMPSatellite/company/announcements/categoryOverview.do?method=show"
+kind = "server_html"
+expect = "serve"
+priority = 5
+address = "fetched"
+note = "cosinex holds 23% of German tenders in Patterno's list. A documents tab per notice. /VMPSatellite/notice/ answered a 404 page."
+
+[[portal]]
+id = "vmp-brandenburg"
+name = "Vergabemarktplatz Brandenburg"
+country = "DE"
+family = "cosinex-vmpsatellite"
+url = "https://vergabemarktplatz.brandenburg.de/VMPCenter/company/announcements/categoryOverview.do?method=show"
+kind = "unknown"
+expect = "serve"
+priority = 5
+address = "fetched"
+note = "A second cosinex installation, same address style as NRW: the reuse test (Q11)."
+
+[[portal]]
+id = "dtvp"
+name = "DTVP Deutsches Vergabeportal"
+country = "DE"
+family = "cosinex-vmpsatellite"
+url = "https://dtvp.de/ausschreibungen"
+kind = "unknown"
+expect = "serve"
+priority = 5
+address = "fetched"
+note = "The fetch showed no rows. Documents download without registration per a BaFin guide."
+
+[[portal]]
+id = "tender24"
+name = "tender24 (AI Vergabeplattform)"
+country = "DE"
+family = "netserver"
+url = "https://tender24.de/NetServer/PublicationSearchControllerServlet?function=SearchPublications&Category=InvitationToTender&Gesetzesgrundlage=All&Max=25&Start=0"
+kind = "server_html"
+expect = "serve"
+priority = 5
+address = "fetched"
+note = "Offset paging (Start, Max=25)."
+
+[[portal]]
+id = "frankfurt"
+name = "Vergabeplattform Frankfurt am Main"
+country = "DE"
+family = "netserver"
+url = "https://vergabe.stadt-frankfurt.de/NetServer/index.jsp?function=Search&OrderBy=Publishing&Order=desc"
+kind = "server_html"
+expect = "serve"
+priority = 5
+address = "fetched"
+note = "A single-page list of about 10 rows."
+
+[[portal]]
+id = "vmstart"
+name = "VMStart"
+country = "DE"
+family = "netserver"
+url = "https://vergabe.vmstart.de/NetServer/PublicationSearchControllerServlet?function=SearchPublications&Gesetzesgrundlage=All&Category=InvitationToTender&thContext=publications"
+kind = "server_html"
+expect = "serve"
+priority = 5
+address = "measured"
+note = "Rows carry no href, only data-oid; the detail address comes from a POST to DataProvider (Q4)."
+
+[[portal]]
+id = "evergabe-online"
+name = "e-Vergabe (federal, evergabe-online.de)"
+country = "DE"
+family = "evergabe-online"
+url = "https://www.evergabe-online.de/"
+kind = "unknown"
+expect = "serve"
+priority = 5
+address = "search"
+note = "Named as the document platform in TED notices; documents free without registration (Q3)."
+
+[[portal]]
+id = "evergabe-de"
+name = "evergabe.de"
+country = "DE"
+family = "evergabe-de"
+url = "https://evergabe.de/unterlagen"
+kind = "unknown"
+expect = "serve"
+priority = 5
+address = "fetched"
+note = "Partly a search service, but Patterno counts it as a software type with 8% of German tenders: kept."
+
+[[portal]]
+id = "subreport-elvis"
+name = "subreport ELViS"
+country = "DE"
+family = "subreport"
+url = "https://www.subreport-elvis.de/"
+kind = "js_app"
+expect = "serve"
+priority = 5
+address = "search"
+note = "Patterno describes it as a Google Web Toolkit single-page app."
+
+[[portal]]
+id = "vergabe-niedersachsen"
+name = "Vergabe Niedersachsen"
+country = "DE"
+family = "unknown"
+url = "https://vergabe.niedersachsen.de/"
+kind = "unknown"
+expect = "serve"
+priority = 5
+address = "search"
+note = "Host seen in a search result."
+
+[[portal]]
+id = "auftraege-bayern"
+name = "eVergabe Bayern (auftraege.bayern.de)"
+country = "DE"
+family = "unknown"
+url = "https://www.auftraege.bayern.de/"
+kind = "unknown"
+expect = "serve"
+priority = 5
+address = "example"
+note = "Q3: offers search, notices and downloads; whether an account is needed is not confirmed."
+
+[[portal]]
+id = "vergabe24"
+name = "Vergabe24 (Healy Hudson)"
+country = "DE"
+family = "healy-hudson"
+url = "https://www.vergabe24.de/"
+kind = "unknown"
+expect = "serve"
+priority = 5
+address = "example"
+note = "Q11 files it under Healy Hudson NetServer, 11% of German tenders; the survey thought it a notice database."
+
+[[portal]]
+id = "vmp-westfalen"
+name = "Vergabemarktplatz Westfalen"
+country = "DE"
+family = "cosinex-vmpsatellite"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "vmp-metropole-ruhr"
+name = "Vergabemarktplatz Metropole Ruhr"
+country = "DE"
+family = "cosinex-vmpsatellite"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "vmp-rheinland"
+name = "VMP Rheinland"
+country = "DE"
+family = "cosinex-vmpsatellite"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "vmp-rlp"
+name = "Vergabemarktplatz Rheinland-Pfalz"
+country = "DE"
+family = "cosinex-vmpsatellite"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "autobahn"
+name = "Die Autobahn GmbH"
+country = "DE"
+family = "netserver"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "Listed under NetServer by the survey; not checked. No address recorded yet."
+
+[[portal]]
+id = "aumass"
+name = "AUMASS"
+country = "DE"
+family = "unknown"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "itwo-tender"
+name = "iTWO Tender"
+country = "DE"
+family = "itwo-tender"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "7% of German tenders in Patterno's list. No address recorded yet."
+
+[[portal]]
+id = "vergabe-hessen"
+name = "Vergabe Hessen"
+country = "DE"
+family = "unknown"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "sachsen-vergabe"
+name = "Sachsen Vergabe"
+country = "DE"
+family = "unknown"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "vergabe-berlin"
+name = "Vergabekooperation Berlin"
+country = "DE"
+family = "unknown"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "evergabe-hamburg"
+name = "eVergabe Hamburg"
+country = "DE"
+family = "unknown"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "vergabe-bw"
+name = "Vergabe Baden-Wuerttemberg"
+country = "DE"
+family = "unknown"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "staatsanzeiger-eservices"
+name = "Staatsanzeiger eServices"
+country = "DE"
+family = "unknown"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+[[portal]]
+id = "db-bieterportal"
+name = "DB Bieterportal"
+country = "DE"
+family = "unknown"
+kind = "unknown"
+expect = "serve"
+priority = 5
+note = "From Patterno's German portal guides. No address recorded yet."
+
+# == Expected to end failed: a login stands in the way ==
+
+[[portal]]
+id = "mercell"
+name = "Mercell (EU-Supply, CTM)"
+country = "EU"
+family = "mercell"
+url = "https://my.mercell.com/"
+kind = "unknown"
+expect = "fail_login"
+priority = 4
+address = "fetched"
+note = "A login page was seen; documents need an account and an expression of interest."
+
+[[portal]]
+id = "deutsche-evergabe"
+name = "Deutsche eVergabe"
+country = "DE"
+family = "healy-hudson"
+url = "https://portal.deutsche-evergabe.de/dashboards/dashboard_off"
+kind = "unknown"
+expect = "fail_login"
+priority = 5
+address = "fetched"
+note = "The portal's own text says the ZIP download needs registration; single files not checked."
+
+# == Not test portals: aggregators and notice publishers ==
+# The mentor: "TED exactly will not be a test portal", and aggregators are unlikely. Use them to
+# find portals, never as one.
+
+[[excluded]]
+name = "TED (ted.europa.eu)"
+reason = "EU-wide notice publication; the mentor ruled it out."
+
+[[excluded]]
+name = "service.bund.de"
+reason = "Federal notice search; aggregates other portals."
+
+[[excluded]]
+name = "oeffentlichevergabe.de"
+reason = "Germany's central notice service; notices link to the portals that hold the documents."
+
+[[excluded]]
+name = "BOAMP (boamp.fr)"
+reason = "French official journal of notices; a buyer profile's ids and documents differ (Q11)."
+
+[[excluded]]
+name = "Deutsches Ausschreibungsblatt"
+reason = "Notice publisher."
+
+[[excluded]]
+name = "B_I Medien"
+reason = "Notice publisher."
+
+[[excluded]]
+name = "subreport.de"
+reason = "The research service; its platform subreport ELViS is listed above."
+
+[[excluded]]
+name = "HAD Hessen (Hessische Ausschreibungsdatenbank)"
+reason = "Notice database rather than a portal."
+
+[[excluded]]
+name = "tendigo.de, zertlotse.de"
+reason = "Aggregators (research/q08-test-portals.md)."
