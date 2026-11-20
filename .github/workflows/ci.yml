@@ -38,3 +38,14 @@ jobs:
           done
           docker logs watchtower
           exit 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Contract test against the container
+        run: |
+          python -m pip install --upgrade pip
+          pip install --group dev
+          CONTRACT_BASE_URL=http://localhost:8080 pytest tests/contract
+      - name: Container log
+        if: always()
+        run: docker logs watchtower
