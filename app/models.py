@@ -26,6 +26,7 @@ from pydantic import (
     Field,
     PlainSerializer,
     field_validator,
+    model_validator,
 )
 
 # Datetimes always serialize as "2026-12-09T10:00:00+01:00" (never "Z").
@@ -86,10 +87,18 @@ class ContractNature(StrEnum):
 
 
 class Severity(StrEnum):
-    info = "info"    # recorded only
-    warn = "warn"    # shown on the dashboard, state unchanged
-    fail = "fail"    # the read is wrong: portal goes healing
-    block = "block"  # login, captcha or other block: portal goes failed
+    info = "info"      # recorded only
+    warn = "warn"      # shown on the dashboard, state unchanged
+    fail = "fail"      # the read is wrong: portal goes healing and a repair may start
+    block = "block"    # login, captcha or other block: portal goes failed
+    outage = "outage"  # the portal is not answering: portal goes healing, no repair starts (Q10)
+
+
+class Cause(StrEnum):
+    """Why a portal is healing or failed (Q10). Sent as an extra field of a portal's answer."""
+    outage = "outage"      # not answering, or answering with server errors
+    block = "block"        # login, captcha, refusal or robots.txt: a person is needed
+    breakage = "breakage"  # the portal changed and the recipe no longer reads it correctly
 
 
 class RecipeStatus(StrEnum):
@@ -196,6 +205,7 @@ class PortalOut(ApiModel):
     reason: str = Field(description="In words, for the operator")
     tenderCount: int = Field(ge=0)
     lastSuccessAt: OffsetDT | None
+    cause: Cause | None = Field(None, description="Ours, not in the brief: set while healing or failed, null otherwise")
 
 
 class RunOut(ApiModel):
@@ -228,11 +238,22 @@ class PlaceOfPerformance(ApiModel):
 
 
 class DocumentOut(ApiModel):
-    """One file of a tender. OCDS: tender.documents[]. eForms: BT-15 documents URL* (we deliver bytes)."""
+    """One file of a tender. OCDS: tender.documents[]. eForms: BT-15 documents URL* (we deliver bytes).
+
+    A document we know of but have not fetched yet is listed with sha256 and path null (Q12).
+    """
     fileName: str
-    sizeBytes: int = Field(ge=0)
-    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    path: str = Field(description="Our API path that returns the bytes, e.g. /files/ab12")
+    sizeBytes: int | None = Field(ge=0, description="Real size once fetched. Before that the size the portal announces, null if it announces none")
+    sha256: str | None = Field(pattern=r"^[0-9a-f]{64}$", description="null until the bytes are in")
+    path: str | None = Field(description="Our API path that returns the bytes, e.g. /files/ab12. null until the bytes are in")
+
+    @model_validator(mode="after")
+    def _fetched_or_loading(self) -> "DocumentOut":
+        if (self.sha256 is None) != (self.path is None):
+            raise ValueError("sha256 and path are both set (fetched) or both null (still loading)")
+        if self.sha256 is not None and self.sizeBytes is None:
+            raise ValueError("a fetched document has a size")
+        return self
 
 
 REQUIRED_TENDER_FIELDS = (
@@ -258,7 +279,7 @@ class TenderOut(ApiModel):
     publicationDate: date | None = Field(description="OCDS release date / tenderPeriod.startDate, eForms BT-05*")
     submissionDeadline: OffsetDT | None = Field(description="With offset. OCDS tender.tenderPeriod.endDate, eForms BT-131")
     status: TenderStatus = Field(description="OCDS tender.status: active->open, complete/unsuccessful->closed, cancelled->withdrawn")
-    documents: list[DocumentOut] = Field(default_factory=list, description="ZIPs unpacked")
+    documents: list[DocumentOut] | None = Field(None, description="ZIPs unpacked. null while not even the list is known; [] says the tender has no documents (Q12)")
     lastChangedAt: OffsetDT = Field(description="When we last saw this tender change")
     referenceNumber: str | None = Field(None, description="Buyer's file number. eForms BT-22 internal identifier*")
     description: str | None = Field(None, description="What is bought. OCDS tender.description, eForms BT-24*")
@@ -320,6 +341,7 @@ class Portal(BaseModel):
     list_url: str | None = Field(None, description="Where the tender list actually is (entry URL may be a summary page)")
     country_code: str | None = None
     timezone: str | None = Field(None, description="IANA zone used to read local deadlines, e.g. Europe/Berlin")
+    cause: Cause | None = Field(None, description="Why the portal is healing or failed; null while integrating or serving (Q10)")
     last_success_at: datetime | None = None
     next_read_at: datetime | None = None
     consecutive_failures: int = 0
@@ -329,7 +351,7 @@ class Portal(BaseModel):
     def to_api(self, tender_count: int) -> PortalOut:
         return PortalOut(
             id=self.id, url=self.url, state=self.state, reason=self.reason,
-            tenderCount=tender_count, lastSuccessAt=self.last_success_at,
+            tenderCount=tender_count, lastSuccessAt=self.last_success_at, cause=self.cause,
         )
 
 
@@ -386,10 +408,10 @@ class Run(BaseModel):
 class CheckResult(BaseModel):
     """Table: run_checks. One row per validator check per run (rules from Q10)."""
     run_id: str
-    name: str = Field(description="Stable id, e.g. count_drop, null_rate.title, known_ids_missing, captcha")
+    name: str = Field(description="Stable id from Q10, e.g. outage, paging_complete, lost.title, known_ids_missing, captcha")
     passed: bool
     severity: Severity = Field(description="What a failure of this check does to the portal state")
-    observed: Any = None
+    observed: Any = Field(None, description="What the read saw. A suspect that cleared is a passed row, severity info, with the first observation kept here")
     expected: Any = None
     message: str = Field(description="Human sentence; used as portal reason when this check decides the state")
 
@@ -448,9 +470,9 @@ class PortalSnapshot(BaseModel):
 
 class FileRecord(BaseModel):
     """Table: files. Content-addressed: one row per unique blob, shared across tenders."""
-    file_id: str = Field(description="Public id in /files/{file_id}: first 16 hex chars of sha256")
+    file_id: str = Field(description="Public id in /files/{file_id}: first 16 hex chars of sha256. A file not fetched yet has a provisional id, replaced when its bytes are in")
     sha256: str | None = None
-    size_bytes: int | None = None
+    size_bytes: int | None = Field(None, description="Real size once fetched; before that the size the portal announces, if any")
     content_type: str | None = None
     storage_path: str | None = None
     source_url: str
@@ -462,6 +484,11 @@ class FileRecord(BaseModel):
     @property
     def deliverable(self) -> bool:
         return self.skipped is None and not self.is_archive and self.sha256 is not None
+
+    @property
+    def pending(self) -> bool:
+        """Known from the portal, bytes not fetched yet: listed with sha256 and path null."""
+        return self.skipped is None and self.sha256 is None
 
 
 class TenderFile(BaseModel):
@@ -543,12 +570,15 @@ class TenderRecord(BaseModel):
         return self.last_changed_at
 
     def to_api(self, files: list[tuple[TenderFile, FileRecord]], now: datetime | None = None) -> dict[str, Any]:
-        docs = [
-            DocumentOut(fileName=link.file_name, sizeBytes=f.size_bytes or 0,
-                        sha256=f.sha256, path=f"/files/{f.file_id}")
-            for link, f in sorted(files, key=lambda x: x[0].position)
-            if f.deliverable
-        ]
+        docs: list[DocumentOut] | None = []
+        for link, f in sorted(files, key=lambda x: x[0].position):
+            if f.deliverable:
+                docs.append(DocumentOut(fileName=link.file_name, sizeBytes=f.size_bytes or 0,
+                                        sha256=f.sha256, path=f"/files/{f.file_id}"))
+            elif f.pending:  # known, bytes still loading (an archive not fetched yet is listed under its own name)
+                docs.append(DocumentOut(fileName=link.file_name, sizeBytes=f.size_bytes, sha256=None, path=None))
+        if not files and self.docs_status == DocsStatus.pending:
+            docs = None  # not even the list of documents is known yet
         place = self.place if self.place and not self.place.is_empty() else None
         return TenderOut(
             id=self.tender_id, url=self.url, title=self.title, buyerName=self.buyer_name,

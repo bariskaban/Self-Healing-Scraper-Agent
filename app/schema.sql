@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS portals (
     list_url             TEXT,
     country_code         TEXT,
     timezone             TEXT,
+    cause                TEXT CHECK (cause IN ('outage','block','breakage')),  /* why healing or failed (Q10) */
     last_success_at      TEXT,
     next_read_at         TEXT,
     consecutive_failures INTEGER NOT NULL DEFAULT 0,
@@ -71,7 +72,7 @@ CREATE TABLE IF NOT EXISTS run_checks (
     run_id   TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
     name     TEXT NOT NULL,
     passed   INTEGER NOT NULL,
-    severity TEXT NOT NULL CHECK (severity IN ('info','warn','fail','block')),
+    severity TEXT NOT NULL CHECK (severity IN ('info','warn','fail','block','outage')),
     observed TEXT,                                     /* JSON */
     expected TEXT,                                     /* JSON */
     message  TEXT NOT NULL,
