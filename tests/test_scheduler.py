@@ -314,7 +314,7 @@ def test_rotation_24_tenders_every_page_every_read():
 
 
 def test_rotation_100_tenders_every_page_within_5_reads():
-    # Q12 says "within 8 minutes" (100 / 24 reads of 2 minutes on average); whole reads give 10.
+    # Q12: 24 detail pages per 2-minute read, so 100 tenders take 5 whole reads (10 minutes).
     budget, counts = _simulate(100, 5, reads=5)
     assert budget == 24 and min(counts.values()) >= 1
 

@@ -16,7 +16,7 @@ An agent that attaches to European public procurement portals on its own, watche
 - **David:** Q1, Q3, Q4
 - **Danil:** Q2, Q9, Q11
 - **Goktug:** Q6, Q10, Q12
-- **Goktug (research only, build not assigned):** Q13, Q14
+- **Goktug (research, and the rules as functions in `app/scheduler.py`; the loop is not assigned):** Q13, Q14
 - **Not assigned yet:** G1 to G11
 
 ## Questions and what is left
@@ -60,11 +60,11 @@ What the learn and repair agents use to see and drive a portal. **Owner:** David
 - [ ] `app/agent/runner.py`: budgets, token and cost bookkeeping, `AgentStep` logging.
 - [ ] Learn agent (`app/agent/learn.py`) and repair agent (`app/agent/repair.py`), with prompts in `app/agent/prompts/` (needs Q1 to Q4).
 
-### [ ] Q6. Language
+### [x] Q6. Language
 Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Research: `research/q06-language.md`. Python for the whole system; pin `playwright` to the base image's version.
-- [ ] Dockerfile at the repo root: base image with Python 3.12 and Chromium, quick build, `docker build .` works for linux/amd64.
-- [ ] Default command starts API and dashboard on port 8080.
+- [x] Dockerfile at the repo root: base image with Python 3.12 and Chromium, quick build, `docker build .` works for linux/amd64. CI builds it on every pull request (`.github/workflows/ci.yml`).
+- [x] Default command starts the app on port 8080. For now it serves a placeholder page; the API and the dashboard replace it (G1, G3).
 
 ### [ ] Q7. Schemas
 **Owner:** Baris. Core done and usable now; three small follow-ups left.
@@ -107,21 +107,24 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 ### [ ] Q12. Large portals
 **Owner:** Goktug
 - [x] Research: `research/q12-large-portals.md`: read order, state rule, request math for 100, 1,000 and 5,000 tenders (`research/tools/q12_request_math.py`).
-- [ ] Ask the mentors how long the harness waits and whether `serving` may have documents pending; the 10-minute rule depends on it.
-- [ ] Incremental reads: details and files only for new or changed tenders (`detail_fetched_at`, `docs_status`).
+- [x] Ask the mentors how long the harness waits and whether `serving` may have documents pending. Answered (`research/mentor-answers.md`): 20 to 30 minutes, and yes. The 10-minute rule stays; the attach time limit is 20 minutes.
+- [x] Incremental reads, the plan: which tenders are fetched, which are no longer listed, and the detail-page rotation (`plan_incremental_read` in `app/scheduler.py`).
+- [ ] Incremental reads, in the loop: run the plan against the executor and the store (`detail_fetched_at`, `docs_status`).
 - [ ] Documents (`app/docs/`): multi-step downloads, streaming, ZIP unpacking, sha256, 250 MB limit, captcha-but-file-downloads case.
 
 ### [ ] Q13. Read schedule
-**Owner:** _____
+**Owner:** Goktug for the rules; the loop: _____
 - [x] Research: `research/q13-read-schedule.md`. It replaces the 15 minutes with: every 2 minutes, or 10 times the list's read time, at most 30 minutes.
 - [ ] Team agrees on that rule. Details and files only for new or changed tenders; refresh starts a read or returns the running read's `runId`. (`closed` is already computed at answer time, Q7.)
-- [ ] Scheduler (`app/scheduler.py`).
+- [x] The rules as functions in `app/scheduler.py`: the interval, the first-page read on long lists, the attach phases with their state and reason, the document order. Settings come from the environment (`READ_INTERVAL_SECONDS`, `ATTACH_TIME_LIMIT_SECONDS` and others).
+- [ ] The loop that calls them: one run per portal, portals side by side, refresh (needs `app/fetch/`, the executor and `app/db.py`).
 
 ### [ ] Q14. Retrying failed portals
-**Owner:** _____
+**Owner:** Goktug for the rules; the loop: _____
 - [x] Research: `research/q14-failed-retry.md`. Check on every refresh, and on our own after 5 minutes, 15 minutes, 1 hour, then every 6 hours; one repair only when the page is one we have not already failed on.
 - [ ] Team agrees on that rule.
-- [ ] Recheck job in the scheduler (`RunTrigger.recheck`).
+- [x] The rules as functions in `app/scheduler.py`: when a failed portal is checked next, the outage retries, the once-a-minute limit on refresh.
+- [ ] Recheck job in the scheduler's loop (`RunTrigger.recheck`).
 
 ### [ ] G. Work outside any one question
 **Owner:** _____
