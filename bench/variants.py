@@ -13,12 +13,18 @@ so the truth is exact and no request leaves the process (CLAUDE.md: no live port
   login_wall     every page leads to a login: the learner should give up, cheaply
   empty          the list says there are no tenders: nothing to learn from
 
+Each portal also has a changed face, for trying the repairer: set `variant.changed = True` and it is
+"almost the same" portal after a redesign. The tenders, their ids and their addresses stay; on the
+HTML portals every class and id gets a new name and `data-*` hooks are renamed, and the JSON API moves
+from /api/v2 to /api/v3 with its keys in snake_case. A recipe learned before the change reads nothing after it.
+
 `VARIANTS[name]()` gives a `Variant`; `respond` answers a request, `truth` is what a correct read gives.
 Run them with `python -m bench.run_variants` (a person, with the development key).
 """
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from html import escape
@@ -61,10 +67,19 @@ class Variant:
     tender_url: Callable[[Tender], str] = lambda t: f"/tenders/{t.id}"
     expect: str = "serve"                       # serve | give_up
     requests: list[tuple[str, str]] = field(default_factory=list)
+    changed: bool = False                       # the portal after a redesign: see `_redesigned`
 
     def respond(self, method: str, url: str, form: dict[str, str] | None = None) -> Answer:
         parts = urlsplit(url)
         self.requests.append((method.upper(), parts.path + (f"?{parts.query}" if parts.query else "")))
+        if not self.changed:
+            return self._respond(parts)
+        if parts.path.startswith("/api/v2"):
+            return 404, JSON, b'{"error":"gone"}'
+        status, head, body = self._respond(parts._replace(path=parts.path.replace("/api/v3", "/api/v2", 1)))
+        return status, head, _redesigned(body, head.get("Content-Type", ""))
+
+    def _respond(self, parts) -> Answer:
         if parts.path == "/robots.txt":
             return 200, {"Content-Type": "text/plain"}, b"User-agent: *\nAllow: /\n"
         for tender in self.tenders:  # every variant serves its files the same way
@@ -82,6 +97,30 @@ class Variant:
                  "submission_deadline": t.submission_deadline, "reference_number": t.reference_number,
                  "cpv_codes": [code.split("-")[0] for code in t.cpv], "procedure_type": PROCEDURE[t.procedure_word],
                  "contract_nature": NATURE[t.nature_word], "documents": len(t.files)} for t in self.tenders]
+
+
+_NAMES = re.compile(r'\b(class|id)="([^"]*)"')
+_DATA = re.compile(r"\bdata-([a-z]+)=")
+_CAMEL = re.compile(r"(?<=[a-z0-9])([A-Z])")
+
+
+def _snake(value):
+    if isinstance(value, dict):
+        return {_CAMEL.sub(lambda m: "_" + m.group(1).lower(), key): _snake(item) for key, item in value.items()}
+    return [_snake(item) for item in value] if isinstance(value, list) else value
+
+
+def _redesigned(body: bytes, content_type: str) -> bytes:
+    """The same content after a redesign: new class and id names and data-* hooks, or new JSON keys."""
+    if "json" in content_type:
+        return json.dumps(_snake(json.loads(body))).encode()
+    text = body.decode("utf-8")
+    if "javascript" in content_type:
+        return text.replace("/api/v2", "/api/v3").encode()
+    if "html" not in content_type:
+        return body
+    text = _NAMES.sub(lambda m: f'{m.group(1)}="{" ".join("ui-" + name[::-1] for name in m.group(2).split())}"', text)
+    return _DATA.sub(lambda m: f"data-item-{m.group(1)}=", text).encode("utf-8")
 
 
 def _page(title: str, body: str, lang: str = "en", head: str = "") -> bytes:
@@ -345,7 +384,8 @@ VARIANTS: dict[str, Callable[[], Variant]] = {
     "json_api": _make("json_api", "app shell; list and tenders from a JSON API named in a script", _json_api,
                       tender_url=lambda t: f"/notice/{t.id}"),
     "de_netserver": _make("de_netserver", "German; rows with data-oid and no link; one page", _de, count=30,
-                          ident=_oid, tender_url=lambda t: f"/NetServer/PublicationControllerServlet?function=Detail&TOID={_oid(t)}"),
+                          ident=_oid, tender_url=lambda t: "/NetServer/PublicationControllerServlet?function=Detail"
+                                                    f"&TOID={_oid(t)}&Category=InvitationToTender"),
     "pl_offset": _make("pl_offset", "Polish; offset paging; numeric id in the address", _pl, ident=_num,
                        tender_url=lambda t: f"/postepowanie/{_num(t)}"),
     "fr_cards": _make("fr_cards", "French; cards; dates with month names", _fr,

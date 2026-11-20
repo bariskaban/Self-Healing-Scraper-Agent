@@ -36,3 +36,24 @@ def test_the_login_wall_redirects_every_page_to_a_password_form():
     variant = VARIANTS["login_wall"]()
     got = VariantFetch(variant).fetch("p", variant.base_url + "/tenders")
     assert got.final_url.endswith("/login") and got.redirects and 'type="password"' in got.text
+
+
+@pytest.mark.parametrize("name", sorted(n for n in VARIANTS if VARIANTS[n]().expect == "serve"))
+def test_a_changed_variant_keeps_its_tenders_and_addresses_but_none_of_its_hooks(name):
+    import re
+
+    before, after = VARIANTS[name](), VARIANTS[name]()
+    after.changed = True
+    assert after.truth() == before.truth()
+    want = before.truth()[0]
+    old = VariantFetch(before).fetch("p", want["url"]).text
+    new = VariantFetch(after).fetch("p", want["url"]).text
+    hooks = lambda text: set(re.findall(r'class="([^"]+)"', text))  # noqa: E731
+    if name == "json_api":
+        api = lambda v, path: VariantFetch(v).fetch("p", v.base_url + path)  # noqa: E731
+        assert api(after, "/api/v2/notices?page=0&size=20").status == 404
+        listing = api(after, "/api/v3/notices?page=0&size=20").json()
+        assert listing["total_elements"] == 45 and listing["content"][0]["notice_id"] == before.truth()[-1]["id"]
+        assert "/api/v3" in api(after, "/static/app.4f2a.js").text
+    else:
+        assert want["title"] in new.replace("&#x27;", "'") and hooks(old) and not hooks(old) & hooks(new)

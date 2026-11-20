@@ -18,13 +18,16 @@ from urllib.parse import urljoin
 import httpx
 
 from app.agent.learn import learn
+from app.agent.repair import repair
 from app.agent.runner import OpenAIModel, Runner, StepLog
 from app.agent.settings import AgentSettings
 from app.checks import Answer
 from app.config import ModelSettings, api_key
 from app.fetch.interface import Fetched
-from app.models import Portal, url_key
+from app.checks.result import Cause, failed
+from app.models import Portal, TenderRecord, url_key
 from app.recipe.run import CachedPage, dry_run
+from app.recipe.schema import AuthoredRecipe, RecipeBody
 from bench.variants import VARIANTS, Variant
 
 FIELDS = ("url", "title", "buyer_name", "publication_date", "submission_deadline", "reference_number", "cpv_codes",
@@ -104,6 +107,39 @@ def run_one(name: str, runner: Runner, settings: AgentSettings, models: ModelSet
     return out
 
 
+def repair_one(learned: dict, runner: Runner, settings: AgentSettings, models: ModelSettings) -> dict:
+    """The portal after its redesign, the recipe learned before it, and one repair."""
+    name = learned["variant"]
+    variant = VARIANTS[name]()
+    variant.changed = True
+    old = AuthoredRecipe.model_validate(learned["recipe"])
+    zone = learned.get("timezone")
+    before = score(read_all(old, variant, zone), variant)
+    portal = Portal(id=name, url=variant.base_url, url_key=url_key(variant.base_url), timezone=zone)
+    known = [TenderRecord(portal_id=name, tender_id=t["id"], url=t["url"], title=t["title"], buyer_name=t["buyer_name"],
+                          publication_date=t["publication_date"], submission_deadline=t["submission_deadline"],
+                          reference_number=t["reference_number"]) for t in variant.truth()]
+    rows = [failed("bench", "list_outcome", "The tender list did not arrive: no row was found, and the portal does "
+                   "not say the list is empty. A second look found the same.", cause=Cause.breakage)]
+    steps = StepLog(f"bench-repair-{name}-{int(time.time())}")
+    began = time.time()
+    result = repair(portal, RecipeBody.from_authored(old), rows, fetch=VariantFetch(variant), known=known,
+                    runner=runner, steps=steps, models=models, settings=settings)
+    usage = result.usage
+    out = {"variant": name, "what": "repair after a redesign", "expect": "serve", "learned": result.recipe is not None,
+           "seconds": round(time.time() - began), "model_calls": result.model_calls, "requests": result.requests,
+           "input_tokens": usage.input_tokens, "cached_share": round(usage.cached_input_tokens / usage.input_tokens, 2)
+           if usage.input_tokens else None, "output_tokens": usage.output_tokens, "cost_usd": round(usage.cost_usd, 3),
+           "reason": result.reason, "old_recipe_matched_after_change": before["matched"],
+           "steps": [f"{s.kind.value} {s.name}: {s.summary}" for s in steps.steps if s.kind.value != "llm"]}
+    if result.recipe is not None:
+        out["recipe"] = result.recipe.model_dump(mode="json")
+        out["nodes_changed"] = [n.id for n in result.recipe.nodes
+                                if n not in old.nodes]
+        out["score"] = score(read_all(result.recipe, variant, result.timezone or zone), variant)
+    return out
+
+
 def line(out: dict) -> str:
     head = (f"{out['variant']:<13} learned={str(out['learned']):<5} calls={out['model_calls']:<3} "
             f"${out['cost_usd']:<6} cached={out['cached_share']} {out['seconds']}s")
@@ -119,6 +155,8 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Run the learner on the made-up portals and score it.")
     parser.add_argument("names", nargs="*", help=f"which portals (default: all of {', '.join(VARIANTS)})")
     parser.add_argument("--out", help="write every result, with recipe and steps, to this JSON file")
+    parser.add_argument("--repair-from", help="a results file of an earlier run: each recipe in it is repaired "
+                                              "on its portal after the redesign, instead of learning")
     args = parser.parse_args(argv)
     key = api_key()
     if key is None:
@@ -126,8 +164,13 @@ def main(argv: list[str] | None = None) -> None:
     settings, models = AgentSettings.from_env(), ModelSettings.from_env()
     runner = Runner(OpenAIModel(key, settings), settings)
     results = []
-    for name in args.names or list(VARIANTS):
-        results.append(run_one(name, runner, settings, models))
+    todo: list = args.names or list(VARIANTS)
+    if args.repair_from:
+        with open(args.repair_from, encoding="utf-8") as handle:
+            todo = [r for r in json.load(handle) if r.get("recipe") and (not args.names or r["variant"] in args.names)]
+    for name in todo:
+        results.append(repair_one(name, runner, settings, models) if args.repair_from
+                       else run_one(name, runner, settings, models))
         print(line(results[-1]), flush=True)
         if args.out:
             with open(args.out, "w", encoding="utf-8") as handle:
