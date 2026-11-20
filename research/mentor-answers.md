@@ -36,6 +36,21 @@ Our defaults stand for these.
 - Which is `id` when a portal shows both its own id and the buyer's reference number.
 - How many portals the harness adds at once, and how much memory the container has.
 
+## Also said
+
+From the rest of the conversation. Not answers to our questions, but they bear on what we build and how we present it.
+
+- **What weighs most is a working product at the end.** Twelve teams took this track. The mentor asked teams on other tracks why they had not: most found it too hard for the time available.
+- **What Patterno tried before, and what did not work.**
+  - A Claude Code skill that does the reading. It "seems to work at first" but is "not really reliable in the end". With current models and a lot of compute it might work.
+  - Going around captchas. They tried, found it was not legal, and stopped. They are careful on legal matters in general.
+
+What we take from it:
+
+1. **Finish end to end before widening.** A system that attaches one portal, notices a change and repairs it, running in the container, beats a wider one that does not run. The build order in `DESIGN.md` already says so.
+2. **Our argument is reliability.** Their own attempt failed on reliability, not on capability. Ours runs a recipe on a deterministic engine and checks every read, so an agent is not asked to get it right each time. That belongs in the pitch and the video.
+3. **Nothing that looks like getting around a captcha**, in the product or in the demo.
+
 ## What changes because of these answers
 
 1. **A partial result at the time limit.** Before, a portal that had not reached the records gate delivered nothing. Now, when the attach time limit passes first, the records validated so far are published and the reason says how many are still to come. (Q12)
