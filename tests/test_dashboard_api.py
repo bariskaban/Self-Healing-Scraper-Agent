@@ -561,20 +561,26 @@ def test_the_robots_switch_and_the_time_limit_take_effect_for_the_next_read(site
     fits_dashboard(client.get("/api/dashboard").json())
 
 
-def test_a_mistyped_euro_rate_does_not_stop_the_app(monkeypatch, caplog):
-    # The rate comes from EUR_PER_USD (app/config.py). A value that is no number, or a blank model
-    # variable, must leave the app able to start: the default rate is shown and the log says why.
+def test_a_mistyped_euro_rate_stops_the_app_at_start_and_a_blank_one_does_not(monkeypatch):
+    # The rate comes from EUR_PER_USD (app/config.py). A value that is no usable number must stop
+    # the app while it is built, naming the variable: a wrong euro figure on the dashboard would
+    # go unnoticed. A blank variable is not set, so `docker run -e EUR_PER_USD= -e MODEL_LEARN=` starts.
     from app.config import ModelSettings
     from app.main import create_app
 
-    for bad in ("abc", "0,87", "-1", "nan"):
-        with caplog.at_level("WARNING", logger="watchtower.dashboard"):
-            assert DashboardSettings.from_env({"EUR_PER_USD": bad}).eur_per_usd == ModelSettings().eur_per_usd
-        assert "EUR_PER_USD" in caplog.text
-        caplog.clear()
-    assert DashboardSettings.from_env({"EUR_PER_USD": "", "MODEL_LEARN": ""}).eur_per_usd == ModelSettings().eur_per_usd
-    monkeypatch.setenv("EUR_PER_USD", "abc")
-    monkeypatch.setenv("MODEL_LEARN", "")
     monkeypatch.delenv("DATA_DIR", raising=False)
+    for bad in ("abc", "0,87", "-1", "nan", "0"):
+        with pytest.raises(ValueError, match="EUR_PER_USD"):
+            DashboardSettings.from_env({"EUR_PER_USD": bad})
+        monkeypatch.setenv("EUR_PER_USD", bad)
+        with pytest.raises(ValueError, match="EUR_PER_USD"):
+            create_app()
+
+    assert DashboardSettings.from_env({"EUR_PER_USD": "", "MODEL_LEARN": ""}).eur_per_usd == ModelSettings().eur_per_usd
+    monkeypatch.setenv("EUR_PER_USD", " ")
+    monkeypatch.setenv("MODEL_LEARN", "")
     with TestClient(create_app()) as client:
         assert client.get("/api/dashboard").json()["eurPerUsd"] == ModelSettings().eur_per_usd
+    monkeypatch.setenv("EUR_PER_USD", "0.87")
+    with TestClient(create_app()) as client:
+        assert client.get("/api/dashboard").json()["eurPerUsd"] == 0.87
