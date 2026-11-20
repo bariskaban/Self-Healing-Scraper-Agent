@@ -35,7 +35,23 @@ Fingerprint the software family with a cheap probe and no model call (host, URL 
 2. **Brand text**: page title, footer, "powered by", product names.
 3. **Structure**: run the candidate recipe's list locators on the list page. This is the strongest signal, and it is already part of the canary.
 
-Starting weights (guesses, tune on the test set): host 3, path 2, brand 2, structure 3. A score of 5 or more makes a candidate recipe; anything less means a cold learn. Not yet checked: generator meta tags, script and style names, cookies. The research tool only saw rendered text, so the prototype checks these on raw HTML.
+Verified signatures to seed the table (fact-checked 20 Nov 2026 from published notices and docs):
+- cosinex: `/Satellite/notice/` (dtvp.de) and `/VMPSatellite/notice/` (NRW and other VMP installations).
+- PLACE: `?page=Entreprise.AccueilEntreprise` and `?page=Entreprise.EntrepriseAdvancedSearch`.
+- PLACSP: tender deep links `/wps/poc?uri=deeplink:detalle_licitacion`, plus Atom/CODICE feeds.
+- TenderNed: RSS `/papi/tenderned-rs-tns/rss/last-publication.rss`. The v2 public-xml API needs a username and password, so it is off limits.
+- e-Zamówienia: notice pages `/mo-client-board/bzp/notice-details/`. The BZP API is public but allows only 30 requests/min per IP (HTTP 403 above that), and its page size drops to 100.
+- BOAMP: open data API on boamp-datadila.opendatasoft.com.
+
+Before fingerprinting HTML, the prober looks for structured sources **the portal itself exposes**, in this order:
+1. JSON calls in the page's own network traffic.
+2. `<link rel="alternate">` RSS/Atom.
+3. `__NEXT_DATA__` or similar embedded app state.
+4. `application/ld+json`.
+
+In Playwright, cache the portal's own static scripts in memory per portal (inside `page.route()`), so a JS app does not spend its 1 request/s budget reloading the same bundle on every page.
+
+Candidates are ordered by exact matches: host, then path, then brand text. The structural canary is the trust boundary. Add numeric scoring only if the team sees mis-ranking. Not yet checked: generator meta tags, script and style names, cookies. The research tool only saw rendered text, so the prototype checks these on raw HTML.
 
 ## How much installations differ
 
@@ -49,11 +65,16 @@ So reuse the family's **navigation and locators**, and treat per-host settings (
 
 String-matched quotes prove the text is on the page, not that the locator took it from the right field; validators can pass a well-formed wrong value. So:
 
-1. Family score of 5 or more: load the family recipe with this host's base URL.
-2. **Canary** (about 6 requests, 6 seconds at 1 request/s): 1 list page and 5 detail pages. Every required locator resolves, every value check from Q2 passes, and the count is within 10% of the count the portal prints, if it prints one.
+1. A host, path or brand match makes the family recipe a candidate: load it with this host's base URL.
+2. **Canary** (about 6 requests, 6 seconds at 1 request/s): 1 list page and 5 detail pages. Required fields reach their learned fill rates (null is allowed where the portal shows nothing), every value check from Q2 passes, and the count on the fetched list page or API page matches what that page itself shows. On the full read the total must match the portal's printed count exactly (DESIGN.md).
 3. Pass: run the full first read, then **one model spot check** where each quote must sit inside the node the locator read from. Only then serving.
-4. Fail: cold learn, with the family recipe handed to the learner as a draft (cheaper than starting blank).
+4. Fail: triage first (an outage or a login wall means no learning, see Q10); then try the other family candidates; then cold learn with the rejected recipe handed to the learner as a draft (cheaper than starting blank).
 5. Keep it honest after: draft 2's drift signals and continuity checks apply to reused recipes like any other.
+
+What to ship and measure:
+- Seed recipes are committed to the repo and copied into the image; a fresh container knows nothing otherwise.
+- Measure the family-hit rate, wrong-family rejections, canary requests and time, and the cold-learn fallback rate.
+- Honour stricter limits than 1 request/s where a portal or API states them (the BZP API's 30 requests/min means one request every 2 seconds).
 
 Cost: a reused attach is the canary plus one Luna spot check, about $0.003 (see Q9), against about $1.70 for a cold learn.
 
@@ -62,9 +83,9 @@ Cost: a reused attach is the canary plus one Luna spot check, about $0.003 (see 
 - **A national feed is not the portal.** BOAMP, PLACSP, TED and the PL BZP API are great for discovery, but the brief wants each tender's id, URL and documents *from the portal we were given*. Use a feed or API as the source only when it belongs to that portal (TenderNed's own REST API for tenderned.nl, yes; BOAMP for a buyer profile, no: ids and documents differ). This bears on Q3.
 - **The judges' private portals will not match real software.** Reuse there pays only if the judges built several portals from one template, which is likely; the fingerprint then lands on our own recipe learned from their first portal. Recipes learned at run time join the library (draft 2 already says so).
 
-## Prototype first (about 5 hours)
+## Prototype first (about 3 hours)
 
-A signature table and canary for three families with two installations each: AI/NetServer (vergabe.vmstart.de, tender24.de), cosinex (evergabe.nrw.de, evergabe.blb.nrw.de), and PLACE or TenderNed. 1.5 h probe and table, 2 h canary on the Q2 field resolver, 1.5 h run on six hosts including one with a deliberately different configuration.
+A signature table and canary for 2 installations of one family (for example AI/NetServer: vergabe.vmstart.de, tender24.de) plus 2 mock portals built from one template. Build the probe and table, run the canary on the Q2 field resolver, then run all four hosts.
 
 ## Effect on other questions
 

@@ -45,24 +45,27 @@ Assumptions (ours, to replace with measured numbers at hour 16): learn = 12 call
 |---|---|---|---|
 | Learn, new software | 360K in, 96K out | 0.72 + 0.96 = **$1.68** | 0.36 + 0.48 = **$0.84** |
 | Spot check (Luna) | 20K in, 1.5K out | 0.002 + 0.00075 = **$0.003** | same |
-| Attach, new software (learn + spot check) | | **$1.69** | **$0.84** |
+| Attach, new software (learn + spot check) | | **$1.68** | **$0.84** |
 | Attach, known software (spot check only) | | **$0.003** | **$0.003** |
 | Regular read | none | **$0** | **$0** |
 | Repair | 150K in, 40K out | 0.30 + 0.40 = **$0.70** | 0.15 + 0.20 = **$0.35** |
+| Repair, worst case (3 attempts + spot check) | | 3 x 0.70 + 0.003 = **$2.10** | 3 x 0.35 + 0.003 = **$1.05** |
 
-Range on Sol: a learn costs $0.48 (8 small calls) to $3.30 (15 large calls). If half the learn input hits the cache, the Sol learn falls to $1.34.
+Range on Sol: a learn costs $0.48 (low: 8 calls of 20K in and 2K out) to $3.30 (high: 15 calls of 40K in and 14K out). If half the learn input hits the cache, the Sol learn falls to $1.34.
 
 **The pitch line for "Approach":** at 4,500 portals with most running a few dozen software packages, the learning cost is paid per package, not per portal. Q11 covers how.
 
 ## Cost traps
 
 - **The 272K cliff.** A learn loop that appends every tool result to one conversation grows about 30K per call; around call 10 it crosses 272K input and the whole request bills at 2x input and 1.5x output. Keep each call's context trimmed (draft 2 already trims pages).
-- **Batch** has a 24-hour window: useless for learn and repair. **Flex** (50% off, may return 429 under load) suits only background spot checks.
+- **Batch and Flex are not for us.** Batch (24-hour window) and Flex (may return 429 under load) do not fit: spot checks gate attach, repair acceptance and drifted reads, so they run on standard Luna. The saving would be under a cent.
+- **Reporting.** DESIGN.md reports cost in tokens and euros; the README converts USD to EUR at the ECB reference rate of the hand-in day.
+- **Reasoning levels.** gpt-6.2-sol's reasoning levels are not confirmed in the docs. Keep `WATCHTOWER_MODEL` configurable and confirm medium works in the first spike.
 - **The judging key.** The judges run our container on our key. Make a separate project key with a hard monthly cap, and keep the per-portal token cap from draft 2.
 
 ## Prototype first (about 5 hours)
 
-Two portals (one JSON API, one paged HTML) x three models (`gpt-6.2-sol`, `gpt-6.1-terra`, `gpt-6-luna` at medium): 6 learns, under $3 at list price. Measure: recipe passes the checks first time, calls used, tokens, wall time, schema failures. Then one repair (break a locator) and the spot check on `gpt-6-luna` vs `gpt-5.4-mini`. About 3 h to build the Responses API loop (it becomes the real learner), 2 h to run and score.
+Start with `gpt-6.2-sol` and `gpt-6.1-terra` on one JSON-API portal and one paged-HTML portal: 4 learns, about $5 at list price (2 x 1.68 + 2 x 0.84 = $5.04). Try `gpt-6.2-astra` only if both fail. Then one repair test and the spot check on `gpt-6-luna` vs `gpt-5.4-mini`. Measure: recipe passes the checks first time, calls used, tokens, wall time, schema failures. About 3 h to build the Responses API loop (it becomes the real learner), 1-2 h to run and score.
 
 ## Effect on other questions
 
