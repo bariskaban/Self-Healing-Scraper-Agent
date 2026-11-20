@@ -23,6 +23,11 @@ class AgentSettings:
     # Each model call's input is kept near this many tokens: older steps are replaced by their
     # one-line summaries (Q9: a context that grows with every tool result costs 4.6 times as much).
     context_tokens: int = 30_000
+    # When a call would pass `context_tokens`, the oldest steps are summarised until what is left is
+    # this share of it. Dropping in batches keeps the start of the prompt the same from call to
+    # call, which is what the prompt cache needs (the first real portal paid 72% of its learn
+    # on calls where the cache missed).
+    context_keep_share: float = 0.5
     # Characters taken as one token when the size of a call is estimated before it is sent.
     chars_per_token: float = 3.5
     # Seconds one model call may take (CONVENTIONS.md, rule 8), and how often the client retries

@@ -53,7 +53,7 @@ def test_a_run_ends_in_a_validated_answer_and_logs_every_step():
     assert kinds == [(StepKind.llm, "gpt-6.2-sol"), (StepKind.tool, "echo"), (StepKind.llm, "gpt-6.2-sol")]
     assert [step.seq for step in steps.steps] == [1, 2, 3]
     llm = steps.steps[0]
-    assert llm.prompt_id == PROMPT.id == "learn/system@2" and llm.usage.input_tokens == 1000
+    assert llm.prompt_id == PROMPT.id == "learn/system@3" and llm.usage.input_tokens == 1000
     assert "call 1 of at most 10" in llm.summary and "echo" in llm.summary
     assert steps.steps[1].summary == "echoed a" and steps.steps[1].args == {"text": "a"}
     # The model and the answer's schema are named on every call.
@@ -188,3 +188,17 @@ def test_nothing_outside_the_agent_imports_openai():
         text = path.read_text(encoding="utf-8")
         if "import openai" in text or "from openai" in text:
             assert path.relative_to(root).as_posix() == "app/agent/runner.py", path
+
+
+def test_between_two_batches_of_dropped_steps_each_call_only_adds_to_the_one_before():
+    # The prompt cache hits only on a prefix that did not change (the first real portal paid
+    # most of its learn on calls where it missed).
+    settings = AgentSettings(context_tokens=6000)
+    model = ScriptedModel([[call("echo", text=f"t{n}")] for n in range(14)] + [GOOD])
+    run(model, settings=settings, tools=[echo(size=3500)], max_turns=30)  # about 1,000 tokens a step
+    inputs = [json.dumps(r["input"])[1:-1] for r in model.requests]
+    appended = [later.startswith(earlier) for earlier, later in zip(inputs, inputs[1:])]
+    assert appended.count(False) <= 4, appended       # a batch every few calls, not a rewrite on every call
+    assert appended.count(True) >= 10
+    assert max(len(text) for text in inputs) / settings.chars_per_token < settings.context_tokens * 1.3
+    assert len({r["cache_key"] for r in model.requests}) == 1 and model.requests[0]["cache_key"] == "learn-run1"

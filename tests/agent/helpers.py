@@ -36,9 +36,9 @@ class ScriptedModel:
         self.usage = usage or TokenUsage(input_tokens=1000, cached_input_tokens=200, output_tokens=100)
         self.requests: list[dict[str, Any]] = []
 
-    def respond(self, *, model, instructions, input, tools, answer, reasoning) -> ModelReply:
+    def respond(self, *, model, instructions, input, tools, answer, reasoning, cache_key=None) -> ModelReply:
         self.requests.append({"model": model, "instructions": instructions, "input": input,
-                              "tools": [tool.name for tool in tools], "answer": answer, "reasoning": reasoning})
+                              "tools": [tool.name for tool in tools], "answer": answer, "reasoning": reasoning, "cache_key": cache_key})
         if not self.script:
             raise ModelError("the script is at its end")
         entry = self.script.pop(0)
