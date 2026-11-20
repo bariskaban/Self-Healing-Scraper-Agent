@@ -1,8 +1,8 @@
 """What the API needs from the rest of the system: a store and a worker.
 
 `app/main.py` is written against these two interfaces only. `app/db.py` provides the
-store on SQLite; the scheduler provides the worker. Until both exist, `app/memory_store.py`
-stands in, so the container answers every route of the contract from day one.
+store on SQLite and `app/loop.py` the worker. Without DATA_DIR, as in the unit tests,
+`app/memory_store.py` stands in for both: it keeps records in memory and reads no portal.
 
 Threads (Q15, `research/q15-storage.md`): the API calls every `Store` method on one thread
 of its own, the database thread, and never on the event loop or from a pool. So a store that

@@ -23,7 +23,7 @@ from datetime import datetime
 from app.checks.result import Cause
 from app.db import Database, UnknownPortal
 from app.fetch.interface import Fetch
-from app.models import Portal, PortalState, Run, RunTrigger, utcnow
+from app.models import Portal, PortalState, Run, RunResult, RunTrigger, utcnow
 from app.reader import Incident, ReadOutcome, Reader, new_run
 from app.scheduler import (
     DEFAULT_SETTINGS, SchedulerSettings, may_check_on_refresh, next_failed_check, next_outage_retry, next_read,
@@ -31,6 +31,19 @@ from app.scheduler import (
 )
 
 log = logging.getLogger("watchtower.loop")
+
+
+def _own_trigger(portal: Portal) -> RunTrigger:
+    """The trigger of a read the loop starts by itself, with no call to the API behind it.
+
+    A portal that was never read through is still being attached: its first read was cut short
+    by a restart, or did not pass, and the read that tries again is the attach, not a periodic read.
+    """
+    if portal.state is PortalState.failed:
+        return RunTrigger.recheck
+    if portal.state is PortalState.integrating and portal.recipe_version is None:
+        return RunTrigger.attach
+    return RunTrigger.schedule
 
 
 class ReadLoop:
@@ -69,7 +82,13 @@ class ReadLoop:
         if portal.state is PortalState.failed and last is not None and not may_check_on_refresh(
                 incident.last_check_at, self.now(), self.schedule):
             return last  # a failed portal is checked at most once a minute (Q14)
-        run = self.db.start_run(new_run(portal, RunTrigger.refresh))
+        mine = new_run(portal, RunTrigger.refresh)
+        run = self.db.start_run(mine)
+        if run.id != mine.id:
+            # A read began between the look above and this start (the portal's task starts its
+            # runs in a worker thread). That read is the run going on, and its task reads it:
+            # queueing it here too would have it read a second time, after it has ended.
+            return run.id
         self._queued[portal.id] = run
         self._last_run[portal.id] = run.id
         self._spawn(portal.id)
@@ -168,12 +187,19 @@ class ReadLoop:
                 portal = await asyncio.to_thread(self.db.get_portal, portal_id)
                 if portal is None:
                     return
-                trigger = RunTrigger.recheck if portal.state is PortalState.failed else RunTrigger.schedule
-                first_page_only = self._first_page.get(portal_id, False) and portal.state is PortalState.serving
                 try:
-                    run = await asyncio.to_thread(self.db.start_run, new_run(portal, trigger))
+                    run = await asyncio.to_thread(self.db.start_run, new_run(portal, _own_trigger(portal)))
                 except UnknownPortal:
                     return
+                # A refresh may have started its run while this one was on its way to the
+                # database: then `start_run` answered with the refresh's run, and that is the
+                # one read now. It leaves the queue here, so that it is read once only.
+                queued = self._queued.get(portal_id)
+                if queued is not None and queued.id == run.id:
+                    del self._queued[portal_id]
+                # Only a read the schedule asked for may stop at the first page.
+                first_page_only = (run.trigger is RunTrigger.schedule and portal.state is PortalState.serving
+                                   and self._first_page.get(portal_id, False))
                 self._last_run[portal_id] = run.id
             wake.clear()
             try:
@@ -194,7 +220,6 @@ class ReadLoop:
         portal = self.db.get_portal(portal_id)
         if portal is None:
             return ReadOutcome(None, PortalState.failed, False, gone=True)
-        from app.models import RunResult
         self.db.save_run(run.model_copy(update={"finished_at": self.now(), "result": RunResult.failed,
                                                 "state_after": portal.state, "reason_after": portal.reason,
                                                 "error": f"{type(error).__name__}: {error}"[:300]}))

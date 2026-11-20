@@ -24,8 +24,19 @@ class RecipeSettings:
     max_requests_per_tender: int = 40
     # How many problems a dry run reports before it only counts them.
     max_problems: int = 50
+    # Python's re has no timeout, and a recipe's regular expressions are written by a model. So
+    # each one runs on a bounded text only. A regex locator sees this many characters of the
+    # page's or the item's text; what lies beyond the cut cannot match. (A value's `pattern`
+    # has the same bound in `ExtractSettings.pattern_text_limit`.)
+    pattern_text_limit: int = 20_000
+    # `identity.shape` is matched against ids of at most this length, and `identity.from_url`
+    # is searched in addresses of at most this length; a longer one is not matched at all.
+    pattern_id_limit: int = 200
+    pattern_address_limit: int = 2_000
 
     def __post_init__(self) -> None:
+        if min(self.pattern_text_limit, self.pattern_id_limit, self.pattern_address_limit) < 1:
+            raise ValueError("pattern_text_limit, pattern_id_limit and pattern_address_limit must be at least 1")
         if self.max_pages < 1 or self.default_page_size < 1 or self.max_requests_per_tender < 1:
             raise ValueError("max_pages, default_page_size and max_requests_per_tender must be at least 1")
         if not 0 < self.single_witness_vouch_share <= 1:
