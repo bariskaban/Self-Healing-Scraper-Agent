@@ -1,6 +1,6 @@
 # Q5. Agent framework and conventions
 
-Owner: teammate who took Q5, Q7 and Q8 · Status: **open, no answer in the repo yet**
+Owner: Baris · Status: **answered** in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md)
 
 ## Question
 
@@ -23,7 +23,9 @@ Deliverable: a recommendation, plus a one-page conventions list we can paste int
 
 ## Answer
 
-None yet. When it is written, it follows the answer standard in [README.md](README.md).
+**Build the learn, repair and spot-check agents on the OpenAI Agents SDK**, with our own tools and Pydantic output types; our own loop on the `openai` package is the fallback.
+
+The full answer, its alternatives and sources are in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md) and `CONVENTIONS.md`. The end check is in [audit.md](audit.md).
 
 ## Inputs from answered questions
 

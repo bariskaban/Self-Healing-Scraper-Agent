@@ -1,6 +1,6 @@
 # Q7. Schemas for every internal record
 
-Owner: teammate who took Q5, Q7 and Q8 · Status: **open, no answer in the repo yet**
+Owner: Baris · Status: **answered** in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md)
 
 ## Question
 
@@ -22,7 +22,9 @@ Deliverable: Pydantic models with one-line field descriptions, and the SQLite ta
 
 ## Answer
 
-None yet. When it is written, it follows the answer standard in [README.md](README.md).
+**Two layers in `app/models.py`**: API models that produce the appendix answers exactly, and internal records that map one to one onto the SQLite tables in `app/schema.sql`. Only the recipe body waits for Q1.
+
+The full answer, its alternatives and sources are in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md), `app/models.py` and `app/schema.sql`. The end check is in [audit.md](audit.md).
 
 ## Inputs from answered questions
 

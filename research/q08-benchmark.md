@@ -1,6 +1,6 @@
 # Q8. Benchmark: how do we compare design options on equal terms, inside a 24-hour build?
 
-Owner: teammate who took Q5, Q7 and Q8 · Status: **open, no answer in the repo yet**
+Owner: Baris · Status: **answered** in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md)
 
 ## Question
 
@@ -28,7 +28,9 @@ Deliverable: metric definitions, the benchmark harness design, and the hours it 
 
 ## Answer
 
-None yet. When it is written, it follows the answer standard in [README.md](README.md).
+**Two test beds**: a mock portal with 16 scripted changes for Notice and Repair, and 8 or more real portals replayed from recorded traffic for Attach, scored the way the judges score.
+
+The full answer, its alternatives and sources are in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md), `docs/BENCHMARK.md` and [q08-test-portals.md](q08-test-portals.md). The end check is in [audit.md](audit.md).
 
 ## Inputs from answered questions
 

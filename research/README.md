@@ -8,20 +8,22 @@ The end check of every answered question is in [audit.md](audit.md).
 
 | Q | Question | Owner | Status | Decision in one line | File |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Recipe model | took Q1, Q3, Q4 | open | | [q01-recipe-model.md](q01-recipe-model.md) |
-| 2 | Field locators | Danil | answered; audit: fix before building | Several locators plus value checks per field | [q02-locators.md](q02-locators.md) |
-| 3 | Explore or map first | took Q1, Q3, Q4 | open | | [q03-explore-or-map.md](q03-explore-or-map.md) |
-| 4 | Agent tools | took Q1, Q3, Q4 | open | | [q04-agent-tools.md](q04-agent-tools.md) |
-| 5 | Agent framework and conventions | took Q5, Q7, Q8 | open | | [q05-agent-framework.md](q05-agent-framework.md) |
-| 6 | Language | Goktug | **answered** | Python for the whole system; no TypeScript part | [q06-language.md](q06-language.md) |
-| 7 | Schemas | took Q5, Q7, Q8 | open | | [q07-schemas.md](q07-schemas.md) |
-| 8 | Benchmark | took Q5, Q7, Q8 | open | | [q08-benchmark.md](q08-benchmark.md) |
-| 9 | OpenAI models and cost | Danil | answered; audit: prices hold, cost per portal does not | Learn and repair on `gpt-6.2-sol`, spot checks on `gpt-6-luna` | [q09-models-cost.md](q09-models-cost.md) |
-| 10 | Failure rules | Goktug | **answered** | Suspect on cheap checks, confirm with a second observation, then change state | [q10-failure-rules.md](q10-failure-rules.md) |
-| 11 | Reuse across portals | Danil | answered; audit: fix before building | Fingerprint as a hint, canary read before trust | [q11-reuse.md](q11-reuse.md) |
-| 12 | Large portals | Goktug | **answered**; one rule waits on the mentors | Bulk source first; list, records, then documents by deadline; `serving` at the records gate when documents take over 10 minutes | [q12-large-portals.md](q12-large-portals.md) |
-| 13 | Read schedule | Goktug (leftover) | **answered**; replaces the proposal | Every 2 minutes, or 10 times the list's read time, at most 30 minutes | [q13-read-schedule.md](q13-read-schedule.md) |
-| 14 | Retrying failed portals | Goktug (leftover) | **answered**; replaces the proposal | Check on every refresh, and at 5 min, 15 min, 1 h, then every 6 h; repair only on a page not seen before | [q14-failed-retry.md](q14-failed-retry.md) |
+| 1 | Recipe model | David | answered | A navigation graph with a closed set of node kinds and actions; generated Python only as a sandboxed escape hatch | [q01-recipe-model.md](q01-recipe-model.md) |
+| 2 | Field locators | Danil | answered, revised | Several locators plus value checks per field | [q02-locators.md](q02-locators.md) |
+| 3 | Explore or map first | David | answered | Probe structured sources first, then explore toward the list with a page budget; do not map the site | [q03-explore-or-map.md](q03-explore-or-map.md) |
+| 4 | Agent tools | David | answered | About 8 own tools on Playwright for Python and httpx; one rate limiter per host inside `page.route` | [q04-agent-tools.md](q04-agent-tools.md), [q04-page-views-measured.md](q04-page-views-measured.md), [q04-q10-notes.md](q04-q10-notes.md) |
+| 5 | Agent framework and conventions | Baris | answered | OpenAI Agents SDK; own loop as fallback | [q05-agent-framework.md](q05-agent-framework.md), answer in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md) |
+| 6 | Language | Goktug | answered | Python for the whole system; no TypeScript part | [q06-language.md](q06-language.md) |
+| 7 | Schemas | Baris | answered, built | API models and internal records in `app/models.py`, tables in `app/schema.sql` | [q07-schemas.md](q07-schemas.md), answer in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md) |
+| 8 | Benchmark | Baris | answered | A mock portal with 16 scripted changes, and 8 or more real portals replayed from recordings | [q08-benchmark.md](q08-benchmark.md), [q08-test-portals.md](q08-test-portals.md), answer in [q05-q07-q08-framework-schemas-benchmark.md](q05-q07-q08-framework-schemas-benchmark.md) |
+| 9 | OpenAI models and cost | Danil | answered, revised | Learn and repair on `gpt-6.2-sol`, spot checks on `gpt-6-luna` | [q09-models-cost.md](q09-models-cost.md) |
+| 10 | Failure rules | Goktug | answered | Suspect on cheap checks, confirm with a second observation, then change state | [q10-failure-rules.md](q10-failure-rules.md) |
+| 11 | Reuse across portals | Danil | answered, revised | Any host, path or brand match makes a candidate; a canary read before trust | [q11-reuse.md](q11-reuse.md) |
+| 12 | Large portals | Goktug | answered; one rule waits on the mentors | Bulk source first; list, records, then documents by deadline; `serving` at the records gate when documents take over 10 minutes | [q12-large-portals.md](q12-large-portals.md) |
+| 13 | Read schedule | Goktug | answered; replaces the proposal | Every 2 minutes, or 10 times the list's read time, at most 30 minutes | [q13-read-schedule.md](q13-read-schedule.md) |
+| 14 | Retrying failed portals | Goktug | answered; replaces the proposal | Check on every refresh, and at 5 min, 15 min, 1 h, then every 6 h; repair only on a page not seen before | [q14-failed-retry.md](q14-failed-retry.md) |
+
+The verdict of the end check for each answer is in [audit.md](audit.md).
 
 ## Answer standard
 

@@ -44,7 +44,7 @@ Presence of a captcha script, widget or cookie is never a reason. Only the outco
 | Rule | The outcome is there when | If it is missing |
 | --- | --- | --- |
 | O1 list | The recipe's row locator matches at least one row. Or the list is provably empty: the portal prints a total of 0, the empty-state marker learned at attach is on the page, or a JSON API answers with its usual keys and an empty list. | With a block sign (table below): fetch once more, through the browser if plain HTTP was used. Still blocked: **Block**. A maintenance page: **Outage**. Neither: suspect, go to Step 4. |
-| O2 file | Status 2xx; not an HTML page where a file was expected; the first bytes fit the type (`%PDF`, `PK`); size above 0 and equal to the announced size when one was given. | Same classification, per file. One file is not the portal: see D1. |
+| O2 file | Status 2xx; not an HTML page where a file was expected; the first bytes fit the type (`%PDF`; `PK\x03\x04` for ZIP, DOCX and XLSX; `D0 CF 11 E0` for old Office files); size above 0 and equal to the announced size when one was given. | Same classification, per file. A login form served with status 200 in place of a file is a **Block**, and is never stored as a document. One file is not the portal: see D1. |
 
 ### Step 3: is what we extracted right? (no model)
 
@@ -110,11 +110,39 @@ What a fixed percentage does instead, as false alarms per read at q = 0.05 (**me
 
 The test has little power on a small portal, and that is correct: five rows do not establish a rate. Small portals are covered by C2, C3 and C4, which do not need one.
 
-**C7, structure.** No published, evaluated threshold exists for detecting extractor breakage from page structure (see Evidence). So the fingerprint (the set of tag-and-class paths, plus whether each of the recipe's anchor locators still resolves) is compared by similarity against a floor measured on this portal: the lowest similarity among the pages fetched at attach, minus 0.1 (**ours**). It only ever triggers a spot check.
+**C7, structure.** The fingerprint is the sorted set of distinct tag-and-class paths of the page, ignoring text, row positions and numeric ids, so that more or fewer tenders never look like a change; for a JSON API, the sorted set of key paths (Danil's note in [q04-q10-notes.md](q04-q10-notes.md)). An equal hash of that set means unchanged. When the hash differs, the two sets are compared by overlap against a floor measured on this portal: the lowest overlap among the pages fetched at attach, minus 0.1 (**ours**). No published, evaluated threshold exists for detecting extractor breakage from page structure (see Evidence), which is why the floor is measured per portal and why this rule only ever triggers a spot check.
 
 **T1, retries.** Three attempts per request and randomised growing pauses are sourced (see Evidence). The 2 s base, 30 s cap and 60 s inline limit are **ours**.
 
 **Outage to `failed` after 60 minutes.** No source gives a number; Google's own guidance speaks only of "multiple days". Our rule ties the word to our behaviour: `healing` while we retry at a pace someone watching would call active (the first hour of the ladder in Q14), `failed` once we have fallen back to slow checks (**ours**). See the question for the mentors below.
+
+## Names for `CheckResult`
+
+`app/models.py` already has `CheckResult` (name, passed, severity, observed, expected, message) and `Severity` (info, warn, fail, block). The rules map onto it like this:
+
+| Rule | `name` | Severity when it fails |
+| --- | --- | --- |
+| T1 | `outage` | **`outage`**, to be added: the portal goes `healing` and **no repair starts** |
+| T2 | `rate_limited` | `warn` while slowing down works; `outage` if it persists |
+| O1 | `list_outcome` | `fail`; `block` when a block sign is confirmed |
+| Block signs | `login`, `captcha`, `refused` | `block` |
+| O2, D1 | `file_outcome`, `files_failed` | `warn` below the threshold; above it `outage`, `block` or `fail` by cause |
+| C1 | `paging_complete`, `duplicate_ids`, `printed_total` | `fail` |
+| C2 | `shape.<field>` | `warn`; the value is nulled |
+| C3 | `lost.<field>`, `changed.<field>` | `fail` after the re-read; `changed` triggers `spot_check` |
+| C4 | `known_ids_missing` | `fail` |
+| C5 | `null_rate.<field>` | `fail` after the re-read |
+| C6 | `canary` | `fail` |
+| C7 | `structure` | `warn`, and triggers `spot_check` |
+| Spot check | `spot_check` | `fail` |
+| F1 | `stale` | `outage` |
+
+Two things the current models cannot say yet:
+
+- **An outage.** `fail` means "the read is wrong: portal goes healing", which today implies a repair. A portal that is down needs `healing` without a repair, so `Severity` needs an `outage` value (or `CheckResult` a flag that says "do not repair").
+- **A suspect that cleared.** Record it as a passed row with severity `info`, with the first observation in `observed` and a message such as "First read missed 2 known tenders; the second read found them." The dashboard can then show how often a portal wobbles.
+
+`count_drop`, the example name in the model's docstring, has no rule here: the count alone decides nothing.
 
 ## Block signs
 
@@ -154,6 +182,7 @@ Looked at only when the outcome is missing (O1, O2).
 - **How often sites break extractors:** the two measured studies both give about 0.14 changes per site per month. So a real portal changing by chance during a day of judging is unlikely (**ours**, from those rates), and false alarms are the larger risk on real portals. The private portals will be changed on purpose.
 - **Zhang 2026, arXiv 2611.00884** (**read**): 20.9% of pages a plain client receives with status 200 lack the page's main content; 13.1% of sites answer a random missing path with 200. Simple checks (text length, a random-path probe, redirect to the home page) recover 86% of unusable responses at about 5% false alarms. This is why O1 tests the outcome and never trusts a 200.
 - **AutoScraper, EMNLP 2024** (**read**): verifies a generated scraper only when it is generated; no runtime monitoring. We found no peer-reviewed study from 2023 to 2026 that measures breakage detection for model-written scrapers.
+- **Why repair acceptance stays strict.** A teammate's note cites "Trustworthy Runtime Error Healing in Real-World Repositories" (arXiv 2609.39086). Its abstract (**read**): the best setting "resumes execution in 38.11% of instances and passes the target test in 28.68%". Automatic healing goes ahead more often than it is right. That study heals Python runtime errors, not scrapers, so it is a warning by analogy; the figures quoted in the note (29.43% and 16.98%) are not in the abstract and were not checked.
 - **Not read:** McCann et al. 2005 (the publisher refuses downloads), Vertex's monitoring method, and all fingerprint thresholds. Nothing above depends on them.
 
 ### Data-observability and scraper-monitoring tools (**read** from the shipped source code)
@@ -200,8 +229,8 @@ Looked at only when the outcome is missing (O1, O2).
 - **Q1 recipe model:** the recipe carries what these rules read: the id shape, the locator of the printed total and whether it counts closed tenders, the empty-state marker, the anchor locators, and the structure fingerprint with its floor.
 - **Q2 locators:** a locator conflict or a single-witness value feeds C2 and C3 as a lost value. The "identical on 90% of tenders" check there is a C3-style rule and should use the same test.
 - **Q4 agent tools:** the learner needs one extra step, a search that returns nothing, to record the empty state.
-- **Q7 schemas:** a check result is rule id, verdict (pass, suspect, cleared, failed), the counts and the evidence; a run stores them and the reason sentence.
-- **Q8 benchmark:** one mock switch per verdict row, plus: paging cut to one page, a 403 rate limit with `Retry-After`, a captcha widget that blocks nothing, a list emptied with and without the notice.
+- **Q7 schemas:** `CheckResult` in `app/models.py` fits, with two additions. See "Names for `CheckResult`" above.
+- **Q8 benchmark:** `docs/BENCHMARK.md` scenarios 9 to 14 already cover block, the harmless captcha, short errors, the empty list with its notice and a cancelled tender. Missing for these rules: paging cut to one page while the portal still prints its total; a 429, and a 403 with `Retry-After`, as rate limits; a list emptied **without** the notice (must not pass silently); an outage that lasts past the retries and then ends; one tender's deadline moved on its detail page only.
 - **Q11 reuse:** the canary for a reused recipe is these same rules.
 - **Q12 large portals:** the checks cost at most 8 extra requests per read (5 detail looks, 2 canary pages, 1 file).
 - **Q13, Q14:** the read interval sets F1; the outage ladder is in Q14.
