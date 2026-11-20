@@ -16,7 +16,7 @@ The proposed answer was: every 6 hours, check each failed portal without calling
 
 - **Every refresh call on a failed portal checks it at once**, at most once a minute.
 - **On our own we check 5 minutes, 15 minutes and 1 hour after it failed, then every 6 hours**, each time shifted by up to 20% at random. A portal blocked by a login or a bot wall is checked every 6 hours from the start.
-- **Before a portal that stopped answering is called `failed`, we retry it after 1, 2, 4, 8, 15 and 30 minutes** while it reads `healing`. That is the first hour (Q10).
+- **Before a portal that stopped answering is called `failed`, we retry it after 1, 2, 4, 8, 15 and 30 minutes** while it reads `healing`. Each number is the wait since the try before, so the tries fall 1, 3, 7, 15, 30 and 60 minutes after the outage was found. That is the first hour (Q10).
 
 What a check does, with no model call:
 
