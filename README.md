@@ -40,7 +40,7 @@ How we represent what the LLM learned about a portal. **Owner:** David
 ### [ ] Q2. Field locators
 What the recipe stores to find each field and link, and how a break is detected. **Owner:** Danil
 - [x] Research: `research/q02-locators.md`. Two or three locators and value checks per field; per the audit, a single surviving locator counts only when it equals the last good value.
-- [x] Locator types in the recipe (CSS, XPath, label, JSON path, fallbacks).
+- [x] Locator types in the recipe (CSS, XPath, label, JSON path, fallbacks): `LocatorKind` and `FieldSpec.locators` in `app/recipe/schema.py` (G9).
 - [ ] Value checks per field (dates parse, deadline after publication, CPV 8 digits, country 2 letters).
 - [x] Normalizers (`app/extract/`): local dates and times to offset, CPV, procedureType and contractNature mapping, ids.
 
@@ -73,7 +73,7 @@ What the learn and repair agents use to see and drive a portal. **Owner:** David
 Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Research: `research/q06-language.md`. Python for the whole system; pin `playwright` to the base image's version.
 - [x] Dockerfile at the repo root: base image with Python 3.12 and Chromium, quick build, `docker build .` works for linux/amd64. CI builds it on every pull request (`.github/workflows/ci.yml`).
-- [x] Default command starts the app on port 8080. For now it serves a placeholder page; the API and the dashboard replace it (G1, G3).
+- [x] Default command starts the app on port 8080, with the API and the dashboard (G1, G3).
 
 ### [ ] Q7. Schemas
 **Owner:** Baris. Core done and usable now; three small follow-ups left.
@@ -88,14 +88,15 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] Design: `docs/BENCHMARK.md`.
 - [ ] Mock portal with variants and the 25 scenarios in `docs/BENCHMARK.md` (`mock_portal/`). Done: the server-rendered template with 13 switches and its recipe, mounted in the app at `/mock`. Open: the JSON and multi-step templates, the large variant, the 250 MB ZIP, the scenario runner.
 - [x] Record and replay mode in `app/fetch/` (`FETCH_MODE`; replay is the default, the Dockerfile sets live).
-- [ ] Real test set: 8+ portals, 4+ countries, 3+ software packages, 1 to 2 behind login or captcha. Candidates in `research/q08-test-portals.md`; still to add Italian and Polish platforms (`research/patterno-landscape.md`) and record them.
+- [x] Real test set: `bench/portals.toml` (read with `bench.portals.load_portals()`): 49 portals in 7 countries plus Mercell, led by Poland, Italy and France as the mentor's answers suggest; 2 held back unseen, 2 expected to fail at login, aggregators listed as excluded. Each address says how sure we are of it.
+- [ ] Record the test set (a person, `FETCH_MODE=record`), Poland first; find the 18 missing addresses and confirm the 10 example or doubtful ones.
 - [ ] Gold labels: open-id list per portal plus 5 checked tenders each (about 1.5 h, split).
 - [ ] Harness and scorer (`bench/run.py`, 2 to 3 h).
 
 ### [ ] Q9. OpenAI models and cost
 **Owner:** Danil
 - [x] Research: `research/q09-models-cost.md`. Learn and repair on `gpt-6.2-sol`, spot checks on `gpt-6-luna`; per the audit, quote the cost per portal only once measured.
-- [ ] `app/config.py`: model per job (`MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK`) and the price table with its date.
+- [x] `app/config.py`: model per job (`MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK`) and the price table with its date.
 - [ ] Pick models from the benchmark (needs Q8).
 - [ ] Cost per portal (attach and repair) for the hand-in README.
 
@@ -147,6 +148,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] G1, wiring the worker: with `DATA_DIR` the app runs on the read loop (`app/loop.py`, one read in `app/reader.py`). Until the learning agent exists, only the mock portal mounted at `/mock` can be attached (`builtin_learner` in `app/main.py`).
 - [x] G2. `app/db.py` on top of `app/schema.sql`: the eight `Store` methods the API calls, and the worker's writes (portal state, runs, checks, steps, snapshots, recipes, publishing tenders and documents). One read and one write connection, each behind a lock (research in `research/q15-storage.md`). Tests in `tests/test_db.py`.
 - [x] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
+  - [x] No demo data in place of a down API: the page says "API offline, retrying"; the demo snapshot only with `?demo`.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
 - [ ] G5. Video, at most 3 minutes, including the dashboard (mock portal break and repair makes a good demo).
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging.

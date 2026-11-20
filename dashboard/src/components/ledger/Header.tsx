@@ -35,6 +35,17 @@ export function Header(props: {
 }
 
 function SourceStatus({ state, now, demoZone }: { state: LedgerState; now: number; demoZone: string }) {
+  if (state.offline && state.source !== "demo") {
+    const age = state.liveAt ? Math.max(0, Math.round((now - state.liveAt) / 1000)) : null;
+    return (
+      <span className="inline-flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1 rounded-sm bg-failed-tint px-2 py-0.5 text-failed">
+          <WifiOff aria-hidden className="size-[1em]" /> API offline, retrying
+        </span>
+        <span className="text-muted-foreground">{age === null ? "No data yet" : `Last update ${age} s ago`}</span>
+      </span>
+    );
+  }
   if (state.source === null) return <span className="text-muted-foreground">Connecting…</span>;
   if (state.source === "live") {
     const age = state.liveAt ? Math.max(0, Math.round((now - state.liveAt) / 1000)) : 0;

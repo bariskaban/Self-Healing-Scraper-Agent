@@ -5,8 +5,8 @@
     POST /api/settings                the attach time limit and the robots.txt test switch
 
 These are extra routes beside the public contract, which they do not touch. The page checks
-every answer against `dashboard/src/data/schema.ts` and falls back to its demo data when one
-field does not fit, so that file is the contract here.
+every answer against `dashboard/src/data/schema.ts` and treats one that does not fit as the API
+being offline ("API offline, retrying", the last good answer kept), so that file is the contract here.
 
 Everything shown is what the records say. What the system does not record is null or left
 out, never filled in: a run without a publication has no `publishedCount`, a portal whose
