@@ -20,7 +20,12 @@ An agent that attaches to European public procurement portals on its own, watche
 - **G1, the API:** Goktug
 - **G2, the database:** David
 - **G3, the dashboard and frontend:** Danil and Baris
+- **The network layer (`app/fetch/`):** David
+- **The recipe schema, the executor and its normalisers, the read loop, a small mock portal (`app/recipe/`, `app/extract/`, `app/scheduler.py`, `mock_portal/`):** Goktug
+- **The learn and repair agent (`app/agent/`, `app/config.py`):** Goktug, in a second Claude session
 - **Not assigned yet:** G4 to G11
+
+Who builds what from here, in what order, and what each part hands to the others: [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md).
 
 ## Questions and what is left
 
