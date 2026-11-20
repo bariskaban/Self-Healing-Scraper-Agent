@@ -1,12 +1,10 @@
 // View-only state that is not part of the data layer: theme, the run a link wants opened, and the
-// timelines the overview shows in its spotlight and ticker.
+// runs the overview shows in its spotlight, ticker and analytics.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getJson, portalPath } from "@/data/api";
 import { demoTimeline } from "@/data/demo";
 import { timelineSchema } from "@/data/schema";
-import { sortPortals } from "@/data/view";
-import type { Dashboard, Run, Source } from "@/types";
-import { hasActiveRepair } from "./evidence";
+import type { LedgerState, Run } from "@/types";
 
 export type ThemePref = "dark" | "light" | "system";
 const KEY = "watchtower.theme";
@@ -38,32 +36,60 @@ let pendingRun: string | null = (() => {
 export const setPendingRun = (id: string | null) => { pendingRun = id; };
 export const takePendingRun = () => { const id = pendingRun; pendingRun = null; return id; };
 
+/** The overview reads timelines for at most this many portals. */
+export const TIMELINE_CAP = 16;
+
 /**
- * Timelines for the overview. Demo: the bundled ones, for every portal. Live: only the portal with a
- * repair in flight, re-read with each new snapshot, so the overview stays one snapshot plus at most
- * one timeline. A failed read keeps the last good copy and never mixes in demo data.
+ * Runs per portal for the overview's spotlight, ticker and analytics, always from the same source
+ * as the rows. Demo: the bundled timelines. Basic live: the runs the controller already read from
+ * the contract routes. Full live: GET /api/portals/{id}/timeline, read once per portal and again
+ * only when that portal's last run changed or is still running; a failed read keeps the last good
+ * copy and never mixes in demo data.
  */
-export function useOverviewTimelines(d: Dashboard | null, source: Source | null, enabled: boolean): Record<string, Run[]> {
+export function useOverviewTimelines(state: LedgerState, enabled: boolean): Record<string, Run[]> {
+  const { dashboard: d, source, basic, fleetRuns } = state;
+  const full = enabled && source === "live" && !basic ? d : null;
   const [live, setLive] = useState<Record<string, Run[]>>({});
-  const repairId = d && source === "live" && enabled ? sortPortals(d.portals).find(hasActiveRepair)?.id ?? null : null;
-  const asOf = d?.asOf;
+  const seen = useRef(new Map<string, string>());
   const inFlight = useRef(false);
   useEffect(() => {
-    if (!repairId || inFlight.current) return;
+    if (!full || inFlight.current) return;
+    const due = full.portals.slice(0, TIMELINE_CAP).filter((p) => {
+      const mark = `${p.lastRun?.id ?? ""}:${p.lastRun?.result ?? "running"}`;
+      return seen.current.get(p.id) !== mark || (p.lastRun !== null && p.lastRun.result === null);
+    });
+    if (!due.length) return;
     const ac = new AbortController();
     inFlight.current = true;
-    getJson((u, i) => window.fetch(u, i), portalPath(repairId, "timeline"), timelineSchema, ac.signal)
-      .then((timeline) => setLive({ [repairId]: timeline }))
-      .catch(() => { /* keep the last good copy */ })
+    void Promise.allSettled(due.map((p) => getJson((u, i) => window.fetch(u, i), portalPath(p.id, "timeline"), timelineSchema, ac.signal)))
+      .then((results) => {
+        if (ac.signal.aborted) return;
+        const got: Record<string, Run[]> = {};
+        results.forEach((r, i) => {
+          const p = due[i];
+          if (!p || r.status !== "fulfilled") return;
+          got[p.id] = r.value;
+          seen.current.set(p.id, `${p.lastRun?.id ?? ""}:${p.lastRun?.result ?? "running"}`);
+        });
+        if (Object.keys(got).length) setLive((prev) => ({ ...prev, ...got }));
+      })
       .finally(() => { inFlight.current = false; });
     return () => ac.abort();
-  }, [repairId, asOf]);
+  }, [full]);
   const demo = useMemo(() => {
     if (!d || source !== "demo") return null;
     const out: Record<string, Run[]> = {};
     for (const p of d.portals) { const t = demoTimeline(p.id); if (t) out[p.id] = t; }
     return out;
   }, [d, source]);
-  if (source === "demo") return demo ?? {};
-  return repairId && live[repairId] ? { [repairId]: live[repairId] } : {};
+  const fullLive = useMemo(() => {
+    if (!full) return {};
+    const out: Record<string, Run[]> = {};
+    for (const p of full.portals) { const t = live[p.id]; if (t) out[p.id] = t; }
+    return out;
+  }, [full, live]);
+  if (source === "demo") return demo ?? EMPTY;
+  if (source === "live" && basic) return fleetRuns ?? EMPTY;
+  return fullLive;
 }
+const EMPTY: Record<string, Run[]> = {};

@@ -1,5 +1,5 @@
-import { FileCheck2, FileClock } from "lucide-react";
-import { safeFileHref } from "@/data/api";
+import { ExternalLink, FileCheck2, FileClock } from "lucide-react";
+import { externalHref, safeFileHref } from "@/data/api";
 import { absTime, bytes, localTime } from "@/data/format";
 import type { Tender } from "@/types";
 
@@ -32,6 +32,18 @@ function Deadline({ at, timeZone }: { at: string | null; timeZone: string | null
   return <><time dateTime={at}>{absTime(at, timeZone)}</time><p className="text-xs text-muted-foreground">Local: {localTime(at)}</p></>;
 }
 
+/** The title opens the tender's own page on the portal, in a new tab, when the portal gave an http(s) address. */
+function Title({ t }: { t: Tender }) {
+  const href = externalHref(t.url);
+  if (t.title === null) return missing;
+  if (!href) return <>{t.title}</>;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" title={`Open ${href} in a new tab`} className="group/t underline-offset-4 hover:underline">
+      {t.title}<ExternalLink aria-hidden className="ml-1.5 inline size-[0.85em] -translate-y-px text-muted-foreground group-hover/t:text-primary" /><span className="sr-only"> (opens the tender's page in a new tab)</span>
+    </a>
+  );
+}
+
 /** Reference number and page address, whichever of the two the portal shows. */
 const subline = (t: Tender) => [t.referenceNumber, t.url].filter(Boolean).join(" · ");
 
@@ -46,7 +58,7 @@ export function TenderTable({ tenders, timeZone, live }: { tenders: Tender[]; ti
     <>
       <ul className="flex flex-col gap-3 lg:hidden" aria-label="Delivered tenders">
         {tenders.map((t) => <li key={t.id} className="card p-4 sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="text-[1.05rem] font-semibold">{t.title ?? missing}</h3><Status status={t.status} /></div>
+          <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="text-[1.05rem] font-semibold"><Title t={t} /></h3><Status status={t.status} /></div>
           <p className="mt-1 break-all text-xs text-muted-foreground">{subline(t)}</p>
           <dl className="mt-3 grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
             <dt className="text-muted-foreground">Buyer</dt><dd>{t.buyerName ?? missing}</dd>
@@ -65,7 +77,7 @@ export function TenderTable({ tenders, timeZone, live }: { tenders: Tender[]; ti
           <tbody>
             {tenders.map((t) => (
               <tr key={t.id} className="align-top">
-                <td className={td}><p className="text-[1.05rem] font-semibold tracking-tight">{t.title ?? missing}</p><p className="mt-0.5 text-xs break-all text-muted-foreground">{subline(t)}</p></td>
+                <td className={td}><p className="text-[1.05rem] font-semibold tracking-tight"><Title t={t} /></p><p className="mt-0.5 text-xs break-all text-muted-foreground">{subline(t)}</p></td>
                 <td className={`${td} text-secondary-text`}>{t.buyerName ?? missing}</td>
                 <td className={`${td} whitespace-nowrap`}><Deadline at={t.submissionDeadline} timeZone={timeZone} /></td>
                 <td className={td}><Status status={t.status} /></td>

@@ -65,12 +65,12 @@
   --surface: #ffffff;
   --raised: #ffffff;
   --inset: #eeeef2;
-  --border: rgb(0 0 0 / 0.09);
-  --border-strong: rgb(0 0 0 / 0.18);
-  --divider: rgb(0 0 0 / 0.07);
+  --border: rgb(0 0 0 / 0.11);
+  --border-strong: rgb(0 0 0 / 0.22);
+  --divider: rgb(0 0 0 / 0.08);
   --foreground: #1d1d1f;
-  --secondary-text: #424245;
-  --muted-text: #6e6e73;
+  --secondary-text: #3a3a3e;
+  --muted-text: #63636a;
   --accent-ink: #4f46e5;
   --on-accent: #ffffff;
   --ring: #6366f1;
@@ -91,12 +91,12 @@
   --glass: rgb(255 255 255 / 0.74);
   --glass-border: rgb(0 0 0 / 0.08);
   --panel: rgb(255 255 255 / 0.9);
-  --row-bg: #f7f7fa;
-  --row-hover: #f0f0f8;
+  --row-bg: #fafafc;
+  --row-hover: #f2f2fa;
   --card-sheen: linear-gradient(180deg, #ffffff, #ffffff);
-  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -18px rgb(29 29 31 / 0.18);
+  --card-shadow: 0 1px 1px rgb(0 0 0 / 0.03), 0 10px 28px -20px rgb(29 29 31 / 0.22);
   --silver: linear-gradient(180deg, #1d1d1f 15%, #3b3b4a 60%, #6e6e8a 100%);
-  --glow-opacity: 0.16;
+  --glow-opacity: 0.13;
   --bar-top: #6366f1;
   --bar-bottom: rgb(99 102 241 / 0.08);
   --grid-line: rgb(0 0 0 / 0.07);
@@ -206,6 +206,9 @@
     padding: 0.28rem 0.7rem 0.28rem 0.32rem; font-size: 0.82rem; font-weight: 500; line-height: 1.2;
   }
   .chip-plain { padding-left: 0.7rem; }
+  /* Light theme: state chips carry their tint, as on a printed ledger. Dark keeps the glass chip. */
+  :root:not(.dark) .chip-state { background: var(--tint); border-color: transparent; }
+  :root:not(.dark) .chip-state > span:first-child { background: transparent; }
   .pill-cta {
     display: inline-flex; align-items: center; gap: 0.45rem; border-radius: 9999px;
     background: var(--cta-bg); color: var(--cta-fg); padding: 0.5rem 1rem;

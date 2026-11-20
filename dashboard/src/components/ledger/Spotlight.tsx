@@ -48,12 +48,24 @@ function Shell({ label, live, children }: { label: string; live?: boolean; child
   );
 }
 
-export function SpotlightEmpty({ loading }: { loading?: boolean }) {
+/** No repair to walk through. `healing` are portals that are healing although no repair run is known to this page. */
+export function SpotlightEmpty({ loading, healing = [], basic }: { loading?: boolean; healing?: Portal[]; basic?: boolean }) {
+  const first = healing[0];
   return (
     <section aria-label="Live repair">
-      <Shell label="Live repair">
-        <p className="display mt-4 text-[1.9rem]">{loading ? "Reading the fleet…" : "No repair is running."}</p>
-        {!loading && <p className="mt-3 max-w-xl text-secondary-text">Every portal is being read with its current recipe. When a layout changes, the repair appears here step by step: what broke, what the agent did, what changed and how it was verified.</p>}
+      <Shell label="Live repair" live={!!first}>
+        {loading ? <p className="display mt-4 text-[1.9rem]">Reading the fleet…</p> : first ? <>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <h3 className="display text-[1.9rem] break-all"><a href={portalHash(first.id)} className="hover:underline">{hostname(first.url)}</a></h3>
+            <StateBadge state={first.state} note={stillServing(first)} float />
+          </div>
+          <p className="mt-4 max-w-[46rem] text-[1.45rem] leading-[1.35] font-light tracking-[-0.01em]">{first.reason}</p>
+          <p className="mt-4 max-w-xl text-secondary-text">{basic ? "The step-by-step repair story (what broke, what the agent did, what changed, how it was verified) is not on the contract routes; it arrives with the /api routes." : "No repair run is recorded for this portal yet."}{healing.length > 1 ? ` ${healing.length - 1} more portal${healing.length === 2 ? " is" : "s are"} healing.` : ""}</p>
+          <p className="mt-auto pt-5 text-sm"><a href={portalHash(first.id)} className="link-arrow">Open the portal <ArrowRight aria-hidden className="size-4" /></a></p>
+        </> : <>
+          <p className="display mt-4 text-[1.9rem]">No repair is running.</p>
+          <p className="mt-3 max-w-xl text-secondary-text">No portal is healing. When a layout changes, the repair appears here step by step: what broke, what the agent did, what changed and how it was verified.</p>
+        </>}
       </Shell>
     </section>
   );
@@ -64,7 +76,7 @@ export function SpotlightEmpty({ loading }: { loading?: boolean }) {
  * seconds, pauses on hover, focus or the pause button, answers the arrow keys, and stands still under
  * reduced motion (the advance is driven by a CSS animation, which that setting removes).
  */
-export function Spotlight({ portal, run, timeline, earlier, live, eurPerUsd }: { portal: Portal; run: Run; timeline: Run[]; earlier: Run | null; live: boolean; eurPerUsd: number }) {
+export function Spotlight({ portal, run, timeline, earlier, live, eurPerUsd }: { portal: Portal; run: Run; timeline: Run[]; earlier: Run | null; live: boolean; eurPerUsd: number | null }) {
   const slides = repairSlides(run, timeline, portal.timezone);
   const [index, setIndex] = useState(0);
   const [hover, setHover] = useState(false);
@@ -90,7 +102,7 @@ export function Spotlight({ portal, run, timeline, earlier, live, eurPerUsd }: {
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {run.finishedAt === null ? `Repair started ${clock(run.startedAt, portal.timezone)}, not finished` : `Repair ${clock(run.startedAt, portal.timezone)} to ${clock(run.finishedAt, portal.timezone)}`}
-          {" · "}<span title={`Model usage only, fixed rate ${eurPerUsd} EUR/USD`}>{costText(runCost(run))}</span>
+          {" · "}<span title={eurPerUsd ? `Model usage only, fixed rate ${eurPerUsd} EUR/USD` : "Model usage only"}>{costText(runCost(run))}</span>
         </p>
 
         <div className="slides mt-6 flex-1">

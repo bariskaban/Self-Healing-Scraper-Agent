@@ -5,7 +5,7 @@ import type { Run, Step } from "@/types";
 import { stepTiming } from "./evidence";
 import { clock } from "./overview";
 
-function useWidth<T extends HTMLElement>(fallback: number) {
+export function useWidth<T extends HTMLElement>(fallback: number) {
   const ref = useRef<T | null>(null);
   const [width, setWidth] = useState(fallback);
   useEffect(() => {

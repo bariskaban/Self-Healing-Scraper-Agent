@@ -24,7 +24,7 @@ export function StateBadge({ state, note, float, i = 0, className }: { state: Po
   const Icon = STATE_ICON[state];
   const m = STATE_META[state];
   return (
-    <span title={`${m.label}: ${m.tip}`} style={idx(i)} className={cn("chip", float && "float", className)}>
+    <span title={`${m.label}: ${m.tip}`} style={{ ...idx(i), ["--tint" as string]: `var(--${state}-tint)` }} className={cn("chip chip-state", float && "float", className)}>
       <span className={cn("grid size-[1.4em] shrink-0 place-items-center rounded-full", STATE_CLASS[state])}><Icon aria-hidden className="size-[0.9em]" /></span>
       <span className={cn("font-semibold", STATE_INK[state])}>{m.label}</span>
       {note && <span className="border-l border-border-strong pl-2 text-secondary-text">{note}</span>}
@@ -44,34 +44,50 @@ export function ResultMark({ result, className }: { result: "ok" | "failed" | nu
   );
 }
 
+const SLOT_CLASS = {
+  empty: "h-[5px] bg-[var(--border-strong)]",
+  ok: "h-6 bg-serving/75",
+  failed: "h-3 rounded-b-none bg-failed",
+  running: "hatch h-6 text-integrating",
+};
+
+/** 30 read slots, oldest to newest, with the counts in words underneath. Null means the history is not recorded. */
 export function ReadHistory30({ reads }: { reads: Portal["recentReads"] }) {
+  if (reads === null) return <span className="text-muted-foreground" title="The read history is not on the routes this page could reach.">Not recorded</span>;
   const slots = readSlots(reads);
   const ok = reads.filter((r) => r === "ok").length;
   const failed = reads.filter((r) => r === "failed").length;
   const running = reads.filter((r) => r === null).length;
+  const words = [ok && `${ok} passed`, failed && `${failed} failed`, running && `${running} running`].filter(Boolean).join(" · ");
   const label = reads.length
     ? `Last ${Math.min(30, reads.length)} reads, oldest to newest: ${ok} passed, ${failed} failed${running ? `, ${running} running` : ""}.`
     : "No reads yet.";
   return (
-    <div role="img" aria-label={label} title={label} className="flex h-6 w-[208px] shrink-0 items-end gap-[2px]">
-      {slots.map((s, i) => (
-        <span
-          key={i}
-          className={cn(
-            "w-[5px] shrink-0 rounded-full",
-            s === "empty" && "h-[5px] bg-inset",
-            s === "ok" && "h-6 bg-serving/75",
-            s === "failed" && "h-3 rounded-b-none bg-failed",
-            s === "running" && "hatch h-6 text-integrating",
-          )}
-        />
-      ))}
+    <div className="w-[208px] shrink-0">
+      <div role="img" aria-label={label} title={label} className="flex h-6 items-end gap-[2px]">
+        {slots.map((s, i) => <span key={i} className={cn("w-[5px] shrink-0 rounded-full", SLOT_CLASS[s])} />)}
+      </div>
+      <p aria-hidden className="mt-1 text-xs whitespace-nowrap text-muted-foreground">{words || "No reads yet"}</p>
     </div>
   );
 }
 
-export function DeliverySparkline({ values }: { values: number[] }) {
+/** What the marks in the 30-read history mean. */
+export function ReadLegend() {
+  const item = (slot: keyof typeof SLOT_CLASS, word: string) => (
+    <span className="inline-flex items-end gap-1.5"><span aria-hidden className={cn("inline-block w-[5px] rounded-full", SLOT_CLASS[slot], slot === "empty" && "mb-[5px]")} />{word}</span>
+  );
+  return (
+    <p className="flex flex-wrap items-end gap-x-4 gap-y-1 text-sm text-muted-foreground">
+      <span>Read history, oldest to newest:</span>
+      {item("ok", "Passed")}{item("failed", "Failed")}{item("running", "Running")}{item("empty", "No read")}
+    </p>
+  );
+}
+
+export function DeliverySparkline({ values }: { values: number[] | null }) {
   const id = useId();
+  if (values === null) return <span className="text-xs whitespace-nowrap text-muted-foreground" title="Published counts per read are not recorded on these routes.">—</span>;
   if (values.length < 2) return <span className="text-xs whitespace-nowrap text-muted-foreground">No trend yet</span>;
   const w = 72, h = 24;
   const max = Math.max(...values, 1);
@@ -90,9 +106,9 @@ export function DeliverySparkline({ values }: { values: number[] }) {
   );
 }
 
-export function CostLabel({ cost, eurPerUsd, className, stacked }: { cost: CostSummary; eurPerUsd: number; className?: string; stacked?: boolean }) {
-  const tip = `Model usage only (LLM calls), converted at the recorded fixed rate of ${eurPerUsd} EUR per USD.`;
-  if (cost.kind !== "known") return <span title={tip} className={cn("text-muted-foreground", className)}>{costText(cost)}</span>;
+export function CostLabel({ cost, eurPerUsd, className, stacked }: { cost: CostSummary; eurPerUsd: number | null; className?: string; stacked?: boolean }) {
+  const tip = eurPerUsd ? `Model usage only (LLM calls), converted at the recorded fixed rate of ${eurPerUsd} EUR per USD.` : "Model usage only (LLM calls). No usage is recorded on the routes this page could reach.";
+  if (cost.kind !== "known") return <span title={tip} className={cn("whitespace-nowrap text-muted-foreground", className)}>{costText(cost)}</span>;
   const meta = `${tokens(cost.tokens)} tokens${cost.running ? " so far" : ""}${cost.incomplete ? " · incomplete usage" : ""}`;
   return (
     <span title={tip} className={cn("tnum whitespace-nowrap", className)}>

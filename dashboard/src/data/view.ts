@@ -24,17 +24,19 @@ export function sortPortals(ps: Portal[]): Portal[] {
 export interface FleetSummary {
   counts: Record<PortalState, number>;
   tendersDelivered: number;
-  readsLastHour: number;
+  /** null when no portal's read count is recorded (contract-only rows whose runs could not be read) */
+  readsLastHour: number | null;
   cost: CostSummary;
 }
 
 export function fleetSummary(d: Dashboard): FleetSummary {
   const counts = { failed: 0, healing: 0, integrating: 0, serving: 0 };
   for (const p of d.portals) counts[p.state]++;
+  const reads = d.portals.map((p) => p.readsLastHour).filter((n): n is number => n !== null);
   return {
     counts,
     tendersDelivered: d.portals.reduce((s, p) => s + p.tenderCount, 0),
-    readsLastHour: d.portals.reduce((s, p) => s + p.readsLastHour, 0),
+    readsLastHour: d.portals.length > 0 && reads.length === 0 ? null : reads.reduce((s, n) => s + n, 0),
     cost: sumUsage(d.portals.map((p) => p.usage)),
   };
 }
@@ -42,7 +44,7 @@ export function fleetSummary(d: Dashboard): FleetSummary {
 export type Slot = "ok" | "failed" | "running" | "empty";
 
 /** 30 slots oldest → newest, padded with empty slots on the left. */
-export function readSlots(recent: Portal["recentReads"]): Slot[] {
+export function readSlots(recent: NonNullable<Portal["recentReads"]>): Slot[] {
   const last = recent.slice(-30).map((r): Slot => (r === null ? "running" : r));
   return [...Array<Slot>(30 - last.length).fill("empty"), ...last];
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, ChevronRight, Wrench } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronRight, ExternalLink, Wrench } from "lucide-react";
+import { externalHref } from "@/data/api";
 import { absTime, costText, hostname, portalCost, relTime, runCost } from "@/data/format";
 import { newestFirst } from "@/data/view";
 import type { DetailView, Source } from "@/types";
@@ -16,7 +17,7 @@ const Back = () => (
   <a href="#/" className="link-arrow text-sm"><ArrowLeft aria-hidden className="size-4" /> Back to portals</a>
 );
 
-export function PortalDetail({ detail, source, now, eurPerUsd }: { detail: DetailView | null; source: Source | null; now: number; eurPerUsd: number }) {
+export function PortalDetail({ detail, source, basic, now, eurPerUsd }: { detail: DetailView | null; source: Source | null; basic: boolean; now: number; eurPerUsd: number | null }) {
   const [selected, setSelected] = useState<string | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const openRun = (id: string) => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setSelected(id); };
@@ -43,10 +44,13 @@ export function PortalDetail({ detail, source, now, eurPerUsd }: { detail: Detai
   const { active, earlier } = repairRuns(p, timeline);
   const run = selected ? timeline.find((r) => r.id === selected) ?? null : null;
   const quiet = "font-normal text-muted-foreground";
+  // On the contract routes these fields do not exist, which is different from "none".
+  const unknown = <span className={quiet} title="Not on the contract routes; it arrives with the /api routes.">Not recorded</span>;
+  const site = externalHref(p.url);
   const facts: [string, React.ReactNode][] = [
-    ["Software", p.fingerprint ?? <span className={quiet}>Not identified</span>],
-    ["Active recipe", p.recipeVersion != null ? <>v{p.recipeVersion}{p.reusedFrom && <span className="block text-sm font-normal text-muted-foreground">Reused from {p.reusedFrom}</span>}</> : <span className={quiet}>None yet</span>],
-    ["Next read", p.nextReadAt ? <time dateTime={p.nextReadAt} title={absTime(p.nextReadAt, p.timezone)}>{relTime(p.nextReadAt, now)}</time> : <span className={quiet}>Not scheduled</span>],
+    ["Software", p.fingerprint ?? (basic ? unknown : <span className={quiet}>Not identified</span>)],
+    ["Active recipe", p.recipeVersion != null ? <>v{p.recipeVersion}{p.reusedFrom && <span className="block text-sm font-normal text-muted-foreground">Reused from {p.reusedFrom}</span>}</> : basic ? unknown : <span className={quiet}>None yet</span>],
+    ["Next read", p.nextReadAt ? <time dateTime={p.nextReadAt} title={absTime(p.nextReadAt, p.timezone)}>{relTime(p.nextReadAt, now)}</time> : basic ? unknown : <span className={quiet}>Not scheduled</span>],
     ["Last success", p.lastSuccessAt ? <time dateTime={p.lastSuccessAt} title={absTime(p.lastSuccessAt, p.timezone)}>{relTime(p.lastSuccessAt, now)}</time> : <span className={quiet}>Never</span>],
     ["Model cost", <CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} stacked />],
   ];
@@ -60,7 +64,11 @@ export function PortalDetail({ detail, source, now, eurPerUsd }: { detail: Detai
           <StateBadge state={p.state} note={stillServing(p)} float className="text-[0.95rem]" />
         </div>
         <p className="mt-4 max-w-[62rem] text-[1.2rem] leading-relaxed text-secondary-text">{p.reason}</p>
-        <p className="mt-2 font-mono text-sm break-all text-muted-foreground">{p.url}</p>
+        <p className="mt-3">
+          {site
+            ? <a href={site} target="_blank" rel="noopener noreferrer" className="group/site inline-flex max-w-full items-center gap-2 font-mono text-sm text-primary underline-offset-4 hover:underline"><span className="break-all">{p.url}</span><ExternalLink aria-hidden className="size-4 shrink-0" /><span className="sr-only"> (opens the portal's website in a new tab)</span></a>
+            : <span className="font-mono text-sm break-all text-muted-foreground">{p.url}</span>}
+        </p>
         <dl className="mt-7 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           {facts.map(([k, v], i) => (
             <div key={k} className="glass rounded-2xl px-4 py-3.5" style={idx(i)}>
@@ -69,13 +77,14 @@ export function PortalDetail({ detail, source, now, eurPerUsd }: { detail: Detai
             </div>
           ))}
         </dl>
+        {basic && <p className="mt-3 text-sm text-muted-foreground">Live from the public contract routes. Software, recipe, schedule, cost, summaries, checks and agent steps arrive with the /api routes.</p>}
       </div>
 
       {active && <RepairBand portal={p} active={active} earlier={earlier} timeline={timeline} onInspect={openRun} />}
 
       <section aria-labelledby="chart-h">
         <SectionHead id="chart-h" label="Delivery" title="Published per read">
-          <p className="text-sm text-muted-foreground">One column per recorded read, oldest to newest</p>
+          <p className="text-sm text-muted-foreground">{basic ? "Published counts are not on the contract routes; the lane shows each read's result" : "One column per recorded read, oldest to newest"}</p>
         </SectionHead>
         <div className="card p-5 2xl:p-7"><TenderCountChart timeline={timeline} timeZone={p.timezone} /></div>
       </section>
@@ -106,10 +115,10 @@ export function PortalDetail({ detail, source, now, eurPerUsd }: { detail: Detai
                         <time className="tnum text-[1.05rem] font-semibold" dateTime={r.startedAt} title={absTime(r.startedAt, p.timezone)}>{clock(r.startedAt, p.timezone)}</time>
                         <span className="font-semibold capitalize">{r.kind}</span>
                         <ResultMark result={r.result} />
-                        <span className="chip chip-plain !py-0.5 text-xs text-muted-foreground">{r.trigger}</span>
+                        {r.trigger && <span className="chip chip-plain !py-0.5 text-xs text-muted-foreground">{r.trigger}</span>}
                         {r.recipeChange && <span className="chip chip-plain !py-0.5 text-xs text-integrating">Recipe v{r.recipeChange.from} → v{r.recipeChange.to}</span>}
                       </span>
-                      <span className="leading-relaxed text-secondary-text">{r.summary}</span>
+                      <span className="leading-relaxed text-secondary-text">{r.summary ?? (r.finishedAt ? `Finished at ${clock(r.finishedAt, p.timezone)}. No summary is recorded on the contract routes.` : "Still running. No summary is recorded on the contract routes.")}</span>
                     </span>
                     <span className="tnum shrink-0 text-sm text-muted-foreground">{costText(runCost(r))}</span>
                     <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform duration-500 ease-spring group-hover:translate-x-1 group-hover:text-primary max-sm:hidden" />
@@ -120,7 +129,7 @@ export function PortalDetail({ detail, source, now, eurPerUsd }: { detail: Detai
           </ol>
         )}
       </section>
-      <RunSheet run={run} timeline={timeline} timeZone={p.timezone} eurPerUsd={eurPerUsd} onClose={() => setSelected(null)} returnFocus={returnFocus} />
+      <RunSheet run={run} timeline={timeline} timeZone={p.timezone} eurPerUsd={eurPerUsd} now={now} basic={basic} onClose={() => setSelected(null)} returnFocus={returnFocus} />
     </div>
   );
 }

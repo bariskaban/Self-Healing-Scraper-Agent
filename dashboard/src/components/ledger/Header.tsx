@@ -1,4 +1,4 @@
-import { Monitor, Moon, Settings as Gear, Sun, WifiOff } from "lucide-react";
+import { Monitor, Moon, Plus, Settings as Gear, Sun, WifiOff } from "lucide-react";
 import type { LedgerState } from "@/types";
 import type { ThemePref } from "./viewState";
 
@@ -18,10 +18,16 @@ export function TowerMark({ className }: { className?: string }) {
 const snapshotTime = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZoneName: "short" }).format(new Date(iso));
 
-export function Header(props: { state: LedgerState; now: number; theme: ThemePref; onTheme: () => void; onSettings: () => void }) {
+export const ADD_OFF_REASON = "Adding a portal needs the live API. The API is unreachable, so this page shows the demo snapshot.";
+
+export function Header(props: {
+  state: LedgerState; now: number; theme: ThemePref;
+  onTheme: () => void; onSettings: () => void; onAddPortal: () => void; onAnalytics: (() => void) | null;
+}) {
   const { state, now } = props;
   const ThemeIcon = props.theme === "system" ? Monitor : props.theme === "light" ? Sun : Moon;
   const themeLabel = props.theme === "system" ? "System" : props.theme === "light" ? "Light" : "Dark";
+  const canAdd = state.source === "live";
   return (
     <header className="pointer-events-none sticky top-3 z-40 px-3 lg:px-8">
       <div className="glass pointer-events-auto mx-auto flex max-w-[100rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[1.6rem] px-3 py-2 shadow-[0_10px_40px_-18px_rgb(0_0_0/0.55)] sm:rounded-full sm:pl-3 sm:pr-2">
@@ -29,18 +35,25 @@ export function Header(props: { state: LedgerState; now: number; theme: ThemePre
           <TowerMark className="size-9 shrink-0" />
           <span className="text-[1.12rem] font-semibold tracking-tight">Watchtower</span>
         </a>
-        <span className="hidden items-center gap-3 text-sm text-muted-foreground md:flex">
+        <nav aria-label="Sections" className="hidden items-center gap-3 text-sm text-muted-foreground md:flex">
           <span aria-hidden className="h-4 w-px bg-[var(--border-strong)]" />
-          {state.route.name === "overview" ? "Portal overview" : <><a href="#/" className="hover:text-foreground">Portal overview</a><span aria-hidden>/</span><span className="text-secondary-text">Portal detail</span></>}
-        </span>
+          {state.route.name === "overview"
+            ? <><span className="text-secondary-text">Portal overview</span>{props.onAnalytics && <button type="button" onClick={props.onAnalytics} className="cursor-pointer rounded-md hover:text-foreground">Analytics</button>}</>
+            : <><a href="#/" className="hover:text-foreground">Portal overview</a><span aria-hidden>/</span><span className="text-secondary-text">Portal detail</span></>}
+        </nav>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2 text-sm">
           <SourceStatus state={state} now={now} />
-          <button type="button" className="pill-ghost" onClick={props.onTheme} aria-label={`Theme: ${themeLabel}. Switch theme`} title={`Theme: ${themeLabel}`}>
-            <ThemeIcon aria-hidden className="size-4" /> <span className="hidden lg:inline">{themeLabel}</span>
+          <button type="button" className="pill-ghost !px-2.5 xl:!px-3.5" onClick={props.onTheme} aria-label={`Theme: ${themeLabel}. Switch theme`} title={`Theme: ${themeLabel}`}>
+            <ThemeIcon aria-hidden className="size-4" /> <span className="hidden xl:inline">{themeLabel}</span>
           </button>
-          <button type="button" className="pill-cta" onClick={props.onSettings}>
-            <Gear aria-hidden className="size-4" /> <span className="max-sm:sr-only">Settings</span>
+          <button type="button" className="pill-ghost !px-2.5 xl:!px-3.5" onClick={props.onSettings} aria-label="Settings" title="Settings">
+            <Gear aria-hidden className="size-4" /> <span className="hidden xl:inline">Settings</span>
           </button>
+          <button type="button" className="pill-cta disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:transform-none" onClick={props.onAddPortal}
+            disabled={!canAdd} title={canAdd ? "Add a portal by its address" : ADD_OFF_REASON} aria-describedby={canAdd ? undefined : "add-off"}>
+            <Plus aria-hidden className="size-4" /> <span className="max-sm:sr-only">Add portal</span>
+          </button>
+          {!canAdd && state.source === "demo" && <span id="add-off" className="sr-only">{ADD_OFF_REASON}</span>}
         </div>
       </div>
     </header>
@@ -52,9 +65,9 @@ function SourceStatus({ state, now }: { state: LedgerState; now: number }) {
   if (state.source === "live") {
     const age = state.liveAt ? Math.max(0, Math.round((now - state.liveAt) / 1000)) : 0;
     return (
-      <span className="chip chip-plain tnum text-secondary-text">
+      <span className="chip chip-plain tnum text-secondary-text" title={state.basic ? "Live from the public contract routes. Fields those routes do not carry show as not recorded." : "Live from the /api routes."}>
         <span aria-hidden className="live-dot text-serving" />
-        Live · updated {age} s ago
+        <span><span className="font-semibold text-foreground">{state.basic ? "Live · basic" : "Live"}</span><span className="max-sm:hidden"> · updated {age} s ago</span></span>
       </span>
     );
   }
@@ -66,7 +79,7 @@ function SourceStatus({ state, now }: { state: LedgerState; now: number }) {
         </span>
       )}
       <span className="chip chip-plain font-semibold">Demo data</span>
-      {state.dashboard && <span className="hidden text-muted-foreground sm:inline">Snapshot · <time dateTime={state.dashboard.asOf}>{snapshotTime(state.dashboard.asOf)}</time></span>}
+      {state.dashboard && <span className="hidden text-muted-foreground lg:inline">Snapshot · <time dateTime={state.dashboard.asOf}>{snapshotTime(state.dashboard.asOf)}</time></span>}
     </span>
   );
 }

@@ -65,26 +65,27 @@ const amount = (v: number) => eur(v).replace(" EUR", "");
 /** Keeps "< 0.01 EUR" on one line. */
 const money = (v: number) => eur(v).replaceAll(" ", "\u00a0");
 
-export function StatCards({ portals, summary, eurPerUsd }: { portals: Portal[] | null; summary: FleetSummary | null; eurPerUsd: number }) {
+export function StatCards({ portals, summary, eurPerUsd, basic }: { portals: Portal[] | null; summary: FleetSummary | null; eurPerUsd: number | null; basic: boolean }) {
   const reveal = useFirstReveal();
   if (!portals || !summary) return <div className="grid grid-cols-2 gap-4" aria-hidden>{[0, 1, 2, 3].map((i) => <Skel key={i} className="min-h-[10.5rem] rounded-[1.25rem]" />)}</div>;
   const cost = summary.cost;
   const per = costPerPortal(portals);
   const delivering = portals.filter((p) => p.tenderCount > 0).length;
+  const missing = basic ? "Not on the contract routes yet; it arrives with /api/dashboard." : "Not recorded.";
   return (
     <dl aria-label="Fleet numbers" className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
       <Stat i={3} reveal={reveal} label="Tenders delivered" value={String(summary.tendersDelivered)}
         caption={`Records available now from ${plural(delivering, "portal")}.`} />
-      <Stat i={4} reveal={reveal} label="Reads in the last hour" value={String(summary.readsLastHour)}
-        caption="Read runs started in the last 60 minutes, repairs excluded." />
+      <Stat i={4} reveal={reveal} label="Reads in the last hour" value={summary.readsLastHour === null ? "—" : String(summary.readsLastHour)}
+        caption={summary.readsLastHour === null ? missing : "Read runs started in the last 60 minutes, repairs excluded."} />
       {cost.kind === "known"
         ? <Stat i={5} reveal={reveal} label="Model cost to date" prefix={cost.incomplete ? "At least" : undefined} value={amount(cost.eur)} unit="EUR"
-            caption={`${tokens(cost.tokens)} tokens${cost.incomplete ? " · incomplete usage" : ""}. Model only, 1\u00a0USD\u00a0=\u00a0${eurPerUsd}\u00a0EUR, fixed.`} />
-        : <Stat i={5} reveal={reveal} label="Model cost to date" value="—" caption="Not recorded." />}
+            caption={`${tokens(cost.tokens)} tokens${cost.incomplete ? " · incomplete usage" : ""}. Model only${eurPerUsd ? `, 1\u00a0USD\u00a0=\u00a0${eurPerUsd}\u00a0EUR, fixed` : ""}.`} />
+        : <Stat i={5} reveal={reveal} label="Model cost to date" value="—" caption={missing} />}
       {per.average !== null
         ? <Stat i={6} reveal={reveal} label="Cost per new portal" value={amount(per.average)} unit="EUR"
             caption={<>Average model cost of {plural(per.count, "portal")} with a working recipe, repairs included.{per.learned !== null && per.reused !== null && <> Learned: {money(per.learned)}. Reused recipe: {money(per.reused)}.</>}</>} />
-        : <Stat i={6} reveal={reveal} label="Cost per new portal" value="—" caption="Not recorded: no portal has a working recipe yet." />}
+        : <Stat i={6} reveal={reveal} label="Cost per new portal" value="—" caption={basic ? missing : "Not recorded: no portal has a working recipe yet."} />}
     </dl>
   );
 }
