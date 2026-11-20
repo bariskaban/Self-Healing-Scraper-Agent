@@ -53,13 +53,15 @@ from app.recipe.schema import (
 )
 from app.recipe.settings import DEFAULT_RECIPE_SETTINGS, RecipeSettings
 from app.scheduler import (
-    DEFAULT_SETTINGS as DEFAULT_SCHEDULE, AttachProgress, DocumentNeed, KnownTender, ListRow, SchedulerSettings,
-    attach_decision, document_order, estimate_document_seconds, plan_incremental_read, read_interval,
+    DEFAULT_SETTINGS as DEFAULT_SCHEDULE, AttachDecision, AttachProgress, DocumentNeed, KnownTender, ListRow,
+    SchedulerSettings, attach_decision, document_order, estimate_document_seconds, plan_incremental_read,
+    read_interval,
 )
 from app.state import Decision, ReadFacts, decide
 
 ROW_HASH = "_row_hash"  # kept in TenderRecord.raw until the record has a field for it
 PUBLISH_STEP = "publish"  # the step a read records when it publishes; its args hold `delivered`
+HOLD_STEP = "hold"  # the step of an attach whose tenders are read but not delivered yet
 
 
 @dataclass(frozen=True)
@@ -216,7 +218,7 @@ class _Read:
             portal = self.portal = portal.model_copy(update={
                 "timezone": learned.timezone or portal.timezone,
                 "country_code": learned.country_code or portal.country_code,
-                "fingerprint": learned.fingerprint or learned.recipe.family or portal.fingerprint})
+                "fingerprint": self._software(learned)})
         else:
             self.body = RecipeBody.model_validate(stored.body)
         self.known = [] if self.attach else self.db.known_tenders(portal.id)
@@ -452,7 +454,7 @@ class _Read:
             else:
                 detail = read_detail(self.body, self.fetch, self.portal, item, settings=self.r.recipes)
                 self.exchanges += detail.exchanges
-                outcome = judge_look(self.body, detail, now).value
+                outcome = judge_look(self.body, detail, now, self.r.recipes).value
             looks.append(DetailLook(tender_id=tender_id, outcome=outcome))
             self.looked[tender_id] = outcome
         structure_row = self.results.get("structure")
@@ -528,15 +530,28 @@ class _Read:
         return Expectations(fields=fields, structures=structures, usual_signs=[], list_pages=self.listed.pages,
                             list_read_seconds=self.listed.seconds)
 
+    def _software(self, learned: Learned) -> str | None:
+        """The portal software a learned recipe is for: the family the recipe names, else what
+        the learner detected, else what the portal is already known to run.
+
+        The recipe's `family`, the `recipes.fingerprint` column (which reuse candidates are found
+        by, `Database.recipes_for_fingerprint`) and `Portal.fingerprint` all hold this one value.
+        """
+        return learned.recipe.family or learned.fingerprint or self.portal.fingerprint
+
     def _store_recipe(self, learned: Learned, records, details) -> None:
+        """Store the recipe of a read that passed and make it the active one. After a repair it
+        names the version it replaces, so that the change can be shown (the dashboard's timeline)."""
         body = self.body.model_copy(update={"expectations": self._expectations(records, details)})
         version = self.db.next_recipe_version(self.portal.id)
-        self.db.add_recipe(Recipe(portal_id=self.portal.id, version=version, body=body.model_dump(mode="json"),
-                                  fingerprint=self.portal.fingerprint, created_by_run_id=self.run.id,
+        software = self._software(learned)
+        self.db.add_recipe(Recipe(portal_id=self.portal.id, version=version,
+                                  parent_version=self.portal.recipe_version, body=body.model_dump(mode="json"),
+                                  fingerprint=software, created_by_run_id=self.run.id,
                                   rationale=learned.recipe.rationale))
         self.db.activate_recipe(self.portal.id, version)
         self.body = body
-        self.portal = self.portal.model_copy(update={"recipe_version": version})
+        self.portal = self.portal.model_copy(update={"recipe_version": version, "fingerprint": software})
 
     def _apply(self, decision: Decision, records: dict[str, TenderRecord], unlisted: Sequence[str],
                details: dict[str, DetailRead], learned: Learned | None) -> ReadOutcome:
@@ -554,7 +569,7 @@ class _Read:
             if decision.start_repair:
                 reason = self._repair(decision, reason, now)
                 if reason is None:  # the repair worked and its read was published
-                    return ReadOutcome(decision, PortalState.serving, True)
+                    return self.repaired
             state = decision.state
             if state is PortalState.integrating and self.r.learn is not None and decision.cause is Cause.breakage \
                     and self.r.repair is None:
@@ -585,35 +600,73 @@ class _Read:
             incident.list_seconds, incident.list_pages = self.listed.seconds, max(self.listed.pages, 1)
             facts = next((n.facts for n in self.body.nodes if n.role is NodeRole.list), None)
             incident.newest_first = bool(facts and facts.newest_first)
-        # `delivered` is every tender the portal delivers once this publication is in: a publish
-        # never removes one. The dashboard draws it per publication (docs/DASHBOARD_API.md).
-        self.step(PUBLISH_STEP, f"Published {len(records)} tender(s); {len(gone)} left the list and are closed.",
-                  args={"delivered": len({*known, *records})})
-
+        # The tenders are stored now, but they are delivered only while the portal is not
+        # `integrating` (`Database.list_tenders`). An attach whose documents fit the 10-minute
+        # rule stays `integrating` until they are in (Q12, `attach_decision`): its tenders are
+        # held back, and the publication is recorded at the moment they are really delivered.
         needs = self._needs(records, pending)
+        delivered = len({*known, *records})
+        published = f"Published {len(records)} tender(s); {len(gone)} left the list and are closed."
         state, reason = PortalState.serving, decision.reason
         if self.attach and needs:
-            remaining = estimate_document_seconds(needs, 1.0, self.r.schedule)
-            progress = AttachProgress(started_at=self.started, now=now, tenders_total=len(records),
-                                      records_done=len(records), documents_done=len(records) - len(needs),
-                                      documents_remaining_seconds=remaining, list_pages_read=self.listed.pages)
-            first = attach_decision(progress, self.r.schedule)
+            first = self._attach_decision(len(records), needs, now, already_serving=False)
             state, reason = first.state, first.reason
+        self.held = state is PortalState.integrating
+        if self.held:
+            self.step(HOLD_STEP, f"Read and checked {len(records)} tender(s). They are held back, and the portal "
+                                 f"stays integrating, until the documents of {len(needs)} of them are in.")
         self._save_portal(state, reason, None, last_success_at=now)
-        file_rows = self._fetch_documents(needs, pending) if needs else []
+        if not self.held:
+            self._published(published, delivered)
+
+        def after_tender(done: int) -> None:
+            """Say how far the documents of an attach are; deliver the tenders if the rule now says so."""
+            if not self.attach or done >= len(needs):
+                return
+            at = self.r.now()
+            current = self._attach_decision(len(records), needs[done:], at, already_serving=not self.held)
+            self._save_portal(current.state, current.reason, None, last_success_at=now)
+            if self.held and current.state is not PortalState.integrating:
+                self.held = False
+                self._published(f"The attach time limit passed. {published} "
+                                f"The documents of {len(needs) - done} tender(s) follow.", delivered)
+
+        file_rows = self._fetch_documents(needs, pending, after_tender) if needs else []
         if file_rows:
             self.add(files_failed(self.run.id, file_rows, earlier_failed=0, earlier_files=0, retried=True,
                                   settings=self.r.checks))
             decision = self._decide(records, known, unlisted, self.r.now())
         if decision.read_passed:
             self._save_portal(PortalState.serving, decision.reason, None, last_success_at=now)
+            if self.held:
+                self._published(f"{published} Their documents are in.", delivered)
             self._save_run(True, PortalState.serving, decision.reason)
             return ReadOutcome(decision, PortalState.serving, True)
         if decision.state is PortalState.failed and incident.failed_at is None:
             incident.failed_at = self.r.now()
         self._save_portal(decision.state, decision.reason, decision.cause)
+        if self.held and decision.state is not PortalState.integrating:
+            # The portal left `integrating` although the read did not pass in the end: the
+            # tenders stored above are listed from now on, and the timeline must say so.
+            self._published(f"{published} The documents did not pass their check.", delivered)
         self._save_run(False, decision.state, decision.reason)
         return ReadOutcome(decision, decision.state, False)
+
+    def _attach_decision(self, total: int, needs: Sequence[DocumentNeed], now: datetime, *,
+                         already_serving: bool) -> AttachDecision:
+        """What the scheduler's attach rule says once every record is read and `needs` are the
+        tenders whose documents are still to fetch."""
+        remaining = estimate_document_seconds(needs, 1.0, self.r.schedule)
+        return attach_decision(AttachProgress(
+            started_at=self.started, now=now, tenders_total=total, records_done=total,
+            documents_done=total - len(needs), documents_remaining_seconds=remaining,
+            list_pages_read=self.listed.pages, already_serving=already_serving), self.r.schedule)
+
+    def _published(self, summary: str, delivered: int) -> None:
+        """Record a publication. `delivered` is every tender the portal delivers once it is in: a
+        publish never removes one. The dashboard draws it per publication (docs/DASHBOARD_API.md)."""
+        self.held = False
+        self.step(PUBLISH_STEP, summary, args={"delivered": delivered})
 
     def _repair(self, decision: Decision, reason: str, now: datetime) -> str | None:
         """Start one repair attempt. Returns None when it worked, else the reason to show."""
@@ -652,7 +705,9 @@ class _Read:
         self.exchanges += trial.exchanges
         trial.exchanges = self.exchanges
         trial.results = {**trial.results}
-        trial._apply(trial_decision, records, unlisted, details, fixed)
+        trial.seq = self.seq  # the step above was this read's: the trial's steps go on after it
+        self.repaired = trial._apply(trial_decision, records, unlisted, details, fixed)
+        self.seq = trial.seq
         return None
 
     # -- documents --
@@ -691,12 +746,15 @@ class _Read:
                  for tender_id in pending if self.announced.get(tender_id)]
         return document_order(needs, self.r.schedule)
 
-    def _fetch_documents(self, needs: Sequence[DocumentNeed], pending: dict[str, DocumentResult]) -> list[CheckResult]:
+    def _fetch_documents(self, needs: Sequence[DocumentNeed], pending: dict[str, DocumentResult],
+                         after_tender: Callable[[int], None] | None = None) -> list[CheckResult]:
+        """Fetch and store the documents of each tender in turn. `after_tender` is called with
+        the number of tenders done, after each one."""
         began = time.monotonic()
         store = self.r._files()
         rows: list[CheckResult] = []
         fetched = skipped = 0
-        for need in needs:
+        for done, need in enumerate(needs, start=1):
             tender_id = need.tender_id
             files: list[FileRecord] = []
             links: list[TenderFile] = []
@@ -719,6 +777,8 @@ class _Read:
                                       last_changed_at=self.r.now())
             except LookupError:
                 continue
+            if after_tender is not None:
+                after_tender(done)
         self.stats.files_downloaded, self.stats.files_skipped = fetched, skipped
         self.step("documents", f"Fetched {fetched} document(s) of {len(needs)} tender(s); {skipped} skipped.", began)
         return rows
@@ -755,4 +815,4 @@ def new_run(portal: Portal, trigger) -> Run:
                state_before=portal.state)
 
 
-__all__ = ["Incident", "Learned", "Learner", "PUBLISH_STEP", "ROW_HASH", "ReadOutcome", "Reader", "Repairer", "new_run"]
+__all__ = ["HOLD_STEP", "Incident", "Learned", "Learner", "PUBLISH_STEP", "ROW_HASH", "ReadOutcome", "Reader", "Repairer", "new_run"]

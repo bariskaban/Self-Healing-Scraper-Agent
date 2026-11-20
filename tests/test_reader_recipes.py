@@ -1,0 +1,104 @@
+"""What the reader writes down with a recipe it stores: the software it is for, and the version it replaces.
+
+The reader is called directly on the mock portal, with learners and a repairer written here.
+No model is called. Run: pytest tests/test_reader_recipes.py
+"""
+from __future__ import annotations
+
+import httpx
+import pytest
+
+import mock_portal
+from app.dashboard_api import DashboardSettings, timeline_answer
+from app.db import Database
+from app.docs import DocsSettings, FileStore
+from app.fetch import Fetcher, FetchMode, FetchSettings, PortalLimiter
+from app.models import Portal, PortalState, Recipe, RecipeStatus, RunTrigger, url_key
+from app.reader import Incident, Learned, Reader, new_run
+from app.recipe.schema import RecipeBody
+from mock_portal import MockPortal
+
+URL = "https://mock.example"
+PID = "p1"
+
+
+def recipe(family: str | None = None):
+    return mock_portal.recipe().model_copy(update={"family": family})
+
+
+@pytest.fixture
+def site(tmp_path):
+    mock = MockPortal()
+    ticks = [0.0]
+    limiter = PortalLimiter(1.0, 10.0, clock=lambda: ticks[0], sleep=lambda s: ticks.__setitem__(0, ticks[0] + s))
+    fetcher = Fetcher(FetchSettings(mode=FetchMode.live), transport=httpx.MockTransport(mock.handle),
+                      limiter=limiter, clock=lambda: ticks[0], rng=lambda: 0.0)
+    db = Database(tmp_path / "watchtower.db")
+    db.add_portal(Portal(id=PID, url=URL, url_key=url_key(URL)))
+    store = FileStore(DocsSettings(data_dir=tmp_path))
+
+    def read(trigger: RunTrigger, incident: Incident, **functions):
+        reader = Reader(db, fetcher, lambda: store, **functions)
+        run = db.start_run(new_run(db.get_portal(PID), trigger))
+        return reader.read(PID, run, incident), run
+
+    yield db, read
+    db.close()
+
+
+@pytest.mark.parametrize("family, detected, software", [
+    ("cosinex-vmp", None, "cosinex-vmp"),       # the recipe names the software
+    ("cosinex-vmp", "cosinex", "cosinex-vmp"),  # both do: the recipe's word is the one stored everywhere
+    (None, "cosinex", "cosinex"),               # only the learner detected it
+    (None, None, None),
+])
+def test_a_stored_recipe_and_its_portal_name_the_same_software(site, family, detected, software):
+    db, read = site
+    learned = Learned(recipe=recipe(family), timezone=mock_portal.TIMEZONE, fingerprint=detected)
+    outcome, _ = read(RunTrigger.attach, Incident(), learn=lambda portal, run_id: learned)
+    assert outcome.passed
+    stored = db.active_recipe(PID)
+    assert (stored.fingerprint, db.get_portal(PID).fingerprint) == (software, software)
+    assert stored.body["family"] == family and stored.parent_version is None
+    if family is not None:
+        assert stored.fingerprint == stored.body["family"]
+    # A recipe is found again by the software it names (Q11).
+    found = db.recipes_for_fingerprint(software, exclude_portal_id="another") if software else []
+    assert [(r.portal_id, r.version) for r in found] == ([(PID, 1)] if software else [])
+
+
+def test_a_recipe_stored_after_a_repair_names_the_version_it_replaces_and_the_software(site):
+    db, read = site
+    first = Learned(recipe=recipe(), timezone=mock_portal.TIMEZONE)
+    incident = Incident()
+    outcome, _ = read(RunTrigger.attach, incident, learn=lambda portal, run_id: first)
+    assert outcome.passed and db.get_portal(PID).fingerprint is None
+
+    # The active recipe stops reading the list (as after a change of the portal's layout).
+    broken = RecipeBody.model_validate(db.active_recipe(PID).body)
+    broken.nodes[0].items.expr = "table#nothing tr"
+    db.add_recipe(Recipe(portal_id=PID, version=2, parent_version=1, body=broken.model_dump(mode="json")))
+    db.activate_recipe(PID, 2)
+
+    repaired = Learned(recipe=recipe("mock-software"), model_calls=3)
+    asked: list[int] = []
+
+    def repair(portal, body, failed, run_id):
+        asked.append(portal.recipe_version)
+        return repaired
+
+    outcome, run = read(RunTrigger.refresh, incident, learn=lambda portal, run_id: first, repair=repair)
+    assert asked == [2] and outcome.passed and outcome.state is PortalState.serving
+
+    stored = db.active_recipe(PID)
+    assert (stored.version, stored.parent_version, stored.created_by_run_id) == (3, 2, run.id)
+    assert db.get_recipe(PID, 2).status is RecipeStatus.retired
+    portal = db.get_portal(PID)
+    assert (portal.recipe_version, portal.fingerprint, stored.fingerprint) == (3, "mock-software", "mock-software")
+    assert stored.body["family"] == "mock-software"
+
+    # The dashboard shows the change, which it can only do when the record names its parent.
+    shown = timeline_answer(db, PID, DashboardSettings())[-1]
+    assert shown["id"] == run.id and shown["modelCalls"] == 3
+    assert (shown["recipeChange"]["from"], shown["recipeChange"]["to"]) == (2, 3)
+    assert "nodes.list" in shown["recipeChange"]["changedParts"]

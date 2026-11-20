@@ -45,7 +45,7 @@ from app.recipe.settings import DEFAULT_RECIPE_SETTINGS, RecipeSettings
 
 __all__ = [
     "CachedPage", "DetailRead", "DryRun", "Exchange", "Item", "ListRead", "NotCached", "PageCache", "PageSeen",
-    "Step", "dry_run", "judge_look", "known_item", "read_detail", "read_list", "settle",
+    "Step", "closed_by_the_portal", "dry_run", "judge_look", "known_item", "read_detail", "read_list", "settle",
 ]
 
 _PLACEHOLDER = re.compile(r"\{([a-z_]+)\}")
@@ -270,19 +270,22 @@ class _Target:
     url: str
     zone: ZoneInfo | None
     language: str | None
+    pattern_text_limit: int = DEFAULT_RECIPE_SETTINGS.pattern_text_limit  # for the pages' regex locators
 
     def context(self, page_url: str | None, settings: RecipeSettings) -> ParseContext:
         return ParseContext(zone=self.zone, page_url=page_url, language=self.language)
 
 
-def _target(recipe: AuthoredRecipe, portal: Portal) -> _Target:
+def _target(recipe: AuthoredRecipe, portal: Portal,
+            settings: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> _Target:
     zone = None
     if portal.timezone:
         try:
             zone = ZoneInfo(portal.timezone)
         except (ZoneInfoNotFoundError, ValueError):
             zone = None
-    return _Target(portal.id, portal.list_url or portal.url, zone, recipe.host.language)
+    return _Target(portal.id, portal.list_url or portal.url, zone, recipe.host.language,
+                   settings.pattern_text_limit)
 
 
 def _fill(template: str, values: Mapping[str, str], *, in_path: bool = False) -> str:
@@ -410,7 +413,7 @@ def _send(source: Fetch, target: _Target, step: Step, node: Node, tap: Tap | Non
         return _Got(exchange, None, problem=f"{address} did not arrive (status {status})")
     kind = NodeKind.html if node.kind is NodeKind.platform_ref else node.kind
     try:
-        doc = parse_page(body, kind, final_url, content_type)
+        doc = parse_page(body, kind, final_url, content_type, pattern_text_limit=target.pattern_text_limit)
     except PageError as error:
         return _Got(exchange, None, problem=f"{address}: {error}")
     text = doc.text if kind is NodeKind.json else body.decode("utf-8", errors="replace")
@@ -510,7 +513,7 @@ def _read_rows(recipe: AuthoredRecipe, node: Node, doc: Doc, target: _Target, se
                     address = step.address
         url_read = fields.get(FieldName.url)
         url = url_read.value if url_read is not None and url_read.value else address
-        found = read_id(recipe.identity, fields, url)
+        found = read_id(recipe.identity, fields, url, settings)
         if found.tender_id is None:
             if len(out.dropped) < settings.max_problems:
                 out.dropped.append(f"A row on {doc.url} was left out: {found.problem}.")
@@ -546,7 +549,7 @@ def read_list(recipe: AuthoredRecipe, source: Fetch, portal: Portal, *, first_pa
     """
     started = clock()
     out = ListRead(first_page_only=first_page_only)
-    target = _target(recipe, portal)
+    target = _target(recipe, portal, settings)
     by_id = {node.id: node for node in recipe.nodes}
     node = next((n for n in recipe.nodes if n.role is NodeRole.list), None)
     route = _route(recipe, node.id) if node is not None else None
@@ -738,7 +741,7 @@ def read_detail(recipe: AuthoredRecipe, source: Fetch, portal: Portal, item: Ite
     pages becomes a `conflict` (null). `documents` stays None unless a page that lists the
     files arrived, so "no documents" and "not known" stay apart.
     """
-    target = _target(recipe, portal)
+    target = _target(recipe, portal, settings)
     by_id = {node.id: node for node in recipe.nodes}
     out = DetailRead(tender_id=item.tender_id, fields=dict(item.fields))
     values = _raw_values(item.fields, item.tender_id)
@@ -823,7 +826,8 @@ def known_item(recipe: AuthoredRecipe, portal: Portal, record: TenderRecord) -> 
                 address=record.url)
 
 
-def judge_look(recipe: AuthoredRecipe, read: DetailRead, now: datetime) -> LookOutcome:
+def judge_look(recipe: AuthoredRecipe, read: DetailRead, now: datetime,
+               settings: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> LookOutcome:
     """What the own page of a tender that left the list shows, for `confirm_missing` (C4)."""
     if read.gone:
         return LookOutcome.gone
@@ -840,7 +844,7 @@ def judge_look(recipe: AuthoredRecipe, read: DetailRead, now: datetime) -> LookO
     when = deadline.value if deadline is not None and isinstance(deadline.value, datetime) else None
     if when is not None and when <= now:
         return LookOutcome.closed
-    page_id = read_id(recipe.identity, read.page_fields, read.urls[0]).tender_id
+    page_id = read_id(recipe.identity, read.page_fields, read.urls[0], settings).tender_id
     shows_open = (status is not None and status.value == "open") or when is not None
     if page_id == read.tender_id and shows_open:
         return LookOutcome.still_open
@@ -878,6 +882,8 @@ class DryRun:
 
     records: list[TenderRecord] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
+    # What the recipe reads that a record cannot carry: said here, and no reason to refuse the recipe.
+    notes: list[str] = field(default_factory=list)
     missing_pages: list[str] = field(default_factory=list)  # pages the recipe asks for that are not cached
     rows: int = 0
     pages: int = 0
@@ -960,4 +966,21 @@ def dry_run(recipe: AuthoredRecipe, pages: PageCache | Iterable[CachedPage] | Ma
                 out.filled[name.value] = out.filled.get(name.value, 0) + 1
     out.records = list(settle(portal.id, reads, last_good=None, urls=urls, addresses=addresses,
                               settings=settings).values())
+    closed = closed_by_the_portal(reads)
+    if closed:
+        out.notes.append(
+            f"The portal words {len(closed)} listed tender(s) as closed (for example {closed[0]}). A record has "
+            "no place for that: such a tender is delivered as open until it leaves the list or its deadline "
+            "passes. The portal's word is kept in the record's raw status.")
     return out
+
+
+def closed_by_the_portal(reads: Mapping[str, Mapping[FieldName, FieldRead]]) -> list[str]:
+    """The ids of the tenders whose status the portal words as closed.
+
+    `fill_record` cannot store that: `TenderRecord` knows `withdrawn` and `listed` only, so a
+    tender the portal calls closed while it still lists it, with its deadline ahead, comes out
+    open (docs/SHARED-INTERFACE-REQUESTS.md). Callers use this to say so.
+    """
+    return [tender_id for tender_id, fields in reads.items()
+            if FieldName.status in fields and fields[FieldName.status].value == "closed"]

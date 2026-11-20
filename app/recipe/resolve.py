@@ -173,14 +173,20 @@ class IdRead:
     problem: str | None = None
 
 
-def read_id(identity: Identity, fields: Mapping[FieldName, FieldRead], url: str | None) -> IdRead:
-    """The portal's own id: from the `id` field, or from the tender's address, checked against the shape."""
+def read_id(identity: Identity, fields: Mapping[FieldName, FieldRead], url: str | None,
+            settings: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> IdRead:
+    """The portal's own id: from the `id` field, or from the tender's address, checked against the shape.
+
+    The recipe's two patterns run on bounded text, because Python's re has no timeout: an
+    address longer than `pattern_address_limit` gives no id, and an id longer than
+    `pattern_id_limit` is not one of this portal's ids.
+    """
     on_page = fields.get(FieldName.id)
     page_id = str(on_page.value) if on_page is not None and on_page.value is not None else None
     if on_page is not None and on_page.flag == "conflict":
         return IdRead(None, "the id locators give different ids")
     url_id = None
-    if identity.from_url and url:
+    if identity.from_url and url and len(url) <= settings.pattern_address_limit:
         match = re.search(identity.from_url, url)
         if match is not None and match.groups():
             url_id = match.group(1)
@@ -189,6 +195,9 @@ def read_id(identity: Identity, fields: Mapping[FieldName, FieldRead], url: str 
     tender_id = page_id if page_id is not None else url_id
     if tender_id is None:
         return IdRead(None, "no id was found")
+    if len(tender_id) > settings.pattern_id_limit:
+        return IdRead(None, f"the id found is {len(tender_id)} characters long, more than the "
+                            f"{settings.pattern_id_limit} an id may have")
     if not re.fullmatch(identity.shape, tender_id):
         return IdRead(None, f"{tender_id!r} does not look like this portal's ids")
     return IdRead(tender_id)
@@ -270,7 +279,12 @@ _PLAIN = (FieldName.url, FieldName.title, FieldName.buyer_name, FieldName.public
 
 def fill_record(portal_id: str, tender_id: str, fields: Mapping[FieldName, FieldRead], *,
                 source_urls: Iterable[str] = (), run_id: str | None = None) -> TenderRecord:
-    """One tender's settled fields as a `TenderRecord`. Times of ours (first seen, changed) are the loop's."""
+    """One tender's settled fields as a `TenderRecord`. Times of ours (first seen, changed) are the loop's.
+
+    Of the status only `withdrawn` has a place on the record. A status the portal words as
+    closed is not stored as a value: its text stays in `raw["status"]`, and the tender reads
+    as open while it is listed and its deadline is ahead (`run.closed_by_the_portal` names them).
+    """
     def value(name: FieldName) -> Any | None:
         read = fields.get(name)
         return read.value if read is not None else None

@@ -90,7 +90,7 @@ Settings request and success shape: `{"attachTimeLimitMinutes":20,"ignoreRobotsT
 
 What the server fills today (`app/dashboard_api.py`, with the read loop in `app/loop.py` and `app/reader.py`):
 
-- `publishedCount` and `deliveryTrend` come from each read's `publish` step, whose args hold `delivered`. A run without a publication has no `publishedCount`, and the page says "no publication", never 0.
+- `publishedCount` and `deliveryTrend` come from each read's `publish` step, whose args hold `delivered`. A run without a publication has no `publishedCount`, and the page says "no publication", never 0. An attach whose documents fit the 10-minute rule keeps its tenders back while the portal is `integrating`: it records a `hold` step, and its `publish` step only at the moment the tenders are delivered, so until then it has no `publishedCount` either.
 - `checks`, `steps` and `recipeChange` come from the SQLite store. The in-memory stand-in has none, so its runs leave them out and the page says "No checks recorded".
 - A check with our own `outage` severity (Q10) is sent as `fail`; its name and message say it was an outage.
 - `eurPerUsd` is `EUR_PER_USD` (`app/config.py`, default 0.90), the same setting the README's costs use; set it at hand-in to that day's ECB reference rate (Q9).

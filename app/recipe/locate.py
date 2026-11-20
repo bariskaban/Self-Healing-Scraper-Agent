@@ -35,6 +35,7 @@ from lxml import etree
 from lxml import html as lxml_html
 
 from app.recipe.schema import Locator, LocatorKind, NodeKind
+from app.recipe.settings import DEFAULT_RECIPE_SETTINGS
 
 __all__ = ["Doc", "Found", "PageError", "clean", "find", "find_items", "first_text", "parse_page", "try_locator"]
 
@@ -51,6 +52,8 @@ class Doc:
     url: str
     root: Any       # the lxml element, or the decoded JSON value
     text: str       # the page's visible text (HTML), or its JSON text, for regex locators
+    # How many characters of a text a regex locator is run over (`RecipeSettings.pattern_text_limit`).
+    pattern_text_limit: int = DEFAULT_RECIPE_SETTINGS.pattern_text_limit
 
 
 @dataclass(frozen=True)
@@ -190,28 +193,31 @@ def _parse_feed(body: bytes | str) -> Any:
     return root
 
 
-def parse_page(body: bytes | str, kind: NodeKind, url: str, content_type: str | None = None) -> Doc:
+def parse_page(body: bytes | str, kind: NodeKind, url: str, content_type: str | None = None, *,
+               pattern_text_limit: int = DEFAULT_RECIPE_SETTINGS.pattern_text_limit) -> Doc:
     """Parse a fetched body as the node kind says. Raises PageError when JSON or XML cannot be read.
 
     HTML never raises: bytes are decoded by the charset in `content_type`, else the page's own
     meta charset, else UTF-8 with replacement, and broken markup is repaired by lxml.
+    `pattern_text_limit` is kept on the page for its regex locators.
     """
     kind = NodeKind(kind)
+    limit = pattern_text_limit
     if kind in (NodeKind.html, NodeKind.browser):
         root = _parse_html(_decode(body, content_type, sniff_meta=True))
         body_element = root.find("body")
         text = _element_text(body_element if body_element is not None else root)
-        return Doc(kind=kind, url=url, root=root, text=text)
+        return Doc(kind=kind, url=url, root=root, text=text, pattern_text_limit=limit)
     if kind is NodeKind.feed:
         root = _parse_feed(body)
-        return Doc(kind=kind, url=url, root=root, text=_element_text(root))
+        return Doc(kind=kind, url=url, root=root, text=_element_text(root), pattern_text_limit=limit)
     if kind is NodeKind.json:
         body = _decode(body, content_type, sniff_meta=False)
         try:
             value = json.loads(body)
         except (ValueError, RecursionError) as error:
             raise PageError(f"the answer is not JSON: {error}") from error
-        return Doc(kind=kind, url=url, root=value, text=body)
+        return Doc(kind=kind, url=url, root=value, text=body, pattern_text_limit=limit)
     raise PageError(f"a {kind.value} node has no page of its own to parse")
 
 
@@ -355,12 +361,19 @@ def _read(result: Any, attr: str | None, scope_node: Any, doc: Doc | None) -> Fo
 # == Regex ==
 
 def _find_regex(pattern: str, text: str, node: Any, doc: Doc | None) -> list[Found]:
+    """The matches of a recipe's pattern in the first `pattern_text_limit` characters of the text.
+
+    Python's re has no timeout, so the text is cut before the search and what lies beyond the
+    cut cannot match. The cut bounds a pattern that is merely slow on long text; it does not
+    bound one that backtracks without end on a short text, such as `(a+)+$`.
+    """
     try:
         compiled = re.compile(pattern)
     except (re.error, OverflowError, RecursionError):
         return []
+    limit = doc.pattern_text_limit if doc is not None else DEFAULT_RECIPE_SETTINGS.pattern_text_limit
     out: list[Found] = []
-    for match in compiled.finditer(text or ""):
+    for match in compiled.finditer((text or "")[:limit]):
         value = clean(match.group(1) if compiled.groups else match.group(0))
         if value:
             out.append(Found(text=value, node=node, doc=doc))
