@@ -22,6 +22,8 @@ We choose this for three reasons:
 2. **Reading the list is cheap.** Under this rule it never uses more than about 10% of a portal's request budget.
 3. **One fixed number is wrong for most portals.** 15 minutes leaves a 5-page portal reporting a stale state for 15 minutes to save 5 requests, and makes a 250-page portal spend 28% of its budget on list reads.
 
+For a list longer than 12 pages that is sorted newest first, also read its **first page alone every 2 minutes** between full list reads. That one request shows new tenders and exercises the list recipe, so a changed layout is noticed in 2 minutes on a large portal too. Removed tenders and the printed total still need the full list. (The idea of reading only what is new comes from the Q1 and Q3 answers; they call it a watermark.)
+
 ## What the rule gives
 
 From `research/tools/q12_request_math.py` (**measured**: computed).

@@ -158,6 +158,7 @@ Looked at only when the outcome is missing (O1, O2).
 | AWS WAF: HTTP 202 (challenge) or 405 (captcha) on a request that is not a page load, such as a file download | status | read: AWS blog |
 | "Request Rejected ... Your support ID is" | body. Seen today from Spain's national portal on a plain request. | measured; the wording as an F5 sign is search only |
 | Imperva: `_Incapsula_Resource` frame or script | page | read: Crawlee source treats it as blocked |
+| HTTP 418 with an "Access Denied!" page | status, body. `evergabe.de`'s firewall answered this to every plain request from the research machine, and 200 to the team laptop. | measured |
 | reCAPTCHA, hCaptcha, Turnstile, Friendly Captcha (`frc-captcha`), ALTCHA, DataDome, PerimeterX markers | page, cookies | read: open fingerprint list. These prove the product is present, not that we were blocked. |
 | HTTP 403 with none of the above, also on a slow second try through the browser | status | read: RFC 9110, "understood the request but refuses to fulfill it" |
 
@@ -228,6 +229,7 @@ Looked at only when the outcome is missing (O1, O2).
 
 1. A portal that is down, not changed: should it read `healing` or `failed`, and after how long?
 2. When a portal answers 403 or shows a challenge to a plain HTTP client but serves a normal browser, may we read it with the headless browser? We assume yes: it is a real browser and we solve nothing.
+3. Do we obey robots.txt? Spain's national portal disallows every path for every robot. We assume yes for pages, and that a portal which forbids everything is reported `failed` with that reason.
 
 ## Prototype first (about 5 hours)
 

@@ -57,6 +57,8 @@ About 12 hours of building, in this order. Each step is the prototype named in i
 
 ## Questions these answers raise for the mentors
 
+The first three decide the most.
+
 1. How long does the harness wait after `POST /portals` before it scores Attach, and how many tenders and documents do the test portals hold? (Q12)
 2. Is a portal `serving` when every open tender is delivered with a correct record while some documents are still being fetched, shown as null? (Q12)
 3. Does "1 request per second" limit request starts, or the number in flight? (Q12)
@@ -64,6 +66,7 @@ About 12 hours of building, in this order. Each step is the prototype named in i
 5. A portal that is down, not changed: `healing` or `failed`, and after how long? (Q10)
 6. A portal that refuses a plain HTTP client but serves a normal browser: may we read it with the headless browser? (Q10)
 7. After you restore a portal that we reported `failed`, do you call refresh, or wait for us to notice? (Q14)
+8. Do we obey robots.txt? Spain's national portal disallows every path for every robot. (Q10, Q3)
 
 ## Tools
 
