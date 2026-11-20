@@ -142,7 +142,8 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 **Owner:** _____
 - [x] G1. API (`app/main.py`): every endpoint with the exact answers from the appendix, `/files/{file_id}`. It talks to the store and the worker through `app/interfaces.py`, and runs on an in-memory stand-in (`app/memory_store.py`) until both exist.
 - [x] The contract test (`tests/contract/`): plays the judges on every route. CI runs it against the built container on every pull request.
-- [ ] G1, wiring: `app/db.py` as the store (`Database.from_env()` provides the eight methods of `Store` in `app/interfaces.py`), and the scheduler's loop as the worker.
+- [x] G1, wiring the store: with `DATA_DIR` set (the Dockerfile sets `/data`) the app runs on `app/db.py` and its records survive a restart; without it, in memory (`default_store()` in `app/main.py`).
+- [ ] G1, wiring the worker: the read loop replaces `DatabaseIdleWorker` (`app/standin_worker.py`), which records runs and reads nothing.
 - [x] G2. `app/db.py` on top of `app/schema.sql`: the eight `Store` methods the API calls, and the worker's writes (portal state, runs, checks, steps, snapshots, recipes, publishing tenders and documents). One read and one write connection, each behind a lock (research in `research/q15-storage.md`). Tests in `tests/test_db.py`.
 - [ ] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).

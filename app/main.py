@@ -10,12 +10,16 @@ query against 2.3 ms for one, so the store is never called from a pool. Building
 of a long tender list also happens on that thread, off the event loop. The worker is called
 on the event loop and returns at once.
 
+Store: with DATA_DIR set, as the Dockerfile does, the records live in SQLite under it
+(`app/db.py`) and survive a restart; without it, as in the unit tests, they live in memory.
+
 Run: uvicorn app.main:app --host 0.0.0.0 --port 8080
 """
 from __future__ import annotations
 
 import asyncio
 import hashlib
+import os
 import re
 from collections.abc import AsyncIterator, Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -28,9 +32,11 @@ from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
+from app.db import Database
 from app.docs import DocsSettings, FileStore
 from app.interfaces import Store, Worker
 from app.memory_store import IdleWorker, MemoryStore
+from app.standin_worker import DatabaseIdleWorker
 from app.models import CreatedId, Portal, PortalCreate, RunAccepted, url_key, utcnow
 
 T = TypeVar("T")
@@ -75,12 +81,26 @@ def parse_changed_since(raw: str) -> datetime:
     return when if when.tzinfo is not None else when.replace(tzinfo=timezone.utc)
 
 
+def default_store() -> tuple[Store, Worker]:
+    """The SQLite store under DATA_DIR when it is set (the container sets it); memory otherwise.
+
+    The worker is a stand-in that records runs and reads nothing, until the read loop exists.
+    """
+    if os.environ.get("DATA_DIR"):
+        database = Database.from_env()
+        return database, DatabaseIdleWorker(database)
+    memory = MemoryStore()
+    return memory, IdleWorker(memory)
+
+
 def create_app(store: Store | None = None, worker: Worker | None = None,
                files: Callable[[], FileStore] | None = None) -> FastAPI:
-    """The app on a given store and worker. Without them it runs on the in-memory stand-ins."""
+    """The app on a given store and worker. Without them, on `default_store()`."""
+    opened: Database | None = None  # a database this app opened itself, and closes on shutdown
     if store is None:
-        memory = MemoryStore()
-        store, worker = memory, worker or IdleWorker(memory)
+        store, default_worker = default_store()
+        worker = worker or default_worker
+        opened = store if isinstance(store, Database) else None
     if worker is None:
         raise ValueError("a store was given without a worker")
     file_store: list[FileStore] = []
@@ -101,6 +121,8 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
         database.shutdown(wait=False, cancel_futures=True)
+        if opened is not None:
+            opened.close()
 
     app = FastAPI(title="Watchtower", docs_url="/api-docs", redoc_url=None, lifespan=lifespan)
     # The dashboard may be developed on another port; the API holds nothing private.
