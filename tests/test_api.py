@@ -214,3 +214,46 @@ def test_the_portal_id_comes_from_the_normalised_address():
     assert portal_id_for("https://Vergabe.Example/tenders/") == portal_id_for(URL)
     assert portal_id_for("https://vergabe.example/other") != portal_id_for(URL)
     assert len(portal_id_for(URL)) == 12
+
+
+def test_the_store_is_only_called_on_the_database_thread_and_the_worker_on_the_event_loop(tmp_path):
+    # Q15: several threads reading SQLite in one process are slow, so the store has one thread.
+    import threading
+
+    store_threads: set[str] = set()
+    worker_threads: set[str] = set()
+
+    def watched(method):
+        def call(self, *args):
+            store_threads.add(threading.current_thread().name)  # the thread that runs the call
+            return method(self, *args)
+        return call
+
+    class WatchedStore(MemoryStore):
+        pass
+
+    for name in ("add_portal", "get_portal", "list_portals", "delete_portal", "count_tenders",
+                 "list_tenders", "list_runs", "get_file"):
+        setattr(WatchedStore, name, watched(getattr(MemoryStore, name)))
+
+    class WatchedWorker:
+        def attach(self, portal):
+            worker_threads.add(threading.current_thread().name)
+
+        def refresh(self, portal):
+            worker_threads.add(threading.current_thread().name)
+            return "run-1"
+
+        def forget(self, portal_id):
+            worker_threads.add(threading.current_thread().name)
+
+    files = FileStore(DocsSettings(data_dir=tmp_path / "data"))
+    with TestClient(create_app(WatchedStore(), WatchedWorker(), files=lambda: files)) as client:
+        portal_id = client.post("/portals", json={"url": URL}).json()["id"]
+        for path in ("/portals", f"/portals/{portal_id}", f"/portals/{portal_id}/tenders",
+                     f"/portals/{portal_id}/runs", "/files/unknown"):
+            client.get(path)
+        client.post(f"/portals/{portal_id}/refresh")
+        client.delete(f"/portals/{portal_id}")
+    assert len(store_threads) == 1 and next(iter(store_threads)).startswith("watchtower-db")
+    assert len(worker_threads) == 1 and not (worker_threads & store_threads)

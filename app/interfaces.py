@@ -4,9 +4,10 @@
 store on SQLite; the scheduler provides the worker. Until both exist, `app/memory_store.py`
 stands in, so the container answers every route of the contract from day one.
 
-The API's routes run in worker threads, so that a slow query never stalls the event loop
-("the API answers at once, always"). Every method here must therefore be safe to call from
-several threads at once, and must return quickly: no network request, no model call.
+Threads (Q15, `research/q15-storage.md`): the API calls every `Store` method on one thread
+of its own, the database thread, and never on the event loop or from a pool. So a store that
+keeps one connection for the API needs no locking for these calls. The `Worker` methods are
+called on the event loop; they must return at once and start their work in the background.
 """
 from __future__ import annotations
 
