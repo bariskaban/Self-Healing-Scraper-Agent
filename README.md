@@ -150,6 +150,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 - [x] G3. Dashboard at `GET /`: every portal, state and reason, what broke, what the system did (`agent_steps`), cost.
   - [x] No demo data in place of a down API: the page says "API offline, retrying"; the demo snapshot only with `?demo`.
 - [ ] G4. Hand-in README (one page: how it works, environment variables, cost per portal).
+  - [ ] On hand-in day, set `EUR_PER_USD` to that day's ECB reference rate: the default of 0.90 is a placeholder, and both the dashboard and the README's costs use it. A value that is not a number (a decimal comma, for one) stops the app at start; a blank one keeps the default.
 - [ ] G5. Video, at most 3 minutes, including the dashboard (mock portal break and repair makes a good demo).
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging.
 - [ ] G7. Team decision on the Patterno participant declaration (required for the track prize and the final).
