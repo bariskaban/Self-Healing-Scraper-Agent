@@ -25,12 +25,14 @@ from collections.abc import AsyncIterator, Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, TypeVar
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.db import Database
 from app.docs import DocsSettings, FileStore
@@ -44,6 +46,11 @@ T = TypeVar("T")
 PORTAL_ID_LENGTH = 12
 # A time of day, a space, and an offset at the end: the space was a "+" before URL decoding.
 _LOST_PLUS = re.compile(r"(\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?) (\d{2}:?\d{2})$")
+
+# The dashboard is a static page built from dashboard/ (see docs/DASHBOARD_API.md for what it reads).
+DASHBOARD_DIR = Path(__file__).parent / "dashboard" / "static"
+DASHBOARD_PAGE = DASHBOARD_DIR / "index.html"
+DASHBOARD_ROOT_FILES = ("favicon.ico", "robots.txt")
 
 PLACEHOLDER_PAGE = """<!doctype html>
 <html lang="en">
@@ -217,11 +224,25 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
         return FileResponse(path, media_type=record.content_type or "application/octet-stream")
 
     @app.get("/", response_class=HTMLResponse)
-    async def index() -> str:
-        """Placeholder until the dashboard (`app/dashboard/`) replaces it."""
-        return PLACEHOLDER_PAGE
+    async def index() -> Response:
+        """The dashboard page (built from the dashboard source into app/dashboard/static/), or a placeholder."""
+        if DASHBOARD_PAGE.is_file():
+            return FileResponse(DASHBOARD_PAGE, media_type="text/html", headers={"Cache-Control": "no-cache"})
+        return HTMLResponse(PLACEHOLDER_PAGE)
+
+    for name in DASHBOARD_ROOT_FILES:
+        if (DASHBOARD_DIR / name).is_file():
+            app.add_api_route(f"/{name}", _static_file(DASHBOARD_DIR / name), include_in_schema=False)
+    if (DASHBOARD_DIR / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=DASHBOARD_DIR / "assets"), name="dashboard-assets")
 
     return app
+
+
+def _static_file(path: Path) -> Callable[[], FileResponse]:
+    def serve() -> FileResponse:
+        return FileResponse(path)
+    return serve
 
 
 app = create_app()
