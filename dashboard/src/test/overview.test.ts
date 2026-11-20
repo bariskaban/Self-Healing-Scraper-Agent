@@ -11,7 +11,7 @@ describe("overview copy is derived from the snapshot", () => {
   it("writes the fleet sentence from the state counts and highlights the repair", () => {
     const { total, parts } = fleetSentence(portals);
     expect(total).toBe(8);
-    expect(parts.map((p) => `${p.count} ${p.text}`)).toEqual(["4 serving", "1 repairing itself", "1 being learned", "2 need a person"]);
+    expect(parts.map((p) => `${p.count} ${p.text}`)).toEqual(["4 serving", "1 repairing itself", "1 being learned", "2 need attention"]);
     expect(parts.filter((p) => p.highlight).map((p) => p.state)).toEqual(["healing"]);
   });
   it("leaves out states with no portal and never calls an outage wait a repair", () => {

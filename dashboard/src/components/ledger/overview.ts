@@ -6,7 +6,7 @@ import { hasActiveRepair } from "./evidence";
 
 export interface SentencePart { state: PortalState; count: number; text: string; highlight: boolean }
 
-/** "8 portals. 4 serving, 1 repairing itself, 1 being learned, 2 need a person." */
+/** "8 portals. 4 serving, 1 repairing itself, 1 being learned, 2 need attention." */
 export function fleetSentence(portals: Portal[]): { total: number; parts: SentencePart[] } {
   const of = (state: PortalState) => portals.filter((p) => p.state === state);
   const healing = of("healing");
@@ -16,7 +16,7 @@ export function fleetSentence(portals: Portal[]): { total: number; parts: Senten
     ["serving", of("serving").length, "serving"],
     ["healing", healing.length, repairing ? (healing.length === 1 ? "repairing itself" : "repairing themselves") : "healing"],
     ["integrating", of("integrating").length, "being learned"],
-    ["failed", failed, failed === 1 ? "needs a person" : "need a person"],
+    ["failed", failed, failed === 1 ? "needs attention" : "need attention"],
   ];
   const present = raw.filter(([, count]) => count > 0);
   const lit = present.some(([state]) => state === "healing") ? "healing" : "serving";
