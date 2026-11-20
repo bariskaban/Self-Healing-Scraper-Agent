@@ -10,7 +10,7 @@ The learner should see **trimmed HTML with row-cutting applied to list pages onl
 
 | Key | URL | Result |
 |---|---|---|
-| vmstart_home | https://vergabe.vmstart.de/NetServer/ | 200, static HTML (cosinex VMP "NetServer") |
+| vmstart_home | https://vergabe.vmstart.de/NetServer/ | 200, static HTML (NetServer; Q11 attributes vergabe.vmstart.de to AI Vergabeplattform) |
 | vmstart_list | .../NetServer/PublicationSearchControllerServlet?function=SearchPublications&Gesetzesgrundlage=All&Category=InvitationToTender&thContext=publications | 200, 50 rows (linked from the home nav) |
 | vmstart_detail | .../NetServer/PublicationControllerServlet?function=Detail&TOID=...&Category=InvitationToTender | 200; URL obtained via the portal's own anonymous POST to `DataProvider` (what a row click does) |
 | tenderned_list_shell | https://www.tenderned.nl/aankondigingen/overzicht (plain HTTP GET) | 200 but an Angular app shell, zero rows in the HTML |
@@ -88,7 +88,7 @@ Files: `C:\Users\danil\AppData\Local\Temp\claude\6fe8190b17a30685\e91a31c0-f598-
 ## What failed or is uncertain
 
 - evergabe.nrw.de list URL: redirect to a 404 error page (I did not search for another working NRW list URL). marches-publics.gouv.fr: 503 maintenance notice. Neither list was measured.
-- Only 5 real pages on 2 portals (vmstart/cosinex and TenderNed), so the median is an order of magnitude only. Other vendors (big JS tables, DTVP, Bund.de) may be bigger.
+- Only 5 real pages on 2 portals (vmstart/NetServer and TenderNed), so the median is an order of magnitude only. Other vendors (big JS tables, DTVP, Bund.de) may be bigger.
 - The TenderNed pages were rendered in Chromium, whose SPA makes its own API calls, possibly more than 1 request per second for the first seconds. Every explicit request I sent was at least 2 seconds apart, no logins.
 - tiktoken `o200k_base` is a proxy; the real gpt-6.2-sol tokenizer may differ by a few percent.
 - The first 3 rows are not a statistical sample; pages with varied row shapes (withdrawn or corrected notices) could be misrepresented.
