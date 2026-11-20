@@ -235,18 +235,17 @@ class ReadLoop:
             plan = read_plan(incident.list_seconds, incident.list_pages, incident.newest_first, self.schedule)
             nxt = next_read(plan, incident.last_full_started_at or now, now if self._first_page.get(portal_id) else None)
             due, first_page = nxt.at, nxt.first_page_only
+        elif cause is Cause.outage and (due := next_outage_retry(now, incident.outage_retries, self.schedule)) is not None:
+            # An outage is `failed`, but it is tried again on the outage ladder (1, 2, 4, 8, 15, 30 minutes),
+            # not on the failed schedule, which is for portals a person has to look at.
+            incident.outage_retries += 1
         elif outcome.state is PortalState.failed:
-            if incident.failed_at is None:
-                incident.failed_at = now
+            if incident.failed_at is None or (cause is Cause.outage and incident.failed_checks == 0):
+                incident.failed_at = now  # for an outage: the ladder is used up, the failed schedule starts here
             due = next_failed_check(incident.failed_at, incident.failed_checks, self.schedule,
                                     blocked=cause is Cause.block, rng=self.rng, last_check_at=now)
             if scheduled:
                 incident.failed_checks += 1
-        elif cause is Cause.outage:
-            due = next_outage_retry(now, incident.outage_retries, self.schedule)
-            incident.outage_retries += 1
-            if due is None:  # the ladder is used up; the next try makes the state machine say `failed`
-                due = now
         else:  # healing after a breakage, or an attach that is not through: try again after the read interval
             plan = read_plan(incident.list_seconds, incident.list_pages, incident.newest_first, self.schedule)
             due = now + plan.interval

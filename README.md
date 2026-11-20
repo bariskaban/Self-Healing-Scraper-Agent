@@ -103,7 +103,7 @@ Python only, or TypeScript for part of it. **Owner:** Goktug
 ### [ ] Q10. Failure rules
 **Owner:** Goktug
 - [x] Research: `research/q10-failure-rules.md`: rules, thresholds, state and reason text per rule, and the check names for `CheckResult`.
-- [x] Add an `outage` severity (healing without a repair) to `app/models.py`, and `cause` on a portal (pull request 18, approved by a person). The checks use both.
+- [x] Add an `outage` severity (since 20 Nov 2026 the portal goes `failed` with cause `outage`; it was `healing` without a repair) to `app/models.py`, and `cause` on a portal (pull request 18, approved by a person). The checks use both.
 - [x] Checks (`app/checks/`), one function each, returning `CheckResult`: T1, T2, T4, O1, O2, C1 to C7, D1, F1 and the confirm step. Settings come from the environment (`CHECKS_*`).
 - [x] State machine (`app/state.py`): `decide` turns the checks of one read into the state, the reason, the `cause`, and whether a repair or a spot check follows.
 - [x] Call the checks and `decide` from the read loop, and store the last good tenders so they stay served while healing (needs the executor and `app/db.py`).
