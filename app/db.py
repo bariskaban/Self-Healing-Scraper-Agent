@@ -54,6 +54,7 @@ from app.models import (
     Recipe,
     RecipeStatus,
     Run,
+    RunKind,
     RunResult,
     RunStats,
     TenderFile,
@@ -113,6 +114,16 @@ class DbSettings:
         if env.get("DB_BUSY_TIMEOUT_SECONDS"):
             kw["busy_timeout_seconds"] = float(env["DB_BUSY_TIMEOUT_SECONDS"])
         return cls(**kw)
+
+
+@dataclass(frozen=True)
+class RunTotals:
+    """What all runs of one portal add up to (`Database.run_totals`)."""
+
+    usage: TokenUsage          # tokens and cost of every run, summed
+    model_calls: int
+    unaccounted_runs: int      # runs that called a model and recorded no tokens: their cost is not known
+    reads_since: int           # reads started at or after the moment asked for
 
 
 # == Values in and out of SQLite ==
@@ -511,6 +522,48 @@ class Database:
                               "ORDER BY started_at DESC, id DESC LIMIT 1", (portal_id,)).fetchone()
             return _run(row) if row is not None else None
 
+    def recent_runs(self, per_portal: int, *, portal_id: str | None = None,
+                    kind: RunKind | None = None) -> dict[str, list[Run]]:
+        """The newest `per_portal` runs of every portal (or of one), oldest first, in one query.
+
+        For the dashboard, which shows the last runs of every portal at once; with `kind`,
+        only reads or only repairs are counted. A portal without such a run has no key.
+        """
+        where, args = [], []
+        if portal_id is not None:
+            where.append("portal_id = ?")
+            args.append(portal_id)
+        if kind is not None:
+            where.append("kind = ?")
+            args.append(kind.value)
+        sql = ("SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY portal_id ORDER BY started_at DESC, id DESC)"
+               " AS newest FROM runs" + (" WHERE " + " AND ".join(where) if where else "") + ")"
+               " WHERE newest <= ? ORDER BY portal_id, started_at, id")
+        with self._reading() as con:
+            rows = con.execute(sql, [*args, per_portal]).fetchall()
+        out: dict[str, list[Run]] = {}
+        for r in rows:
+            out.setdefault(r["portal_id"], []).append(_run(r))
+        return out
+
+    def run_totals(self, reads_since: datetime) -> dict[str, RunTotals]:
+        """Per portal, over every run it has: tokens, cost, model calls, and the reads started
+        since a moment. A portal without a run has no key."""
+        with self._reading() as con:
+            rows = con.execute(
+                "SELECT portal_id, SUM(input_tokens) AS input_tokens, SUM(cached_input_tokens) AS cached_input_tokens,"
+                " SUM(output_tokens) AS output_tokens, SUM(reasoning_tokens) AS reasoning_tokens,"
+                " SUM(cost_usd) AS cost_usd, SUM(model_calls) AS model_calls,"
+                " SUM(model_calls > 0 AND input_tokens = 0 AND output_tokens = 0) AS unaccounted_runs,"
+                " SUM(kind = ? AND started_at >= ?) AS reads_since FROM runs GROUP BY portal_id",
+                (RunKind.read.value, _utc(reads_since, "reads_since"))).fetchall()
+        return {r["portal_id"]: RunTotals(
+            usage=TokenUsage(input_tokens=r["input_tokens"], cached_input_tokens=r["cached_input_tokens"],
+                             output_tokens=r["output_tokens"], reasoning_tokens=r["reasoning_tokens"],
+                             cost_usd=r["cost_usd"]),
+            model_calls=r["model_calls"], unaccounted_runs=r["unaccounted_runs"], reads_since=r["reads_since"])
+            for r in rows}
+
     def fail_open_runs(self, error: str = "The run was cut short by a restart.",
                        at: datetime | None = None) -> list[Run]:
         """After a restart: close every run left open as failed, and return them.
@@ -557,6 +610,22 @@ class Database:
         with self._reading() as con:
             rows = con.execute("SELECT * FROM agent_steps WHERE run_id = ? ORDER BY seq", (run_id,)).fetchall()
         return [_step(r) for r in rows]
+
+    def recent_steps(self, name: str, per_portal: int) -> dict[str, list[AgentStep]]:
+        """The newest `per_portal` steps with this name of every portal, oldest first, in one query.
+
+        For the dashboard: the last publications of every portal are its `publish` steps.
+        """
+        with self._reading() as con:
+            rows = con.execute(
+                "SELECT * FROM (SELECT s.*, r.portal_id AS portal_id, ROW_NUMBER() OVER ("
+                "PARTITION BY r.portal_id ORDER BY s.at DESC, s.run_id DESC, s.seq DESC) AS newest "
+                "FROM agent_steps s JOIN runs r ON r.id = s.run_id WHERE s.name = ?) "
+                "WHERE newest <= ? ORDER BY portal_id, at, run_id, seq", (name, per_portal)).fetchall()
+        out: dict[str, list[AgentStep]] = {}
+        for r in rows:
+            out.setdefault(r["portal_id"], []).append(_step(r))
+        return out
 
     def save_snapshot(self, snapshot: PortalSnapshot) -> None:
         """Store or replace a snapshot handed to a repair; page bodies stay on disk."""

@@ -17,6 +17,7 @@ import logging
 import random
 import threading
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime
 
 from app.checks.result import Cause
@@ -86,6 +87,36 @@ class ReadLoop:
         for table in (self._wake, self._queued, self._incidents, self._due, self._first_page, self._last_run):
             table.pop(portal_id, None)
         self.fetch.forget(portal_id)
+
+    # == What the dashboard reads and sets (docs/DASHBOARD_API.md) ==
+
+    def next_reads(self) -> dict[str, datetime]:
+        """When each portal is read next, as planned after its last read. Kept in memory only."""
+        return dict(self._due)
+
+    @property
+    def attach_time_limit_seconds(self) -> float:
+        """The attach time limit the next attach is judged by."""
+        return self.reader.schedule.attach_time_limit_seconds
+
+    @property
+    def ignore_robots_txt(self) -> bool:
+        """True when requests are sent without asking robots.txt (the mentor's switch for tests)."""
+        return bool(getattr(getattr(self.fetch, "settings", None), "ignore_robots_txt", False))
+
+    def apply_settings(self, *, attach_time_limit_seconds: float, ignore_robots_txt: bool) -> None:
+        """Change the two settings of the dashboard, from the next decision and the next request on.
+
+        Nothing is written down: after a restart both are what the environment says again. The
+        robots.txt switch needs a network layer that carries `settings` (`Fetcher` does); on any
+        other it stays as it is, and `ignore_robots_txt` goes on saying so.
+        """
+        self.schedule = replace(self.schedule, attach_time_limit_seconds=attach_time_limit_seconds)
+        self.reader.schedule = replace(self.reader.schedule, attach_time_limit_seconds=attach_time_limit_seconds)
+        settings = getattr(self.fetch, "settings", None)
+        if hasattr(settings, "ignore_robots_txt"):
+            self.fetch.settings = replace(settings, ignore_robots_txt=ignore_robots_txt)  # type: ignore[attr-defined]
+        self.reader.ignore_robots = self.ignore_robots_txt  # the robots check reports what the gate does
 
     # == Life cycle ==
 

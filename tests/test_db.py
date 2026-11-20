@@ -432,6 +432,43 @@ def test_steps_and_snapshots_come_back(db):
     assert db.latest_snapshot("p1") == newer
 
 
+def test_the_dashboard_reads_every_portals_last_runs_totals_and_publications_at_once(db):
+    for n in (1, 2, 3):
+        db.add_portal(portal(n))
+
+    def ended(portal_id: str, minute: int, **kw) -> Run:
+        r = db.start_run(run(portal_id, at=T0 + timedelta(minutes=minute), **kw))
+        r = r.model_copy(update={"finished_at": r.started_at + timedelta(seconds=30), "result": RunResult.ok})
+        assert db.save_run(r)
+        return r
+
+    reads = [ended("p1", m, usage=TokenUsage(input_tokens=100, cached_input_tokens=40, output_tokens=10,
+                                              reasoning_tokens=4, cost_usd=0.25), model_calls=1) for m in range(5)]
+    repair = ended("p1", 5, kind=RunKind.repair, trigger=RunTrigger.heal, model_calls=2)  # no tokens recorded
+    other = ended("p2", 1)
+
+    assert db.recent_runs(2) == {"p1": [reads[4], repair], "p2": [other]}  # p3 has no run and no key
+    assert db.recent_runs(3, kind=RunKind.read) == {"p1": reads[2:], "p2": [other]}
+    assert db.recent_runs(10, portal_id="p2") == {"p2": [other]}
+    assert db.recent_runs(10, portal_id="p3") == {}
+
+    totals = db.run_totals(T0 + timedelta(minutes=3))
+    assert set(totals) == {"p1", "p2"}
+    assert totals["p1"].usage == TokenUsage(input_tokens=500, cached_input_tokens=200, output_tokens=50,
+                                            reasoning_tokens=20, cost_usd=1.25)
+    assert (totals["p1"].model_calls, totals["p1"].unaccounted_runs, totals["p1"].reads_since) == (7, 1, 2)
+    assert (totals["p2"].usage, totals["p2"].unaccounted_runs, totals["p2"].reads_since) == (TokenUsage(), 0, 0)
+
+    for i, r in enumerate(reads):
+        db.add_step(AgentStep(run_id=r.id, seq=1, at=r.started_at, kind=StepKind.note, name="read_list", summary="."))
+        db.add_step(AgentStep(run_id=r.id, seq=2, at=r.started_at + timedelta(seconds=9), kind=StepKind.note,
+                              name="publish", summary=".", args={"delivered": 40 + i}))
+    published = db.recent_steps("publish", 3)
+    assert list(published) == ["p1"]
+    assert [step.args for step in published["p1"]] == [{"delivered": n} for n in (42, 43, 44)]
+    assert db.recent_steps("nothing", 3) == {}
+
+
 # == Recipes ==
 
 def test_activating_a_recipe_retires_the_one_before_and_points_the_portal_at_it(db):

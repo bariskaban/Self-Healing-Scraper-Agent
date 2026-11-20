@@ -34,6 +34,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.dashboard_api import add_dashboard_routes
 from app.db import Database
 from app.docs import DocsSettings, FileStore
 from app.interfaces import Store, Worker
@@ -267,6 +268,8 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
         if not path.is_file():
             raise HTTPException(status_code=404, detail="The document's bytes are not on disk.")
         return FileResponse(path, media_type=record.content_type or "application/octet-stream")
+
+    add_dashboard_routes(app, store, on_db, worker)  # /api/...: what the page reads (docs/DASHBOARD_API.md)
 
     @app.get("/", response_class=HTMLResponse)
     async def index() -> Response:

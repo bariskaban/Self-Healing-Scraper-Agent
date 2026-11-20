@@ -59,6 +59,7 @@ from app.scheduler import (
 from app.state import Decision, ReadFacts, decide
 
 ROW_HASH = "_row_hash"  # kept in TenderRecord.raw until the record has a field for it
+PUBLISH_STEP = "publish"  # the step a read records when it publishes; its args hold `delivered`
 
 
 @dataclass(frozen=True)
@@ -173,11 +174,12 @@ class _Read:
 
     # -- small helpers --
 
-    def step(self, name: str, summary: str, started: float | None = None, error: str | None = None) -> None:
+    def step(self, name: str, summary: str, started: float | None = None, error: str | None = None,
+             args: dict | None = None) -> None:
         self.seq += 1
         took = int((time.monotonic() - started) * 1000) if started is not None else None
         self.db.add_step(AgentStep(run_id=self.run.id, seq=self.seq, kind=StepKind.note, name=name,
-                                   summary=summary, duration_ms=took, error=error))
+                                   summary=summary, duration_ms=took, error=error, args=args))
 
     def add(self, *results: CheckResult | None) -> None:
         for result in results:
@@ -583,7 +585,10 @@ class _Read:
             incident.list_seconds, incident.list_pages = self.listed.seconds, max(self.listed.pages, 1)
             facts = next((n.facts for n in self.body.nodes if n.role is NodeRole.list), None)
             incident.newest_first = bool(facts and facts.newest_first)
-        self.step("publish", f"Published {len(records)} tender(s); {len(gone)} left the list and are closed.")
+        # `delivered` is every tender the portal delivers once this publication is in: a publish
+        # never removes one. The dashboard draws it per publication (docs/DASHBOARD_API.md).
+        self.step(PUBLISH_STEP, f"Published {len(records)} tender(s); {len(gone)} left the list and are closed.",
+                  args={"delivered": len({*known, *records})})
 
         needs = self._needs(records, pending)
         state, reason = PortalState.serving, decision.reason
@@ -750,4 +755,4 @@ def new_run(portal: Portal, trigger) -> Run:
                state_before=portal.state)
 
 
-__all__ = ["Incident", "Learned", "Learner", "ROW_HASH", "ReadOutcome", "Reader", "Repairer", "new_run"]
+__all__ = ["Incident", "Learned", "Learner", "PUBLISH_STEP", "ROW_HASH", "ReadOutcome", "Reader", "Repairer", "new_run"]
