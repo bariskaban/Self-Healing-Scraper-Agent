@@ -32,6 +32,20 @@ from .settings import DEFAULT_FETCH_SETTINGS, FetchMode, FetchSettings
 
 REDIRECTS = frozenset({301, 302, 303, 307, 308})
 CHUNK_BYTES = 1024 * 1024
+# Headers a caller sets for one host, which a redirect to another host must not receive.
+CREDENTIAL_HEADERS = frozenset({"authorization", "cookie", "proxy-authorization"})
+
+
+_ANSWER = "watchtower.answer"
+
+
+def _origin(url: httpx.URL) -> tuple[str, str, int | None]:
+    return url.scheme, url.host, url.port
+
+
+def _remember_answer(response: httpx.Response) -> None:
+    """Keep each answer with its request, so `_walk` still has it if httpx refuses its Location."""
+    response.request.extensions[_ANSWER] = response
 
 
 class _Shared(httpx.BaseTransport):
@@ -50,14 +64,20 @@ class _Shared(httpx.BaseTransport):
 class _Streamed:
     """One download as `app.docs.Download`: status, headers, final address and the body in chunks."""
 
-    def __init__(self, response: httpx.Response, final_url: str) -> None:
+    def __init__(self, response: httpx.Response, final_url: str, tries: int = 1) -> None:
         self._response = response
+        self._tries = tries
         self.status = response.status_code
         self.headers = response.headers
         self.final_url = final_url
 
     def chunks(self) -> Iterator[bytes]:
-        return self._response.iter_bytes(CHUNK_BYTES)
+        # The body can still break off after the headers (timeout, reset, bad encoding).
+        # The caller must not need httpx to catch that, so it becomes FetchFailed.
+        try:
+            yield from self._response.iter_bytes(CHUNK_BYTES)
+        except httpx.HTTPError as exc:
+            raise FetchFailed(self.final_url, answer_from_error(exc, page_load=False), self._tries) from exc
 
 
 @dataclass
@@ -116,7 +136,8 @@ class Fetcher:
                 timeout = httpx.Timeout(self.settings.read_timeout_seconds,
                                         connect=self.settings.connect_timeout_seconds)
                 client = httpx.Client(transport=self._make_transport(), follow_redirects=False, timeout=timeout,
-                                      headers={"User-Agent": self.settings.user_agent})
+                                      headers={"User-Agent": self.settings.user_agent},
+                                      event_hooks={"response": [_remember_answer]})
                 self._sessions[portal_id] = client
             return client
 
@@ -145,7 +166,9 @@ class Fetcher:
               ) -> tuple[httpx.Response | None, BaseException | None, str, tuple[str, ...]]:
         """Send the request and follow its redirects: (open response or None, error, final address, hops)."""
         client = self._session(portal_id)
-        current = httpx.URL(url, params=params) if params else httpx.URL(url)
+        # Merged, not replaced: a query already in the address (a filter) stays beside `params`.
+        current = httpx.URL(url).copy_merge_params(params) if params else httpx.URL(url)
+        headers = dict(headers) if headers else None
         body: dict[str, Any] = {}
         if data is not None:
             body["data"] = data
@@ -161,16 +184,41 @@ class Fetcher:
                 response = client.send(request, stream=True)
             except httpx.HTTPError as exc:
                 return None, exc, str(current), tuple(hops)
+            except httpx.InvalidURL:
+                # httpx reads the Location of every redirect, even one it does not follow, and
+                # refuses one that is no address (mailto:, javascript:). The redirect is the answer.
+                refused = request.extensions.get(_ANSWER)
+                if refused is None:
+                    raise
+                plain = [(k, v) for k, v in refused.headers.multi_items()
+                         if k.lower() not in ("content-encoding", "content-length", "transfer-encoding")]
+                response = httpx.Response(refused.status_code, headers=plain, request=request)  # httpx closed it unread
+                return response, None, str(current), tuple(hops)
             location = response.headers.get("location")
+            target = None
             if response.status_code in REDIRECTS and location and len(hops) < self.settings.max_redirects:
-                response.close()
-                hops.append(str(current))
-                current = current.join(location)
-                if response.status_code == 303 or (response.status_code in (301, 302)
-                                                   and method not in ("GET", "HEAD")):
-                    method, body = "GET", {}
-                continue
-            return response, None, str(current), tuple(hops)
+                target = self._redirect_target(current, location)
+            if target is None:  # the answer itself, or a redirect we do not follow: the walk ends here
+                return response, None, str(current), tuple(hops)
+            response.close()
+            hops.append(str(current))
+            if headers and _origin(target) != _origin(current):  # credentials stay with the host they were for
+                headers = {k: v for k, v in headers.items() if k.lower() not in CREDENTIAL_HEADERS}
+            current = target
+            if response.status_code == 303 or (response.status_code in (301, 302)
+                                               and method not in ("GET", "HEAD")):
+                method, body = "GET", {}
+                if headers:  # no body goes with a GET, so nothing names its type
+                    headers = {k: v for k, v in headers.items() if k.lower() != "content-type"}
+
+    @staticmethod
+    def _redirect_target(current: httpx.URL, location: str) -> httpx.URL | None:
+        """Where a Location header leads, or None when it is not an http(s) address (mailto:, javascript:)."""
+        try:
+            target = current.join(location)
+        except httpx.InvalidURL:
+            return None
+        return target if target.scheme in ("http", "https") and target.host else None
 
     def _pause(self, tries: int) -> float:
         """Rule T1: a randomised, growing pause before the next try (ours: half fixed, half random)."""
@@ -187,16 +235,19 @@ class Fetcher:
                                                           obey_robots=obey_robots)
             body = b""
             keep_open = False
-            if response is None:
-                answer, resp_headers = answer_from_error(error, page_load=page_load), httpx.Headers()
-            else:
-                resp_headers = response.headers
+            if response is not None:
                 keep_open = stream and 200 <= response.status_code < 300
                 if not keep_open:  # a page, or an error page in place of a file: read it to look at it
                     try:
                         body = response.read()
+                    except httpx.HTTPError as exc:  # it broke off after its headers: no answer, as rule T1 counts it
+                        body, error = b"", exc
                     finally:
                         response.close()
+            if response is None or error is not None:
+                answer, resp_headers = answer_from_error(error, page_load=page_load), httpx.Headers()
+            else:
+                resp_headers = response.headers
                 answer = answer_from_response(response.status_code, resp_headers, body[: self.settings.sniff_bytes],
                                               final_url=final_url, redirects=hops, page_load=page_load)
             kind = classify_answer(answer)
@@ -279,7 +330,7 @@ class Fetcher:
             raise FetchFailed(url, last.answer, last.tries, last.at_slowest)
         if last.response is not None:
             try:
-                yield _Streamed(last.response, last.final_url)
+                yield _Streamed(last.response, last.final_url, last.tries)
             finally:
                 last.response.close()
             return

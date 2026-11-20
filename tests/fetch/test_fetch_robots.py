@@ -99,3 +99,67 @@ def test_forget_drops_the_rules():
     fetcher.forget("p1")
     fetcher.fetch("p1", f"{BASE}/a")
     assert server.paths().count("/robots.txt") == 2
+
+
+# == RFC 9309, section 2.2: our own matcher ==
+
+def reads(rules: str | bytes, path: str) -> bool:
+    body = rules if isinstance(rules, bytes) else rules.encode("utf-8")
+    fetcher, _, _ = make_fetcher(site(httpx.Response(200, content=body)), robots=True)
+    try:
+        return fetcher.fetch("p1", f"{BASE}{path}").ok
+    except RobotsForbidden:
+        return False
+
+
+def test_the_longest_match_wins_whatever_the_order_and_allow_wins_a_tie():
+    rules = "User-agent: *\nDisallow: /\nAllow: /tenders\nDisallow: /tenders/private\n"
+    assert reads(rules, "/tenders") and reads(rules, "/tenders/17")
+    assert not reads(rules, "/admin") and not reads(rules, "/tenders/private/1")
+    assert reads("User-agent: *\nDisallow: /list\nAllow: /list\n", "/list")
+    fetcher, _, _ = make_fetcher(site(rules), robots=True)
+    assert not fetcher.robots_forbids_every_path("p1", f"{BASE}/")
+
+
+def test_star_and_dollar_are_obeyed():
+    rules = "User-agent: *\nDisallow: /*?sort=\nDisallow: /*.pdf$\nDisallow: /search*/all\nAllow: /$\n"
+    assert not reads(rules, "/list?sort=date") and reads(rules, "/list?page=2")
+    assert not reads(rules, "/doc/a.pdf") and reads(rules, "/doc/a.pdf?download=1") and reads(rules, "/doc/a.pdfx")
+    assert not reads(rules, "/search/2026/all") and reads(rules, "/search/2026")
+    assert reads(rules, "/")
+
+
+def test_a_byte_order_mark_comments_and_unknown_lines_do_not_hide_the_rules():
+    rules = (b"\xef\xbb\xbf# our rules\nSitemap: https://portal.example/sitemap.xml\n"
+             b"USER-AGENT: *   # everyone\nCrawl-delay: 5\nDisallow: /private/ # staff\n\nDisallow: /intern\n")
+    assert not reads(rules, "/private/x") and not reads(rules, "/intern") and reads(rules, "/tenders")
+
+
+def test_groups_are_chosen_by_our_name_and_fall_back_to_the_star_group():
+    rules = ("User-agent: googlebot\nUser-agent: watchtower\nDisallow: /a\n\n"
+             "User-agent: *\nDisallow: /b\n\nUser-agent: Watchtower/2.0\nDisallow: /c\n")
+    assert not reads(rules, "/a") and not reads(rules, "/c")  # every group that names us counts
+    assert reads(rules, "/b")                                   # the star group is only a fallback
+    other = "User-agent: watchtowerbot\nDisallow: /\n\nUser-agent: *\nDisallow: /b\n"
+    assert reads(other, "/a") and not reads(other, "/b")       # another robot's name is not ours
+    assert reads("User-agent: googlebot\nDisallow: /\n", "/a")  # no group for us at all: no rules
+    assert reads("Disallow: /\n", "/a") and reads("User-agent: *\nDisallow:\n", "/a")
+
+
+@pytest.mark.parametrize("rules, forbids", [
+    ("User-agent: *\nDisallow: /\n", True),
+    ("User-agent: *\nDisallow: /*\n", True),
+    ("User-agent: *\nDisallow: *\n", True),
+    ("User-agent: Watchtower\nDisallow: /\n\nUser-agent: *\nAllow: /\n", True),
+    ("User-agent: *\nDisallow: /\n\nUser-agent: watchtower\nDisallow: /private\n", False),
+    ("User-agent: *\nDisallow: /\nAllow: /tenders\n", False),
+    ("User-agent: *\nDisallow: /$\n", False),
+    ("User-agent: *\nDisallow:\n", False),
+    ("", False),
+])
+def test_forbids_every_path_is_read_off_our_own_rules(rules, forbids):
+    fetcher, _, _ = make_fetcher(site(rules), robots=True)
+    assert fetcher.robots_forbids_every_path("p1", f"{BASE}/") is forbids
+    if forbids:
+        with pytest.raises(RobotsForbidden):
+            fetcher.fetch("p1", f"{BASE}/tenders")

@@ -217,3 +217,120 @@ def test_a_download_with_no_answer_raises():
         with fetcher.download("p1", f"{BASE}/files/a.pdf"):
             pass
     assert caught.value.tries == 3 and caught.value.answer.error is ErrorKind.connection
+
+
+# == An answer that breaks off after its headers ==
+
+class _BreaksOff(httpx.SyncByteStream):
+    """A body that starts and then fails, as a stalled or reset connection does."""
+
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+
+    def __iter__(self):
+        yield b"%PDF-1.4 "
+        raise self.error
+
+
+def test_a_body_that_breaks_off_is_no_answer_and_is_tried_again():
+    fetcher, server, _ = make_fetcher(lambda r: httpx.Response(
+        200, headers={"content-type": "text/html"}, stream=_BreaksOff(httpx.ReadTimeout("stalled"))))
+    got = fetcher.fetch("p1", f"{BASE}/list")
+    assert (got.status, got.answer.error, got.tries, got.body) == (None, ErrorKind.timeout, 3, b"")
+    assert len(server.seen) == 3 and got.transport is Transport.outage
+
+    answers = iter([httpx.Response(200, headers={"content-encoding": "gzip"}, stream=httpx.ByteStream(b"not gzip")),
+                    html("ok")])
+    fetcher, _, _ = make_fetcher(lambda r: next(answers))
+    got = fetcher.fetch("p1", f"{BASE}/list")  # a body that does not decode, then a good one
+    assert got.ok and got.tries == 2
+
+
+def test_a_download_that_breaks_off_raises_fetch_failed_not_an_httpx_error(tmp_path):
+    fetcher, _, _ = make_fetcher(lambda r: httpx.Response(
+        200, headers={"content-type": "application/pdf"}, stream=_BreaksOff(httpx.ReadError("reset"))))
+    files = FileStore(DocsSettings(data_dir=tmp_path))
+    with pytest.raises(FetchFailed) as caught:
+        with fetcher.download("p1", f"{BASE}/files/a.pdf") as download:
+            store_document(download, Announced(source_url=f"{BASE}/files/a.pdf"), store=files,
+                           judge=stand_in_judge, portal_id="p1", tender_id="T1")
+    assert caught.value.answer.error is ErrorKind.connection and caught.value.url == f"{BASE}/files/a.pdf"
+
+
+# == Addresses, text and headers ==
+
+def test_params_are_added_to_a_query_already_in_the_address():
+    fetcher, server, _ = make_fetcher(lambda r: html("x"))
+    fetcher.fetch("p1", f"{BASE}/search?type=open&lang=de", params={"page": 2})
+    assert dict(server.requests[-1].url.params) == {"type": "open", "lang": "de", "page": "2"}
+    fetcher.fetch("p1", f"{BASE}/search?page=1&type=open", params={"page": 2})  # the same name: params wins
+    assert dict(server.requests[-1].url.params) == {"type": "open", "page": "2"}
+
+
+def test_text_finds_the_charset_in_the_header_the_page_or_the_bytes():
+    words = "Straßenbau Köln"
+
+    def page(content_type: str, body: bytes) -> str:
+        fetcher, _, _ = make_fetcher(lambda r: httpx.Response(200, headers={"content-type": content_type},
+                                                              content=body))
+        return fetcher.fetch("p1", f"{BASE}/x").text
+
+    latin = words.encode("iso-8859-1")
+    assert page('text/html; charset="iso-8859-1"', latin) == words       # quoted in the header
+    assert page("text/html; charset=ISO-8859-1", latin) == words
+    assert page("text/html", b"<meta charset='iso-8859-1'>" + latin).endswith(words)
+    assert page("text/html", b'<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">'
+                + "Łódź".encode("iso-8859-2")).endswith("Łódź")
+    assert page("text/html", words.encode("utf-8")) == words             # nothing named: UTF-8
+    assert page("text/html", words.encode("cp1252")) == words            # nothing named and not UTF-8
+    assert page("text/html; charset=no-such-charset", words.encode("utf-8")) == words
+
+
+def test_a_redirect_to_another_host_does_not_carry_the_callers_credentials():
+    def handler(request):
+        if request.url.host == "portal.example" and request.url.path == "/a":
+            return httpx.Response(302, headers={"location": request.url.params["to"]})
+        return html("x")
+
+    sent = {"Authorization": "Bearer secret", "Cookie": "sid=1", "Proxy-Authorization": "Basic x",
+            "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/x-www-form-urlencoded"}
+    fetcher, server, _ = make_fetcher(handler)
+    fetcher.fetch("p1", f"{BASE}/a", params={"to": "https://files.example/x"}, method="POST", data={"q": "1"},
+                  headers=sent)
+    first, last = server.requests[0], server.requests[-1]
+    assert first.headers["authorization"] == "Bearer secret" and first.headers["content-type"] == sent["Content-Type"]
+    assert last.url.host == "files.example" and last.method == "GET"
+    assert not {"authorization", "cookie", "proxy-authorization", "content-type"} & set(last.headers)
+    assert last.headers["x-requested-with"] == "XMLHttpRequest"
+    assert sent["Authorization"] == "Bearer secret"  # the caller's own dict is left alone
+
+    fetcher, server, _ = make_fetcher(handler)  # the same host: the credentials go along
+    fetcher.fetch("p1", f"{BASE}/a", params={"to": "/b"}, headers=sent)
+    assert server.requests[-1].headers["authorization"] == "Bearer secret"
+    assert server.requests[-1].headers["content-type"] == sent["Content-Type"]  # a GET all along: untouched
+
+
+@pytest.mark.parametrize("location", ["mailto:office@portal.example", "javascript:void(0)", "ftp://portal.example/f",
+                                      "http://"])
+def test_a_location_that_is_no_web_address_ends_the_walk_with_the_redirect_itself(location):
+    fetcher, server, _ = make_fetcher(lambda r: httpx.Response(302, headers={"location": location}))
+    got = fetcher.fetch("p1", f"{BASE}/a")
+    assert (got.status, got.final_url, got.redirects, got.tries) == (302, f"{BASE}/a", (), 1)
+    assert len(server.seen) == 1
+
+
+@pytest.mark.parametrize("path, login", [
+    ("/authority/123/tenders", False), ("/authorities", False), ("/contracting-authority/list", False),
+    ("/auth", True), ("/auth/login", True), ("/authenticate", True), ("/Authentication", True),
+    ("/authentification", True), ("/oauth2/authorize", True), ("/authorization", True), ("/anmelden", True),
+])
+def test_an_authority_page_is_not_a_login_page(path, login):
+    def handler(request):
+        if request.url.path == "/tenders":
+            return httpx.Response(301, headers={"location": path})
+        return html("<table id='tenders'></table>")
+
+    fetcher, _, _ = make_fetcher(handler)
+    answer = fetcher.fetch("p1", f"{BASE}/tenders").answer
+    assert (answer.login_redirect == path) is login
+    assert (block_sign(answer) is not None) is login

@@ -32,7 +32,10 @@ from app.checks import Answer, Transport, classify_answer
 from app.docs import Download
 from app.models import NetworkEntry
 
-_CHARSET = re.compile(r"charset=([\w.-]+)", re.IGNORECASE)
+_CHARSET = re.compile(r"""charset\s*=\s*["']?([\w.:-]+)""", re.IGNORECASE)
+_META_CHARSET = re.compile(rb"""<meta[^>]*?charset\s*=\s*["']?([\w.:-]+)""", re.IGNORECASE)
+# The HTML standard: a page names its charset within its first 1024 bytes.
+META_CHARSET_BYTES = 1024
 
 
 @dataclass(frozen=True)
@@ -67,13 +70,22 @@ class Fetched:
 
     @property
     def text(self) -> str:
-        """The body as text, in the charset the answer names (UTF-8 otherwise)."""
-        match = _CHARSET.search(self.headers.get("content-type", ""))
-        encoding = match.group(1) if match else "utf-8"
+        """The body as text: in the charset the header names, else the one the page's own
+        `<meta>` names, else UTF-8, else Windows-1252 (older portals name none and are not UTF-8)."""
+        named = _CHARSET.search(self.headers.get("content-type", ""))
+        encoding = named.group(1) if named else None
+        if encoding is None:
+            meta = _META_CHARSET.search(self.body[:META_CHARSET_BYTES])
+            encoding = meta.group(1).decode("ascii") if meta else None
+        if encoding is not None:
+            try:
+                return self.body.decode(encoding, errors="replace")
+            except LookupError:  # a charset Python does not know
+                pass
         try:
-            return self.body.decode(encoding, errors="replace")
-        except LookupError:
-            return self.body.decode("utf-8", errors="replace")
+            return self.body.decode("utf-8")
+        except UnicodeDecodeError:
+            return self.body.decode("cp1252", errors="replace")
 
     def json(self) -> Any:
         return jsonlib.loads(self.body)

@@ -18,8 +18,10 @@ from app.checks import Answer, ErrorKind
 
 _PASSWORD_FIELD = re.compile(rb"""type\s*=\s*["']?password""", re.IGNORECASE)
 # Ours: path words of login and single-sign-on pages, in the languages of Patterno's portals.
+# "auth", "authenticate", "authentification" and "authorize" count; "authority" does not: a
+# contracting authority's page is no login page.
 _LOGIN_PATH = re.compile(
-    r"(^|[/_.-])(log-?in|sign-?in|anmeld\w*|auth\w*|sso|cas|connexion|identification|"
+    r"(^|[/_.-])(log-?in|sign-?in|anmeld\w*|auth(?:enti\w*|ori[sz]\w*)?|sso|cas|connexion|identification|"
     r"accedi|logowanie|zaloguj\w*|inicio-?sesion|acceso)([/_.?-]|$)", re.IGNORECASE)
 # Ours: a maintenance notice, in the languages of Patterno's portals (Q10, rule O1: an outage).
 _MAINTENANCE = re.compile(
