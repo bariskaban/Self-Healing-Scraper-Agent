@@ -28,7 +28,7 @@ Deliverable: the recommended read order and state rule, with the request math fo
 
 We choose this for four reasons:
 
-1. **The first attach is the only expensive part, and requests are what it costs.** A bulk source cuts it by a factor of 6 on the one portal we measured; nothing else comes close.
+1. **The first attach is the only expensive part, and requests are what it costs.** A bulk source cuts it by a factor of 5 on the one portal we measured; nothing else comes close.
 2. **Phases reach "every tender known and correct" 4 times sooner than finishing one tender at a time**, and they test the recipe on every detail page before most of the budget goes to files.
 3. **The state rule never contradicts the organisers' definitions.** Nothing is delivered while `integrating`; nothing wrong or knowingly partial in the tender list is delivered while `serving`.
 4. **Small portals lose nothing.** They finish inside the 10 minutes and go to `serving` complete. Only portals that cannot finish quickly use the early gate.
@@ -41,33 +41,36 @@ All from `research/tools/q12_request_math.py` (**measured**: computed; run it to
 
 | Portal | Tenders | Requests | Every record known | Everything in | Disk |
 | --- | --- | --- | --- | --- | --- |
-| HTML list of 20, 3 files each (the question's guess) | 100 | 405 | 2 min | 7 min | 0.4 GB |
-| | 1,000 | 4,050 | 18 min | 68 min | 4 GB |
-| | 5,000 | 20,250 | 88 min | 5.6 h | 20 GB |
-| HTML list of 20, **12 files each (measured median)** | 100 | 1,305 | 2 min | 22 min | 1 GB |
-| | 1,000 | 13,050 | 18 min | 3.6 h | 10 GB |
-| | 5,000 | 65,250 | 88 min | 18.1 h | 50 GB |
-| **API list of 100 and one all-documents ZIP per tender (measured: TenderNed)** | 100 | 201 | 1 s | 3 min | 1 GB |
-| | 1,000 | 2,010 | 10 s | 34 min | 10 GB |
-| | 5,000 | 10,050 | 50 s | 2.8 h | 50 GB |
+| HTML list of 20, 3 files each (the question's guess) | 100 | 405 | 2 min | 7 min | 2 GB |
+| | 1,000 | 4,050 | 18 min | 68 min | 20 GB |
+| | 5,000 | 20,250 | 88 min | 5.6 h | 100 GB |
+| HTML list of 20, **9 files each (measured mean)** | 100 | 1,005 | 2 min | 17 min | 2 GB |
+| | 1,000 | 10,050 | 18 min | 2.8 h | 20 GB |
+| | 5,000 | 50,250 | 88 min | 14 h | 100 GB |
+| **API list of 100 and one all-documents ZIP per tender (measured: TenderNed)** | 100 | 201 | 1 s | 3 min | 2 GB |
+| | 1,000 | 2,010 | 10 s | 34 min | 20 GB |
+| | 5,000 | 10,050 | 50 s | 2.8 h | 100 GB |
+
+**A real case, measured today:** TenderNed lists 1,551 open tenders. With its API and ZIP link that is 3,179 requests, 53 minutes. File by file it is about 15,600 requests, 4.3 hours. Either way it is about 35 GB of documents.
 
 Three things the question's rough math missed:
 
-- **Files per tender are 12, not 3**, on the portal we measured. Read file by file, 1,000 tenders take 3.6 hours, not 67 minutes.
+- **Files per tender are about 9, not 3**, on the portal we measured (mean 8.7 over 40 open tenders; median 7.5). Read file by file, 1,000 tenders take 2.8 hours, not 67 minutes.
+- **Disk is a limit of its own.** At about 20 MB per tender, 1,000 tenders are 20 GB.
 - **A bulk source changes the picture more than any ordering does.** With TenderNed's API and its ZIP link, the same 1,000 tenders take 34 minutes, and every record is known after 10 seconds, because the list already carries the required fields.
 - **Some portals allow less than 1 request per second.** Poland's national portal allows 30 a minute and answers 403 beyond that. There, every time above doubles.
 
 ### After the first attach
 
-HTML list of 20 per page; a new tender costs 14 requests; re-reading the detail pages of known tenders may use a fifth of the request budget.
+HTML list of 20 per page; a new tender costs 10 requests; re-reading the detail pages of known tenders may use a fifth of the request budget.
 
 | Tenders | List pages | List read every | Requests per hour | Share of the budget | Longest time a broken portal can read `serving` | Every detail page re-read within |
 | --- | --- | --- | --- | --- | --- | --- |
 | 100 | 5 | 2 min | about 1,110 | 31% | 2 min | 8 min |
-| 1,000 | 50 | 8 min | 1,150 to 1,210 | 32 to 34% | 9 min | 83 min |
-| 5,000 | 250 | 30 min | 1,290 to 1,600 | 36 to 44% | 34 min | 6.9 h |
+| 1,000 | 50 | 8 min | 1,150 to 1,190 | 32 to 33% | 9 min | 83 min |
+| 5,000 | 250 | 30 min | 1,280 to 1,500 | 35 to 42% | 34 min | 6.9 h |
 
-The range is for tenders that stay open 54 days (measured median, TenderNed) down to 8 days (measured median, Polish notices below the EU threshold). Steady state stays under half of what the limit allows at every size. The interval rule is in Q13.
+The range is for tenders that stay open 50 days (measured median, TenderNed) down to 8 days (measured median, Polish notices below the EU threshold). Steady state stays under half of what the limit allows at every size. The interval rule is in Q13.
 
 ## The read, step by step
 
@@ -118,12 +121,13 @@ The 10 minutes is **ours**, and so is the fifth of the budget for re-reading det
 All with plain requests to public, documented interfaces, at most one per second.
 
 - **TenderNed (Netherlands), public REST API, no login.** Page size defaults to 10 and is capped at 100: a request for 101 answers "must be less than or equal to 100" (checked twice). A list entry carries id, title, buyer, publication date, closing time in local time with no offset, procedure, type and description. There is no last-modified field: a change appears as a separate rectification row, and the detail call points to the latest one.
-- **TenderNed documents.** The document list and one all-documents ZIP per tender both answer without login (one ZIP fetched: 6.9 MB). In a sample of 10 open tenders: 0, 9, 9, 10, 11, 12, 13, 16, 25, 25 documents; median 12 among the nine that had any. Size per tender: median 3.8 MB, with one at 50 MB and one at 376 MB.
-- **TenderNed lifetimes.** 31 contract notices with a deadline ahead: 27 to 90 days from publication to deadline, median 54. 14 of the newest 100 notices were rectifications.
+- **TenderNed's open stock.** Reading every publication since 15 August (7,630 rows in 77 pages of 100: 2,691 contract notices, 2,494 awards, 1,208 rectifications, the rest other types) gives 1,933 rows with a deadline still ahead, which are **1,551 distinct open tenders**. Tenders published earlier and still open are not counted, so the true figure is slightly higher.
+- **TenderNed documents.** The document list and one all-documents ZIP per tender both answer without login (one ZIP fetched: 6.9 MB). In a random sample of 40 of those open tenders: 7.5 files at the median, 8.7 on average, 29 at most, and 9 tenders with none. Size per tender: 2.8 MB at the median, 22.7 MB on average, 127 MB at the 90th percentile, 300 MB at most. One file was over 250 MB. A first sample of 10 had given a median of 12 files; the larger sample replaces it.
+- **TenderNed lifetimes.** Across the 1,551 open tenders: 50 days at the median from publication to deadline, 26 at the 10th percentile, 89 at the 90th. One row in six is a rectification.
 - **e-Zamówienia (Poland), public notice API.** At most 30 requests a minute from one address, then HTTP 403 (**read**; checked twice). A page of 500 notices is accepted and weighs 17 MB. 500 notices below the EU threshold: median 8 days from publication to deadline, 15 days at the 90th percentile.
 - **Spain's national feed.** One Atom file held 210 entries with a per-entry update time and a link to the next file. The same portal's HTML pages answered "Request Rejected" to a plain request.
 
-These samples are small and from one day: one portal for documents, two for lifetimes. They replace a guess with a measurement, not with a distribution.
+This is one portal for documents and two for lifetimes, on one day. It replaces a guess with a measurement; it does not show how portals differ.
 
 ### Read
 
@@ -156,7 +160,7 @@ These samples are small and from one day: one portal for documents, two for life
 
 ## Disk
 
-Files are kept on local disk under their SHA-256, so the same file in two tenders is stored once. From the measured sizes, with files over 250 MB left out, plan for roughly 10 MB per tender: 10 GB for 1,000 tenders and 50 GB for 5,000 (weak: nine tenders, one portal). When free space runs low, stop fetching new documents, leave those tenders' `documents` null, say so in `reason`, and remove the files of closed tenders first (**ours**).
+Files are kept on local disk under their SHA-256, so the same file in two tenders is stored once. From the measured sizes, plan for about 20 MB per tender: 20 GB for 1,000 tenders and 100 GB for 5,000. The average is carried by a few large tenders; the median is under 3 MB (40 tenders, one portal). When free space runs low, stop fetching new documents, leave those tenders' `documents` null, say so in `reason`, and remove the files of closed tenders first (**ours**).
 
 ## Prototype first (about 4 hours)
 
@@ -168,7 +172,7 @@ Files are kept on local disk under their SHA-256, so the same file in two tender
 ## Effect on other questions
 
 - **Q1 recipe model:** the recipe says whether the list alone carries the required fields, what the page-size parameter and its maximum are, whether an all-documents ZIP exists, and which change mark the portal has.
-- **Q3 explore or map:** probing for an API, a feed or a ZIP link is worth up to a few dozen requests at attach: on a 1,000-tender portal it saves about 11,000.
+- **Q3 explore or map:** probing for an API, a feed or a ZIP link is worth up to a few dozen requests at attach: on a 1,000-tender portal it saves about 8,000.
 - **Q7 schemas:** a tender needs read bookkeeping (last seen in the list, last detail read, hash of its list row), and a document entry must be able to exist before its bytes do.
 - **Q9 cost:** portal size does not change model cost; it changes time and disk.
 - **Q10 failure rules:** the checks add at most 8 requests per read. A 403 at a rate-limited portal is not a block.
@@ -192,4 +196,4 @@ Read or measured on 20 Nov 2026.
 - Scrapy 2.20.0, scrapy-deltafetch 2.1.0, airbyte-cdk 7.49.0, singer-python 6.9.0: package sources from PyPI; Debezium PostgreSQL connector documentation source on GitHub
 - Search only: Cho and Garcia-Molina, TODS 28(4), 2003, https://doi.org/10.1145/958942.958945 ; Jackson's rule, lecture notes at https://www.columbia.edu/~cs2035/courses/ieor8100.F16/lec5.pdf
 
-Not found: open-tender counts for any portal, HTML list page sizes, how often tenders are withdrawn, and Patterno's own portal list (its site does not answer our research machine). `research/tools/probe_portals.py`, run from a laptop, fills part of this.
+Not found: open-tender counts for any portal but TenderNed, HTML list page sizes, and how often tenders are withdrawn. Patterno's own portal list is counted in [patterno-landscape.md](patterno-landscape.md): most of its 4,657 portals are one buyer's space on a shared platform, so small lists are the common case.

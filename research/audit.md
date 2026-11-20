@@ -2,25 +2,61 @@
 
 Checked 20 Nov 2026. Every answered question was tested against the answer standard in [README.md](README.md): is the decision stated with its reasons, were real alternatives compared, was each load-bearing claim read at its source, and are the numbers we chose ourselves marked as ours.
 
-For Q2, Q9 and Q11 a separate pass opened the primary sources again and redid the arithmetic, without trusting the files. For Q6, Q10, Q12, Q13 and Q14 the quotes and numbers the decisions rest on were checked a second time against the saved documents, packages and live APIs.
+For the questions answered by teammates (Q1 to Q5, Q7 to Q9, Q11) a separate pass opened the primary sources again, redid the arithmetic and ran what could be run, without trusting the files. For Q6, Q10, Q12, Q13 and Q14 the quotes and numbers the decisions rest on were checked a second time against the saved documents, packages and live APIs.
 
 ## Summary
 
 | Q | Reasons given | Alternatives compared | Claims read at source | Own numbers marked | Verdict |
 | --- | --- | --- | --- | --- | --- |
+| 1 Recipe model | yes | no: not compared with the staged recipe | mostly; 4 corrections | no | **The direction holds; the draft recipe does not.** It cannot express three cases it has to. |
 | 2 Field locators | yes | partly | mostly; 5 corrections | partly | **One rule to fix before building.** The direction is sound. |
+| 3 Explore or map | yes | yes | partly | no | The headline holds. The probe checklist found nothing on four portals, and robots.txt is undecided. |
+| 4 Agent tools | yes | yes, but three rejections rest on wrong reasons | partly; 4 corrections | no | **One claim to fix before building:** the rate limiter does not see redirect hops. The direction is sound. |
+| 5 Agent framework | yes | yes; one alternative weighed on the wrong point | yes, from the package | partly | Usable. Output retry and the budget stop are not in the SDK and must be ours. |
 | 6 Language | yes | yes (3) | yes, and measured | yes | Ready. One input not measurable: the team's own skills. |
+| 7 Schemas | yes | not applicable | yes; tests pass | yes | The API layer is ready. The internal records need four additions for Q10, Q12 and Q14. |
+| 8 Benchmark | yes | partly | partly | no | Sound design. Metric definitions and about nine scenarios to add before it can score anything. |
 | 9 Models and cost | yes | partly | yes for names and prices | partly | **Use the prices. Do not quote the cost per portal** until it is measured: it holds only if the context is trimmed on every call. |
 | 10 Failure rules | yes | yes (8) | yes | yes | Ready to prototype. Untested until it runs on the mock portal. |
 | 11 Reuse | yes | partly | API facts yes; family table has errors | partly | Usable. One gap: a same-template test portal still gets no candidate. |
 | 12 Large portals | yes | yes (10) | yes, and measured on one portal | yes | Ready. One rule waits on the mentors. |
 | 13 Read schedule | yes | yes (5) | partly; the theory is from search results | yes | Ready. |
 | 14 Failed retry | yes | yes (5) | yes for the shape; the steps are ours | yes | Ready. |
-| 1, 3 Recipe model, explore or map | | | | | Answered by David while this check was running. Their check is in progress and will be added here. |
-| 4 Agent tools | yes | yes, but three rejections rest on wrong reasons | partly; 4 corrections | no | **One claim to fix before building:** the rate limiter does not see redirect hops. The direction is sound. |
-| 5 Agent framework | yes | yes; one alternative weighed on the wrong point | yes, from the package | partly | Usable. Output retry and the budget stop are not in the SDK and must be ours. |
-| 7 Schemas | yes | not applicable | yes; tests pass | yes | The API layer is ready. The internal records need four additions for Q10, Q12 and Q14. |
-| 8 Benchmark | yes | partly | partly | no | Sound design. Metric definitions and about nine scenarios to add before it can score anything. |
+
+## Q1 Recipe model
+
+Checked against the cited papers and OpenAI's rules for strict output, and by walking the draft recipe through five cases. The author has since revised the example recipe; this is the file's state now.
+
+**Confirmed and worth keeping:** "learn once, run without a model, repair locally" is well supported by the cited work.
+
+**Fixed since the first pass:** the publication date is a date, procedure type and contract nature are mapped to the contract's values, the place of performance is an object, and files over 250 MB are skipped (it was 5 GB).
+
+**Still to fix:**
+
+1. **The graph is compared with a fixed-stage recipe in general, not with the one already in `DESIGN.md`**, whose source is "a short series of GET or POST steps". That recipe already allows the extra hop the answer says fixed stages cannot express, so the comparison does not yet show the graph is needed.
+2. **The draft recipe cannot express three cases it has to:** paging by form post with hidden state fields, a JSON API that takes its query in a POST body, and a multi-step document download. The `download` node kind named in the summary does not appear in the draft.
+3. **The draft breaks its own rules for a strict schema:** maps with free keys, nested edges, node kinds outside its "closed set". Its CPV path returns nothing, `contains` is not JSONPath, and `nodes[id=list]` is not a JSON Patch path. JSONPath and JSON Patch are also packages nobody has declared.
+4. Citations: AutoScraper's break-even of 19.5 pages is the paper's own figure and is measured in time; WebLists' replay can call a model per element; Crawl4AI's schema generation makes several model calls; Co-Scraper's 90.39% is per field (70.73% per page), and it generates code, the option this answer rejects.
+5. Where it disagrees with other answers:
+   - It keeps a 30% count rule and waits for two bad reads; Q10 replaced both. It has no place for what Q10's rules read (id shape, the printed total's locator, the empty-state marker).
+   - Documents in round-robin against soonest deadline first; 3 files per tender against the measured 9 (Q12).
+   - `integrating` with progress until the documents finish, against Q12's records gate.
+   - It differs from `app/models.py`: status is computed there, version and fingerprint are duplicated, and there is no slot for the portal's time zone.
+6. Numbers without support: 6 interpreters, 11 hours, plus or minus 30%, 100K to 300K tokens.
+
+## Q3 Explore or map first
+
+Checked against the cited paper and by trying the proposed probes on four public portals.
+
+**Confirmed and worth keeping:** do not map the site first. TenderNed's sitemap alone lists about 95,000 historical notice addresses, stronger support than anything in the file.
+
+**Still to fix:**
+
+1. **Guessing feed and API paths found nothing:** 0 hits in 32 requests on four portals (`/feed`, `/rss`, `/api`, `/ocds`, `/swagger` and the like). What works is the page's own network calls and the links the pages themselves offer. Guessed paths should come last or go.
+2. **robots.txt is read third and nothing says whether we obey it.** Spain's national portal answers `Disallow: /` for every robot, its feed path included. The team has to decide and say so; it is now a question for the mentors.
+3. It delivers tender records while `integrating`, which contradicts the organisers' definition (Q12).
+4. "Catches most JavaScript portals in one page load" has no support: TenderNed's entry page is not its list. And the agents in the cited "Beyond Browsing" paper were handed documented APIs; they did not find them.
+5. Numbers without support: 10 to 25 probes, 60 pages, 300 to 3,000 addresses, 3 files per tender.
 
 ## Q2 Field locators
 
@@ -148,7 +184,7 @@ Checked against the judging criteria, the failure rules in Q10 and the sequences
 1. **Several metrics would not come out the same for two people.** State accuracy does not say what the right state is at each moment after a change. Time to notice has no defined start (the change, the refresh, or our next read) and no meaning for scenarios that should end `failed` or stay `serving`. Field scores do not say when two values count as equal (whitespace, the same instant in two offsets, lists). False alarms have no unchanged control portal to be counted on.
 2. **The 16 scenarios miss cases the other answers need:** an outage that lasts past the retries and then ends; a rate limit (429, and 403 with `Retry-After`); a list emptied without its notice; paging cut to one page; a repair budget used up; the three sequences in Q14 with their model-call counts; one tender's detail changed only on its detail page; a large portal for Q12's state rule; and a measure of our own request rate at the mock portal.
 3. **"The open-id list is cheap" does not hold for large portals.** The file's own Austrian portal shows 175,140 results. And the 1,707 given for TenderNed is every publication since 1 November, of which about a third are contract notices.
-4. **Five labelled tenders per portal cannot show a per-portal error rate**: with five clean tenders the rate is only known to be under about 60%. Forty across all portals bound it at about 7.5% overall. Two minutes per tender is also short when a tender has 12 files to hash.
+4. **Five labelled tenders per portal cannot show a per-portal error rate**: with five clean tenders the rate is only known to be under about 60%. Forty across all portals bound it at about 7.5% overall. Two minutes per tender is also short when a tender has 8 or 9 files to hash.
 5. Spain's HTML pages refuse a plain client (seen twice today), so that row of the portal list will not behave as described.
 6. Numbers without support: 8 to 10 person-hours, recall 0.95, 15 minutes, the weight of 2 on errors.
 
@@ -171,7 +207,7 @@ Each is one setting, and each file says what would change it.
 
 **Weak evidence the decisions still lean on:**
 
-- Q12: documents per tender and megabytes per tender come from 9 tenders on one portal on one day. No open-tender count was found for any portal.
+- Q12: documents per tender and megabytes per tender come from 40 tenders on one portal on one day, and the one open-tender count (1,551) is for the same portal.
 - Q10: no measured rate exists for tenders removed before their deadline. The rule set is designed so that this rate does not decide anything alone.
 - Q12 and Q13: "refresh evenly, not in proportion to change rate" was seen only in search results; the paper sits behind a publisher wall.
 - Q6: the team's own skills were not measured; Playwright's list of features missing in Python was not readable.
@@ -195,6 +231,6 @@ Each is one setting, and each file says what would change it.
 
 ## Limits of this check
 
-- The research machine could not open every site. Patterno's own portal list, DTVP, the ACM and Wiley libraries and OpenAI's older docs host never answered or refused. TED and the EU's legal site answered with a bot challenge, which we did not try to pass.
+- The research machine could not open every site. The ACM and Wiley libraries and OpenAI's older docs host refused. TED and the EU's legal site answered with a bot challenge, which we did not try to pass. Patterno's portal list opened once its second address was allowed, and is counted in [patterno-landscape.md](patterno-landscape.md).
 - Portal measurements are from one day and small samples.
 - Nothing here has been run against a real judge. The rules in Q10 and Q12 are designs until the prototypes pass on the mock portal.
