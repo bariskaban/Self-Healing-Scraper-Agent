@@ -44,7 +44,7 @@ Presence of a captcha script, widget or cookie is never a reason. Only the outco
 
 | Rule | The outcome is there when | If it is missing |
 | --- | --- | --- |
-| O1 list | The recipe's row locator matches at least one row. Or the list is provably empty: the portal prints a total of 0, the empty-state marker learned at attach is on the page, or a JSON API answers with its usual keys and an empty list. | With a block sign (table below): fetch once more, through the browser if plain HTTP was used. Still blocked: **Block**. A maintenance page: **Outage**. Neither: suspect, go to Step 4. |
+| O1 list | The recipe's row locator matches at least one row. Or the list is provably empty: the portal prints a total of 0, the empty-state marker learned at attach is on the page, or a JSON API answers with its usual keys and an empty list. | With a block sign (table below): fetch once more, through the browser if plain HTTP was used. Still blocked: **Block**. A maintenance page: **Outage**. Neither: suspect, go to Step 4. The browser try is made once per incident, not per read: on a JavaScript app one page load can cost about 90 requests. |
 | O2 file | Status 2xx; not an HTML page where a file was expected; the first bytes fit the type (`%PDF`; `PK\x03\x04` for ZIP, DOCX and XLSX; `D0 CF 11 E0` for old Office files); size above 0 and equal to the announced size when one was given. | Same classification, per file. A login form served with status 200 in place of a file is a **Block**, and is never stored as a document. One file is not the portal: see D1. |
 
 ### Step 3: is what we extracted right? (no model)

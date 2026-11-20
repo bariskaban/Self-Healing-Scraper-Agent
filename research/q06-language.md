@@ -104,14 +104,14 @@ Our results are licensed exclusively to Patterno, so copyleft dependencies are a
 ## Prototype first (about 1 hour)
 
 1. A Dockerfile from `mcr.microsoft.com/playwright/python:v1.65.2-noble` with `playwright==1.65.2` pinned, built on linux/amd64 in CI. This is already in the plan for hours 0 to 3.
-2. In the running container: load one page with Playwright, send every browser request through `page.route` and the rate limiter, and read the container's memory.
+2. In the running container: load one page with Playwright, send the browser's requests through `page.route` and the rate limiter, and read the container's memory. Count the requests at a local test server, not in the handler: redirect hops and WebSockets do not reach `page.route` (measured; see [audit.md](audit.md), Q4).
 3. Optional, 20 minutes: build the same thing from `python:3.12-slim` plus `playwright install --with-deps --only-shell chromium` and compare size and build time. We could not measure this variant (the browser download host was unreachable from the research machine), so the base image choice in draft 2 stands on reliability, one pull from one registry, not on a measured comparison.
 
 ## Effect on other questions
 
 - **Q1 recipe model:** a generated-extractor option would be Python.
 - **Q2 locators:** XPath and CSS are both fine. Use lxml or parsel as the one parser; selectolax is faster but has no XPath, and speed does not matter here.
-- **Q4 agent tools:** Playwright MCP needs Node on the path (see above). Request interception for the rate limiter exists in the Python API. Budget browser memory from section 3.
+- **Q4 agent tools:** Playwright MCP needs Node on the path (see above), and its current version pins a pre-release of Playwright that differs from our Python package's. Request interception exists in the Python API, but it does not see redirect hops or WebSockets, so the rate limiter needs more than `page.route`. Budget browser memory from section 3.
 - **Q5 framework:** all four candidates exist for Python; PydanticAI exists only for Python.
 - **Q7 schemas:** Pydantic models can serve the API contract, the recipe and the model's strict output schema at once.
 - **DESIGN.md:** the stack table stands. Add the version pin from section 4.

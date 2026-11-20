@@ -16,7 +16,11 @@ For Q2, Q9 and Q11 a separate pass opened the primary sources again and redid th
 | 12 Large portals | yes | yes (10) | yes, and measured on one portal | yes | Ready. One rule waits on the mentors. |
 | 13 Read schedule | yes | yes (5) | partly; the theory is from search results | yes | Ready. |
 | 14 Failed retry | yes | yes (5) | yes for the shape; the steps are ours | yes | Ready. |
-| 1, 3, 4, 5, 7, 8 | | | | | Answered by David and Baris while this check was running. Their check is in progress and will be added here. |
+| 1, 3 Recipe model, explore or map | | | | | Answered by David while this check was running. Their check is in progress and will be added here. |
+| 4 Agent tools | yes | yes, but three rejections rest on wrong reasons | partly; 4 corrections | no | **One claim to fix before building:** the rate limiter does not see redirect hops. The direction is sound. |
+| 5 Agent framework | yes | yes; one alternative weighed on the wrong point | yes, from the package | partly | Usable. Output retry and the budget stop are not in the SDK and must be ours. |
+| 7 Schemas | yes | not applicable | yes; tests pass | yes | The API layer is ready. The internal records need four additions for Q10, Q12 and Q14. |
+| 8 Benchmark | yes | partly | partly | no | Sound design. Metric definitions and about nine scenarios to add before it can score anything. |
 
 ## Q2 Field locators
 
@@ -77,6 +81,30 @@ Checked against the live TenderNed, e-Zamówienia and Spanish feed APIs, and ven
 6. The two cost figures come from Q9's unmeasured assumptions.
 
 **Confirmed and worth keeping:** TenderNed's public API needs no login (only its XML endpoint does); e-Zamówienia allows 30 requests a minute and answers 403 beyond that; the Spanish feed.
+
+## Q4 Agent tools
+
+Checked against the Playwright, Playwright MCP and browser-use packages, the cited papers, and a local test server.
+
+**Confirmed and worth keeping:** the direction. Our own tools on Playwright for Python and httpx, one rate limiter, trimmed HTML for writing locators.
+
+**Still to fix:**
+
+1. **`page.route` does not see every request, so the limiter built on it does not hold the 1 request per second rule by itself.** Redirect hops and WebSockets get past it. Measured twice on a local server, by two separate scripts: a page behind two redirects sent three requests within 10 milliseconds; the route handler saw only the first. Playwright's documentation says the handler is called once, for the original request. This also corrects draft 2 of `DESIGN.md`, which says every browser request passes through the limiter. Ways to close it: walk redirects ourselves in the HTTP client, one hop per second, and send the browser to the final address; store final addresses in the recipe at attach so reads skip the hop; block WebSockets with `route_web_socket` unless a recipe needs one.
+2. **A page load in a JavaScript app can cost about 90 requests.** One cold render of TenderNed's site asked for 84 script files before its first data call. So Q10's "try once through the browser" is expensive there. It is done once per incident, and the script cache this answer already proposes is what makes it affordable.
+3. Reasons given against the alternatives that do not hold:
+   - Playwright MCP can be rate-limited: it accepts a browser context we create. Its real costs are that the limiter would run in Node, that version 0.0.86 pins a pre-release of Playwright 1.66, and that it needs Node on the path (Q6).
+   - browser-use is described as it was before version 1.0. Since 10 November 2026 it is a coding agent on the raw browser protocol, and it ships a hook for captcha solving, which we may not use.
+   - "Own tools are Python only": Playwright for Python ships a Node binary (Q6).
+4. Facts to correct:
+   - The Playwright version (1.64, taken from Wikipedia) is stale; 1.65.2 was released on 14 November.
+   - The cost of a screenshot uses another provider's formula; OpenAI's gives about 1,100 tokens for 1280 by 720.
+   - "TenderNed's JSON has no deadline": 15 of 20 list entries carry one.
+   - In the notes file, the figures +13.3 and +20.9 are listed as "not in either paper"; both are in Table 2 of arXiv 2604.01535.
+5. Where it disagrees with other answers:
+   - It moves a portal to `healing` after two bad reads in a row; Q10 confirms with one immediate re-read. Q10 owns that rule.
+   - Its limiter is keyed by host; `DESIGN.md` and Q12 key it by portal. The brief says "per portal", and a portal's files often sit on a second host, so per portal is the safe reading.
+6. Numbers without support: 100K to 300K tokens per learn, about 8 tools, 4K tokens per page view, the 0.9 requests per second margin, the hour estimates. The tool definitions of Playwright MCP measure 4,864 tokens, not about 3,919.
 
 ## Q5 Agent framework
 
@@ -157,6 +185,7 @@ Each is one setting, and each file says what would change it.
 | Failed portals checked hourly | Replaced by Q14 |
 | Publish only after a full first read | Replaced by Q12 |
 | Two browser pages at a time | Now supported: two tabs measured at 592 MB (Q6) |
+| Every browser request passes through the rate limiter | **Not true as written.** Redirect hops and WebSockets get past `page.route` (measured twice). See Q4 above for the fix. |
 | Repair accepted when 90% of ids and 90% of values reproduce | Still our default. Q10's paired test (rule C3) would be the better-founded rule. |
 | Three repair attempts per incident | Still our default |
 | Four model calls at a time | Still our default; Q9 confirms it is far under the rate limit |
