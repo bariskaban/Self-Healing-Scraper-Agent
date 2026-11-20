@@ -412,7 +412,7 @@ Only the learner, the repairer and the spot check call the model. A regular read
 | HTML parsing | lxml, CSS and XPath | Q2's locators use both (Q6) |
 | Dates and zones | dateparser (DE, FR, ES, NL, PL, IT); `zoneinfo` with the `tzdata` package | Deadlines get the zone of the portal's country by name (`Europe/Berlin`), never a fixed offset and never UTC |
 | ZIP | Standard library `zipfile` | ZIP64 and streamed entries; the unpacked-size cap is ours (Q6) |
-| Storage | SQLite (standard library); files on local disk under `DATA_DIR` | No services beside the container |
+| Storage | SQLite (standard library); files on local disk under `DATA_DIR` (Q15) | No services beside the container. The recipe graph is a JSON document in `recipes`; no graph database (Q15). |
 | Container | `mcr.microsoft.com/playwright/python:v1.65.2-noble` | Chromium comes prebuilt; our layers built in 24 s cold, 4 s after a code change; the image is about 2.7 GB (Q6). Built in CI on every pull request. |
 
 ### Data
@@ -435,6 +435,7 @@ What the research needs added (audit of Q7):
 - Portals run side by side. Twenty portals added at once all make progress; browser pages are capped at two at a time, model calls at four.
 - One request may start per second per portal, counting every request to the portal's hosts, redirect hops and browser sub-requests included.
 - The API answers at once, always. Parsing, hashing and unzipping run in threads, off the event loop.
+- Database access does not fan out over threads: four threads reading SQLite in one process took 130 ms a query against 2.3 ms for one (Q15). API handlers are `async def` and use one database thread; the worker writes through its own connection; long scans such as the fingerprint match run in the worker.
 - After a restart, runs left open are closed as failed and their portals queued again.
 - Tenders of the last good read stay published until a new read passes every check.
 - `closed` is set when the deadline passes or a passing read no longer lists the tender and its detail page confirms it (C4); `withdrawn` only when the portal says it was cancelled. The deadline is watched by a clock, not only by reads, and the change sets `lastChangedAt`, so a `changedSince` caller sees it.
