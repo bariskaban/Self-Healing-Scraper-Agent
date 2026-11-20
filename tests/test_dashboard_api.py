@@ -559,3 +559,22 @@ def test_the_robots_switch_and_the_time_limit_take_effect_for_the_next_read(site
         assert not any(path.startswith("/tenders") for _, path in mock.requests)  # we obeyed
     fits_timeline([attach])
     fits_dashboard(client.get("/api/dashboard").json())
+
+
+def test_a_mistyped_euro_rate_does_not_stop_the_app(monkeypatch, caplog):
+    # The rate comes from EUR_PER_USD (app/config.py). A value that is no number, or a blank model
+    # variable, must leave the app able to start: the default rate is shown and the log says why.
+    from app.config import ModelSettings
+    from app.main import create_app
+
+    for bad in ("abc", "0,87", "-1", "nan"):
+        with caplog.at_level("WARNING", logger="watchtower.dashboard"):
+            assert DashboardSettings.from_env({"EUR_PER_USD": bad}).eur_per_usd == ModelSettings().eur_per_usd
+        assert "EUR_PER_USD" in caplog.text
+        caplog.clear()
+    assert DashboardSettings.from_env({"EUR_PER_USD": "", "MODEL_LEARN": ""}).eur_per_usd == ModelSettings().eur_per_usd
+    monkeypatch.setenv("EUR_PER_USD", "abc")
+    monkeypatch.setenv("MODEL_LEARN", "")
+    monkeypatch.delenv("DATA_DIR", raising=False)
+    with TestClient(create_app()) as client:
+        assert client.get("/api/dashboard").json()["eurPerUsd"] == ModelSettings().eur_per_usd

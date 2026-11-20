@@ -66,13 +66,21 @@ class ModelSettings:
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "ModelSettings":
-        """Defaults overridden by MODEL_LEARN, MODEL_REPAIR, MODEL_CHECK and EUR_PER_USD."""
+        """Defaults overridden by MODEL_LEARN, MODEL_REPAIR, MODEL_CHECK and EUR_PER_USD.
+
+        A blank variable keeps the default. A rate that is not a number, or not a sensible one,
+        raises ValueError naming the variable."""
         env = os.environ if environ is None else environ
         defaults = cls()
+
+        def named(variable: str, default: str) -> str:
+            # A variable that is set but blank (`-e MODEL_LEARN=`) counts as not set.
+            return env.get(variable, "").strip() or default
+
         return cls(
-            learn=env.get("MODEL_LEARN", defaults.learn).strip(),
-            repair=env.get("MODEL_REPAIR", defaults.repair).strip(),
-            check=env.get("MODEL_CHECK", defaults.check).strip(),
+            learn=named("MODEL_LEARN", defaults.learn),
+            repair=named("MODEL_REPAIR", defaults.repair),
+            check=named("MODEL_CHECK", defaults.check),
             eur_per_usd=_rate(env.get("EUR_PER_USD"), defaults.eur_per_usd),
         )
 
@@ -83,7 +91,7 @@ class ModelSettings:
 
 def _rate(raw: str | None, default: float) -> float:
     """EUR_PER_USD as a number. An error names the variable, so an operator can tell what to fix."""
-    if raw is None:
+    if raw is None or not raw.strip():  # not set, or set but blank
         return default
     try:
         return float(raw)

@@ -17,9 +17,15 @@ def test_environment_overrides_each_job():
 
 def test_bad_settings_are_refused():
     with pytest.raises(ValueError):
-        ModelSettings.from_env({"MODEL_REPAIR": "  "})
+        ModelSettings(repair="  ")
     with pytest.raises(ValueError):
         ModelSettings(eur_per_usd=0)
+
+
+def test_a_blank_variable_keeps_the_default():
+    # `docker run -e MODEL_LEARN= -e EUR_PER_USD=` must not stop the app: blank means not set.
+    blank = ModelSettings.from_env({"MODEL_LEARN": "", "MODEL_REPAIR": "  ", "MODEL_CHECK": "", "EUR_PER_USD": " "})
+    assert blank == ModelSettings()
 
 
 def test_unpriced_model_is_reported_not_guessed():
@@ -128,7 +134,7 @@ def test_negative_output_or_cached_counts_raise():
         cost_usd("gpt-6-luna", 10, 10, cached_input_tokens=-1)
 
 
-@pytest.mark.parametrize("raw", ["", "abc", "0,87"])
+@pytest.mark.parametrize("raw", ["abc", "0,87"])
 def test_bad_eur_rate_names_the_variable(raw):
     with pytest.raises(ValueError, match="EUR_PER_USD"):
         ModelSettings.from_env({"EUR_PER_USD": raw})
