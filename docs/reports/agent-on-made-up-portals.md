@@ -1,10 +1,10 @@
 # The learner and the repairer on eight made-up portals
 
-Run on 20 Nov 2026, about 23:00 UTC, on the development key. Model `gpt-6.2-sol`, reasoning `medium`, learn prompt 3, `main` at `ed03b9e` plus `bench/variants.py`. One run per portal: these are single runs, not averages.
+Run on 20 Nov 2026, about 23:00 UTC, on the development key. Model `gpt-6.2-sol`, reasoning `medium`, learn prompt 3, `main` at `ed03b9e` plus `variants/portals.py`. One run per portal: these are single runs, not averages.
 
 ## What was run
 
-`bench/variants.py` holds eight portals that do not exist. Each shows the mock portal's seed tenders the way a real portal family shows its own, so the truth is exact. They answer inside the process; no request went to any portal. `python -m bench.run_variants` runs the learner once per portal, then runs the learned recipe over every page of the portal (no model) and compares each tender with the truth. With `--repair-from` it switches each portal to its changed face (every class, id and `data-*` hook renamed; the JSON API moved to `/api/v3` with its keys in snake_case), confirms that the old recipe now reads nothing, and runs one repair.
+`variants/portals.py` holds eight portals that do not exist. Each shows the mock portal's seed tenders the way a real portal family shows its own, so the truth is exact. They answer inside the process; no request went to any portal. `python -m variants.run` runs the learner once per portal, then runs the learned recipe over every page of the portal (no model) and compares each tender with the truth. With `--repair-from` it switches each portal to its changed face (every class, id and `data-*` hook renamed; the JSON API moved to `/api/v3` with its keys in snake_case), confirms that the old recipe now reads nothing, and runs one repair.
 
 ## Learn
 

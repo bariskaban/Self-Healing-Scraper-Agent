@@ -19,7 +19,7 @@ HTML portals every class and id gets a new name and `data-*` hooks are renamed, 
 from /api/v2 to /api/v3 with its keys in snake_case. A recipe learned before the change reads nothing after it.
 
 `VARIANTS[name]()` gives a `Variant`; `respond` answers a request, `truth` is what a correct read gives.
-Run them with `python -m bench.run_variants` (a person, with the development key).
+Run them with `python -m variants.run` (a person, with the development key).
 """
 from __future__ import annotations
 

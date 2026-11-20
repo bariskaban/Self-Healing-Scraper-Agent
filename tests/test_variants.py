@@ -1,13 +1,13 @@
-"""The made-up portals of `bench/variants.py` serve what their truth says. No model, no network.
+"""The made-up portals of `variants/portals.py` serve what their truth says. No model, no network.
 
-Run: pytest tests/test_bench_variants.py
+Run: pytest tests/test_variants.py
 """
 from __future__ import annotations
 
 import pytest
 
-from bench.run_variants import VariantFetch
-from bench.variants import VARIANTS
+from variants.run import VariantFetch
+from variants.portals import VARIANTS
 
 
 @pytest.mark.parametrize("name", sorted(VARIANTS))

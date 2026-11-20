@@ -1,6 +1,6 @@
-"""Run the learner on the made-up portals of `bench/variants.py` and score what its recipe reads.
+"""Run the learner on the made-up portals of `variants/portals.py` and score what its recipe reads.
 
-    OPENAI_API_KEY=... python -m bench.run_variants [name ...] [--out results.json]
+    OPENAI_API_KEY=... python -m variants.run [name ...] [--out results.json]
 
 A person runs this, on the development key (CLAUDE.md: live model calls only when a person asks).
 The portals answer inside this process: no request reaches any portal. For each one the learner
@@ -28,7 +28,7 @@ from app.checks.result import Cause, failed
 from app.models import Portal, TenderRecord, url_key
 from app.recipe.run import CachedPage, dry_run
 from app.recipe.schema import AuthoredRecipe, RecipeBody
-from bench.variants import VARIANTS, Variant
+from variants.portals import VARIANTS, Variant
 
 FIELDS = ("url", "title", "buyer_name", "publication_date", "submission_deadline", "reference_number", "cpv_codes",
           "procedure_type", "contract_nature")
