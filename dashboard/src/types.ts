@@ -32,4 +32,6 @@ export interface LedgerState {
   everOnline: boolean;
   /** increments on each successful live poll, drives the single pulse */
   livePulse: number;
+  /** the last poll failed: the data shown (if any) is the last live snapshot, not a current one */
+  offline?: boolean;
 }

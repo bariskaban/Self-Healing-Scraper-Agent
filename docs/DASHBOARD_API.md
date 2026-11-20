@@ -1,6 +1,6 @@
 # Dashboard API
 
-The JSON the dashboard at `GET /` reads. The Platform fills these routes from SQLite (`app/db.py`). Until they exist, the page shows its bundled demo data with a "Demo data" badge, so nothing breaks.
+The JSON the dashboard at `GET /` reads. `app/dashboard_api.py` serves the three routes from the store (SQLite, `app/db.py`, when `DATA_DIR` is set). When the API does not answer, the page says "API offline, retrying", keeps the last live snapshot it had and polls again; it never swaps in made-up portals. The bundled demo data is shown only when the address has `?demo` (for working on the page without a server), with a "Demo data" badge.
 
 - `GET /api/dashboard`: every 5 s.
 - `GET /api/portals/{id}/timeline` and `GET /portals/{id}/tenders` (the public contract route, unchanged): only while a portal's page is open.
@@ -45,7 +45,7 @@ interface RunStats {
   filesDownloaded: number; filesSkipped: number; bytesDownloaded: number;
 }
 interface Check {
-  name: string; passed: boolean; severity: "info" | "warn" | "fail" | "block";
+  name: string; passed: boolean; severity: "info" | "warn" | "fail" | "block" | "outage";
   message: string; observed?: unknown; expected?: unknown;
 }
 interface Step {
@@ -87,6 +87,13 @@ Settings request and success shape: `{"attachTimeLimitMinutes":20,"ignoreRobotsT
 `summary` projects `reasonAfter`, a short error, or the last recorded progress message. `recipeChange` compares the validated recipe with its parent and takes the wording from `Recipe.rationale`; a candidate version isn't an active version. `publishedCount` is captured at commit, **not** estimated from `stats.tendersSeen`. `cause:null` is normal for an attach in progress without an incident. Optional check/trace arrays with no detail display “No checks recorded” / “No steps recorded”, not “All passed”.
 
 `costEur = costUsd × eurPerUsd` throughout, same fixed rate for the snapshot and its timelines. Server aggregates across all runs, not just those loaded on screen. Run usage may be omitted for `modelCalls:0` (known zero); for a paid call with unavailable accounting use `null`. A tool step with no model has no model charge; an LLM step with missing usage has **unknown** cost. Derive the state counts, total delivered, reads and recorded spend from `portals` in one render.
+
+What the server fills today (`app/dashboard_api.py`):
+
+- `deliveryTrend` is `[]` and `publishedCount` is left out until the read loop records how many tenders each read published. The page then shows "No trend yet" and "no publication", never a count estimated from other numbers.
+- `checks`, `steps` and `recipeChange` come from the SQLite store. The in-memory stand-in has none, so its runs leave them out and the page says "No checks recorded".
+- `eurPerUsd` is 0.9 unless `EUR_PER_USD` is set; set it at hand-in to that day's ECB reference rate (Q9).
+- Settings start from `ATTACH_TIME_LIMIT_SECONDS` (rounded to whole minutes) and `IGNORE_ROBOTS_TXT`. A change is kept in `DATA_DIR/settings.json`, so a restart keeps it. The read loop reads the current values from `app.state.live_settings.current()` at the start of each attach and read.
 
 
 ## Building the page

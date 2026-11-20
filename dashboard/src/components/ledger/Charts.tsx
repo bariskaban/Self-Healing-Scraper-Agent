@@ -24,8 +24,9 @@ export function TenderCountChart({ timeline, timeZone }: { timeline: Run[]; time
         const label = absTime(run.startedAt, timeZone).match(/\d{2}:\d{2}/)?.[0] ?? run.startedAt;
         return <g key={run.id}>
           {count !== undefined && count > 0 && <rect x={px - 10} y={baseline - count / max * 42} width={20} height={count / max * 42} className="fill-primary" />}
-          {count !== undefined && <text x={px} y={count === 0 ? baseline - 5 : baseline - count / max * 42 - 5} textAnchor="middle" className="fill-foreground text-xs">{count}</text>}
-          {run.result === "failed" ? <path d={`M${px - 4} 82l8 8m0-8l-8 8`} className="stroke-failed" strokeWidth={2} /> : <text x={px} y={90} textAnchor="middle" className={`${run.result === null ? "fill-integrating" : "fill-serving"} text-[10px]`}>{count === undefined ? `${outcome(run)} · no publication` : outcome(run)}</text>}
+          {count !== undefined ? <text x={px} y={count === 0 ? baseline - 5 : baseline - count / max * 42 - 5} textAnchor="middle" className="fill-foreground text-xs">{count}</text>
+            : <text x={px} y={baseline - 5} textAnchor="middle" className="fill-muted-foreground text-[10px]">no publication</text>}
+          {run.result === "failed" ? <path d={`M${px - 4} 82l8 8m0-8l-8 8`} className="stroke-failed" strokeWidth={2} /> : <text x={px} y={90} textAnchor="middle" className={`${run.result === null ? "fill-integrating" : "fill-serving"} text-[10px]`}>{outcome(run)}</text>}
           <text x={px} y={113} textAnchor="middle" className="fill-muted-foreground text-xs">{label}</text>
         </g>;
       })}

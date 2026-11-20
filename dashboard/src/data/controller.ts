@@ -7,12 +7,17 @@ export const POLL_MS = 5000;
 
 type Loaded = { source: "live" | "demo"; dashboard: Dashboard; detail: DetailView | null };
 
-/** One source per commit: either every required request is live, or everything is demo. */
+/**
+ * One source per commit: either every required request is live, or everything is demo.
+ * Demo data only when asked for (`?demo` in the address). Otherwise a failed request throws, and
+ * the page keeps the last live snapshot marked offline: made-up portals must never look real.
+ */
 export async function loadRoute(
   fetchImpl: FetchLike,
   route: Route,
   signal: AbortSignal,
   timeoutMs?: number,
+  allowDemo = false,
 ): Promise<Loaded> {
   try {
     if (route.name === "overview") {
@@ -37,7 +42,8 @@ export async function loadRoute(
     };
   } catch (e) {
     if (signal.aborted || (e instanceof ApiError && e.kind === "aborted")) throw e;
-    return loadDemo(route);
+    if (allowDemo) return loadDemo(route);
+    throw e;
   }
 }
 
@@ -73,7 +79,12 @@ export class LedgerController {
   constructor(
     private fetchImpl: FetchLike,
     route: Route,
-    private opts: { intervalMs?: number; timeoutMs?: number; now?: () => number } = {},
+    private opts: {
+      intervalMs?: number;
+      timeoutMs?: number;
+      now?: () => number;
+      allowDemo?: boolean;
+    } = {},
   ) {
     this.state = {
       route,
@@ -128,13 +139,22 @@ export class LedgerController {
     this.ac = ac;
     const route = this.state.route;
     let loaded: Loaded | null = null;
+    let failed = false;
     try {
-      loaded = await loadRoute(this.fetchImpl, route, ac.signal, this.opts.timeoutMs);
-    } catch {
-      loaded = null; // aborted
+      loaded = await loadRoute(
+        this.fetchImpl,
+        route,
+        ac.signal,
+        this.opts.timeoutMs,
+        this.opts.allowDemo,
+      );
+    } catch (e) {
+      loaded = null;
+      failed = !ac.signal.aborted && !(e instanceof ApiError && e.kind === "aborted"); // the API, not a navigation
     }
     if (gen !== this.gen) return; // obsolete
     this.ac = null;
+    if (failed) this.set({ ...this.state, offline: true });
     if (loaded) {
       const live = loaded.source === "live";
       const now = (this.opts.now ?? Date.now)();
@@ -146,6 +166,7 @@ export class LedgerController {
         liveAt: live ? now : this.state.liveAt,
         everOnline: this.state.everOnline || live,
         livePulse: live ? this.state.livePulse + 1 : this.state.livePulse,
+        offline: false,
       });
     }
     if (this.running) {

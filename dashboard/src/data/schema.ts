@@ -50,7 +50,7 @@ export const dashboardSchema = z.object({
 export const checkSchema = z.object({
   name: z.string(),
   passed: z.boolean(),
-  severity: z.enum(["info", "warn", "fail", "block"]),
+  severity: z.enum(["info", "warn", "fail", "block", "outage"]),
   message: z.string(),
   observed: z.unknown().optional(),
   expected: z.unknown().optional(),

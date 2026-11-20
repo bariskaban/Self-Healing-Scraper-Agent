@@ -34,6 +34,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.dashboard_api import LiveSettings, add_dashboard_routes
 from app.db import Database
 from app.docs import DocsSettings, FileStore
 from app.interfaces import Store, Worker
@@ -101,8 +102,12 @@ def default_store() -> tuple[Store, Worker]:
 
 
 def create_app(store: Store | None = None, worker: Worker | None = None,
-               files: Callable[[], FileStore] | None = None) -> FastAPI:
-    """The app on a given store and worker. Without them, on `default_store()`."""
+               files: Callable[[], FileStore] | None = None,
+               live_settings: LiveSettings | None = None) -> FastAPI:
+    """The app on a given store and worker. Without them, on `default_store()`.
+
+    `live_settings` holds what the dashboard may change; by default from the environment.
+    """
     opened: Database | None = None  # a database this app opened itself, and closes on shutdown
     if store is None:
         store, default_worker = default_store()
@@ -134,6 +139,8 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
     app = FastAPI(title="Watchtower", docs_url="/api-docs", redoc_url=None, lifespan=lifespan)
     # The dashboard may be developed on another port; the API holds nothing private.
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+    # The dashboard's own routes (docs/DASHBOARD_API.md), on the same database thread.
+    add_dashboard_routes(app, store, on_db, live_settings or LiveSettings.from_env())
 
     async def known(portal_id: str) -> Portal:
         portal = await on_db(store.get_portal, portal_id)
