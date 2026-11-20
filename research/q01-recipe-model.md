@@ -25,3 +25,10 @@ Deliverable: a recommendation, plus a draft recipe in that format for one real p
 ## Answer
 
 None yet. When it is written, it follows the answer standard in [README.md](README.md).
+
+## Inputs from answered questions
+
+- **Q6:** Python for the whole system, so a generated-extractor option would be Python. See [q06-language.md](q06-language.md).
+- **Q10:** the recipe has to carry what the failure rules read: the id shape, the locator of the total the portal prints and whether it counts closed tenders, the empty-state marker, the anchor locators, and the structure fingerprint with its floor. See [q10-failure-rules.md](q10-failure-rules.md).
+- **Q12:** the recipe says whether the list alone carries the required fields, the page-size parameter and its maximum, whether an all-documents ZIP exists, and which change mark the portal has. See [q12-large-portals.md](q12-large-portals.md).
+- **Audit of Q2:** locators written by one model from one page are not independent witnesses; agreement should come from different sources (list against detail, page against API, this read against the last good one). See [audit.md](audit.md).

@@ -29,3 +29,10 @@ Deliverable: metric definitions, the benchmark harness design, and the hours it 
 ## Answer
 
 None yet. When it is written, it follows the answer standard in [README.md](README.md).
+
+## Inputs from answered questions
+
+- **Q10:** one mock-portal switch per verdict row, plus: paging cut to one page, a 403 rate limit with `Retry-After`, a captcha widget that blocks nothing, a list emptied with and without the "no results" notice. See [q10-failure-rules.md](q10-failure-rules.md).
+- **Q14:** three sequences: answer 503 for 3 minutes and recover; show a login wall and remove it; change the layout twice in a row. The model-call count must be 0, 0 and 2. See [q14-failed-retry.md](q14-failed-retry.md).
+- **Q12:** the mock portal should come in a small size (finishes inside 10 minutes) and a large one (does not), to exercise both sides of the state rule. See [q12-large-portals.md](q12-large-portals.md).
+- **Audit of Q9:** the cost per portal has to be measured here; the published estimate does not hold. See [audit.md](audit.md).

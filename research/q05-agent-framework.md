@@ -24,3 +24,9 @@ Deliverable: a recommendation, plus a one-page conventions list we can paste int
 ## Answer
 
 None yet. When it is written, it follows the answer standard in [README.md](README.md).
+
+## Inputs from answered questions
+
+- **Q6:** all four candidates exist for Python; PydanticAI exists only for Python. See [q06-language.md](q06-language.md).
+- **Audit of Q9:** the advice to use the Responses API stands, but the reason differs by model: the `gpt-6.1` pages say tool calling requires it; for `gpt-6-sol` and `gpt-6-luna` Chat Completions accepts tool calls only at reasoning "none". See [audit.md](audit.md).
+- **Audit of Q9:** a learn loop that appends every tool result to one conversation costs about $7.74 on `gpt-6.2-sol`, against $1.68 if each call stays at 30K input. Whatever framework is chosen must make trimming the context easy.

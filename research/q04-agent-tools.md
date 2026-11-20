@@ -21,3 +21,9 @@ Deliverable: a recommendation. Compare page views for the model (trimmed HTML, m
 ## Answer
 
 None yet. When it is written, it follows the answer standard in [README.md](README.md).
+
+## Inputs from answered questions
+
+- **Q6:** the tools live in Python. Playwright MCP is an npm package that needs Node on the path; our own tools on Playwright for Python do not. Request interception for the rate limiter exists in the Python API. See [q06-language.md](q06-language.md).
+- **Q6, measured:** the headless browser takes 275 MB after launch, 375 MB with one blank page and 592 MB with two loaded tabs, whichever language drives it.
+- **Q10:** a portal may refuse a plain HTTP client and serve a browser (seen today on Spain's national portal), so "blocked" is decided only after one try through the browser. See [q10-failure-rules.md](q10-failure-rules.md).

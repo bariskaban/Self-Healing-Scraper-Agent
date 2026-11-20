@@ -15,3 +15,9 @@ Deliverable: the recommended strategy, the requests attach needs under each opti
 ## Answer
 
 None yet. When it is written, it follows the answer standard in [README.md](README.md).
+
+## Inputs from answered questions
+
+- **Q12:** probing for an API, a feed or an all-documents ZIP is worth a few dozen requests at attach. On the one portal measured, the bulk source cut a 1,000-tender attach from 13,050 requests to 2,010. See [q12-large-portals.md](q12-large-portals.md).
+- **Q10:** the learner needs one extra step, a search that returns nothing, to record what the portal's empty list looks like. See [q10-failure-rules.md](q10-failure-rules.md).
+- **Measured today:** TenderNed's public API caps its page size at 100 and says so in its error message; Poland's notice API allows 30 requests a minute.
