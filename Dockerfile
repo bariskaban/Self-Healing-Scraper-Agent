@@ -19,6 +19,8 @@ RUN python -c "import tomllib; print('\n'.join(tomllib.load(open('pyproject.toml
     && rm /tmp/requirements.txt
 
 COPY app/ ./app/
+# The portal we break on purpose: the app mounts it for the demo.
+COPY mock_portal/ ./mock_portal/
 
 ENV DATA_DIR=/data
 # The container reads real portals. Everywhere else the fetch layer replays recordings unless told
