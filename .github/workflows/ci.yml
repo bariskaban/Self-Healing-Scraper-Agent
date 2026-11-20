@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the project with its dev group
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . --group dev
+      - name: Run tests
+        run: pytest
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image (linux/amd64)
+        run: docker build -t watchtower .
+      - name: Start the container and check port 8080
+        run: |
+          docker run -d --name watchtower -p 8080:8080 watchtower
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://localhost:8080/; then
+              echo "GET / answered 200"
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs watchtower
+          exit 1
