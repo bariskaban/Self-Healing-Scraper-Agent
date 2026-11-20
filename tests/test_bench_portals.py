@@ -50,8 +50,26 @@ def test_by_default_unseen_portals_and_entries_without_an_address_are_left_out()
     assert any(p.unseen for p in load_portals(include_unseen=True))
     poland = load_portals(priority_max=1)
     assert poland and {p.country for p in poland} == {"PL"}
-    trusted = load_portals(trusted_only=True)
-    assert all(p.address not in (Address.example, Address.doubtful) for p in trusted)
+    assert all(p.address not in (Address.example, Address.doubtful) for p in default)
+    guessed = {p.id for p in load_portals(include_guessed=True)} - {p.id for p in default}
+    assert len(guessed) == 10
+
+
+@pytest.mark.xfail(strict=True, reason="Known gap: without guessed addresses only PL, NL and DE remain (AT is unseen, "
+                   "ES forbids robots, PLACE is suspended, IT and FR unconfirmed). Confirm an Italian or French "
+                   "address in a browser and this passes; then remove the mark.")
+def test_the_default_list_alone_meets_the_rules_of_the_test_set():
+    """What runs by default, with no guessed address, should be a test set by Q8's rules (4+ countries)."""
+    runnable = load_portals(expect=Expect.serve)
+    assert len(runnable) >= 8
+    assert len({p.country for p in runnable}) >= 4
+    assert len({p.family for p in runnable if p.family != "unknown"}) >= 3
+
+
+def test_an_address_marked_fetched_was_opened_itself():
+    """From Goktug's review: `fetched` only where our research opened that very address."""
+    fetched = {p.id for p in read_file()[0] if p.address is Address.fetched}
+    assert not fetched & {"ezamowienia", "vmp-brandenburg", "placsp", "evergabe-de"}
     assert {p.id for p in load_portals(expect=Expect.fail_login)} == {"mercell", "deutsche-evergabe"}
 
 

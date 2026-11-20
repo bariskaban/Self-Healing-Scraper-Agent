@@ -23,6 +23,7 @@
 #   buyer_sites how many portal addresses Patterno lists on this platform (coverage data)
 #   address     how sure we are of `url`:
 #                 fetched  opened by our research on 20 Nov 2026
+#                 other_page  our research opened another page of this portal, not this one
 #                 measured measured in research/q04-page-views-measured.md
 #                 search   seen only in a search result or a TED notice quoting it
 #                 survey   opened once in a browser by the portal survey, not checked again
@@ -32,6 +33,12 @@
 #               true: its robots.txt forbids every path to every robot (research/audit.md, Q3).
 #               The mentor: robots.txt is obeyed. `load_portals()` leaves it out by default.
 #   note        one line
+#
+# Gaps, for a person to close before recording:
+#   Italy has no confirmed address: all four are guessed buyer subdomains (address = "example").
+#   France has none either: its guesses are "example" or "doubtful", and the one address our
+#   research opened (PLACE) showed a suspension notice. Open them in a browser and update `address`.
+#   `load_portals()` leaves the guessed ones (example, doubtful) out unless include_guessed=True.
 
 # == 1. Poland ==
 
@@ -109,8 +116,8 @@ url = "https://ezamowienia.gov.pl/mp-client/search/list"
 kind = "mixed"
 expect = "serve"
 priority = 1
-address = "fetched"
-note = "The list is a JavaScript app; notice pages are server HTML. Its notice API allows 30 requests a minute."
+address = "other_page"
+note = "Our research opened a notice page under this list (/mp-client/search/list/ocds-...), not the list itself. The list is a JavaScript app; notice pages are server HTML. Its notice API allows 30 requests a minute."
 
 # == 2. Italy ==
 
@@ -297,9 +304,9 @@ url = "https://contrataciondelestado.es/wps/portal/plataforma"
 kind = "server_html"
 expect = "serve"
 priority = 4
-address = "fetched"
+address = "other_page"
 robots_disallow_all = true
-note = "Its HTML refused a plain client twice on 20 Nov (Q10); the Atom feed answers. Detail pages link files without login."
+note = "Our research opened a detail page and the Atom feed; this page itself failed (certificate error in the probe). Its HTML refused a plain client twice on 20 Nov (Q10); the Atom feed answers. Detail pages link files without login."
 
 # == 5. Germany ==
 
@@ -324,8 +331,8 @@ url = "https://vergabemarktplatz.brandenburg.de/VMPCenter/company/announcements/
 kind = "unknown"
 expect = "serve"
 priority = 5
-address = "fetched"
-note = "A second cosinex installation, same address style as NRW: the reuse test (Q11)."
+address = "other_page"
+note = "Our research opened /VMPCenter/company/welcome.do only; this list path follows NRW's cosinex pattern. A second cosinex installation: the reuse test (Q11)."
 
 [[portal]]
 id = "dtvp"
@@ -396,8 +403,8 @@ url = "https://evergabe.de/unterlagen"
 kind = "unknown"
 expect = "serve"
 priority = 5
-address = "fetched"
-note = "Partly a search service, but Patterno counts it as a software type with 8% of German tenders: kept."
+address = "search"
+note = "Address from evergabe.de's FAQ (search snippet), never opened. Partly a search service, but Patterno counts it as a software type with 8% of German tenders: kept."
 
 [[portal]]
 id = "subreport-elvis"
