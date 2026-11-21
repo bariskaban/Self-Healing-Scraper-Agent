@@ -7,7 +7,7 @@ MAIN AI Hackathon 2026, Patterno track. Team Kaolin. Written on 21 Nov 2026, the
 | Who | Worked on |
 | --- | --- |
 | Baris Kaban | Agent framework and conventions (Q5), data schemas (Q7), benchmark design (Q8); the dashboard with Danil; the demo |
-| Danil (`Danila1801`) | Field locators (Q2), models and cost (Q9), recipe reuse (Q11); the dashboard and its front end |
+| Danila Popusai | Field locators (Q2), models and cost (Q9), recipe reuse (Q11); the dashboard and its front end |
 | David-Valentin Neacsu | Recipe model (Q1), explore or map (Q3), agent tools (Q4); the network layer (`app/fetch/`), the database, the read loop's later fixes; the run on ten real portals |
 | Goktug Yıldırım | Language (Q6), failure rules (Q10), large portals (Q12), read schedule (Q13), retry of failed portals (Q14); the API, the recipe and its executor, the read loop, the mock portal, the agent (`app/agent/`); the benchmark runs and the audit |
 
