@@ -74,7 +74,8 @@ def fits_usage(u) -> None:
 
 
 def fits_settings(s) -> None:
-    _keys(s, {"attachTimeLimitMinutes", "ignoreRobotsTxt"})
+    _keys(s, {"attachTimeLimitMinutes", "ignoreRobotsTxt"}, {"maxTendersPerPortal"})
+    assert "maxTendersPerPortal" not in s or (_count(s["maxTendersPerPortal"]) and s["maxTendersPerPortal"] >= 0)
     assert _count(s["attachTimeLimitMinutes"]) and s["attachTimeLimitMinutes"] > 0
     assert isinstance(s["ignoreRobotsTxt"], bool)
 
@@ -545,7 +546,8 @@ def test_the_robots_switch_and_the_time_limit_take_effect_for_the_next_read(site
     mock, client = site
     mock.robots_disallow_all = True
     answer = client.post("/api/settings", json={"attachTimeLimitMinutes": 7, "ignoreRobotsTxt": ignore})
-    assert answer.status_code == 200 and answer.json() == {"attachTimeLimitMinutes": 7, "ignoreRobotsTxt": ignore}
+    assert answer.status_code == 200 and answer.json() == {"attachTimeLimitMinutes": 7, "ignoreRobotsTxt": ignore,
+                                                           "maxTendersPerPortal": 500}  # sent with the two, unchanged
     assert client.get("/api/dashboard").json()["settings"] == answer.json()
 
     pid = client.post("/portals", json={"url": URL}).json()["id"]
@@ -586,3 +588,38 @@ def test_a_mistyped_euro_rate_stops_the_app_at_start_and_a_blank_one_does_not(mo
     monkeypatch.setenv("EUR_PER_USD", "0.87")
     with TestClient(create_app()) as client:
         assert client.get("/api/dashboard").json()["eurPerUsd"] == 0.87
+
+
+def test_the_tender_limit_is_shown_and_changed_through_the_settings_and_a_page_without_it_still_saves():
+    from fastapi import FastAPI
+    from app.dashboard_api import add_dashboard_routes
+    from app.memory_store import MemoryStore
+
+    fetcher = Fetcher(FetchSettings(mode=FetchMode.replay))
+    reader = Reader(None, fetcher, lambda: None)
+    loop = ReadLoop(None, reader, fetcher)
+    assert loop.max_tenders_per_portal == reader.recipes.max_tenders_per_portal == 500
+
+    app = FastAPI()
+
+    async def on_db(call, *args):
+        return call(*args)
+
+    add_dashboard_routes(app, MemoryStore(), on_db, loop)
+    client = TestClient(app)
+    assert client.get("/api/dashboard").json()["settings"]["maxTendersPerPortal"] == 500
+    saved = client.post("/api/settings", json={"attachTimeLimitMinutes": 20, "ignoreRobotsTxt": False,
+                                               "maxTendersPerPortal": 1500})
+    assert saved.status_code == 200 and saved.json()["maxTendersPerPortal"] == 1500
+    assert reader.recipes.max_tenders_per_portal == 1500
+    # A page built before the limit existed sends the two older values: accepted, and the limit stays.
+    older = client.post("/api/settings", json={"attachTimeLimitMinutes": 30, "ignoreRobotsTxt": False})
+    assert older.status_code == 200 and older.json() == {"attachTimeLimitMinutes": 30, "ignoreRobotsTxt": False,
+                                                         "maxTendersPerPortal": 1500}
+    assert client.post("/api/settings", json={"attachTimeLimitMinutes": 20, "ignoreRobotsTxt": False,
+                                              "maxTendersPerPortal": 0}).json()["maxTendersPerPortal"] == 0
+    for bad in (-1, 100_001, "500", 1.5, True):
+        refused = client.post("/api/settings", json={"attachTimeLimitMinutes": 20, "ignoreRobotsTxt": False,
+                                                     "maxTendersPerPortal": bad})
+        assert refused.status_code == 422, bad
+    assert reader.recipes.max_tenders_per_portal == 0

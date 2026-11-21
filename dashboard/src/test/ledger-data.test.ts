@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { LedgerController } from "@/data/controller";
 import { costText, eur, runCost, sumUsage, totalTokens } from "@/data/format";
 import { publicationSeries, readSlots } from "@/data/view";
-import { draftFrom, mergeServerSettings, saveSettings } from "@/data/settings";
+import { draftFrom, mergeServerSettings, parseTenderLimit, saveSettings, tenderLimitNote } from "@/data/settings";
 import type { Dashboard, Run } from "@/types";
 
 const json = (body: unknown, status = 200) =>
@@ -184,5 +184,26 @@ describe("settings", () => {
     const ack = await saveSettings(async (_u, init) => { body = String(init?.body); return json({ attachTimeLimitMinutes: 40, ignoreRobotsTxt: false }); }, { attachTimeLimitMinutes: 45, ignoreRobotsTxt: false });
     expect(JSON.parse(body)).toEqual({ attachTimeLimitMinutes: 45, ignoreRobotsTxt: false });
     expect(ack.attachTimeLimitMinutes).toBe(40);
+  });
+  it("sends the tender limit only when the backend has one, and keeps a typed limit through polls", async () => {
+    let body = "";
+    const reply = async (_u: string, init?: RequestInit) => { body = String(init?.body); return json({ attachTimeLimitMinutes: 20, ignoreRobotsTxt: false, maxTendersPerPortal: 800 }); };
+    const ack = await saveSettings(reply, { attachTimeLimitMinutes: 20, ignoreRobotsTxt: false, maxTendersPerPortal: 800 });
+    expect(JSON.parse(body).maxTendersPerPortal).toBe(800);
+    expect(ack.maxTendersPerPortal).toBe(800);
+    expect(draftFrom({ attachTimeLimitMinutes: 20, ignoreRobotsTxt: false }).tenders).toBe("");
+    let d = draftFrom({ attachTimeLimitMinutes: 20, ignoreRobotsTxt: false, maxTendersPerPortal: 500 });
+    expect(d.tenders).toBe("500");
+    d = mergeServerSettings({ ...d, tenders: "900", dirtyTenders: true }, { attachTimeLimitMinutes: 20, ignoreRobotsTxt: false, maxTendersPerPortal: 500 });
+    expect(d.tenders).toBe("900");
+  });
+  it("reads a typed tender limit and says what it means for the wait", () => {
+    expect([parseTenderLimit("500"), parseTenderLimit("0"), parseTenderLimit(" 20 ")]).toEqual([500, 0, 20]);
+    expect([parseTenderLimit(""), parseTenderLimit("-1"), parseTenderLimit("1.5"), parseTenderLimit("100001"), parseTenderLimit("abc")]).toEqual([null, null, null, null, null]);
+    expect(tenderLimitNote(500)).toMatchObject({ warn: false });
+    expect(tenderLimitNote(500).text).toContain("about 9 minutes");
+    expect(tenderLimitNote(4000)).toMatchObject({ warn: true });
+    expect(tenderLimitNote(10000).text).toContain("about 3 hours");
+    expect(tenderLimitNote(0)).toMatchObject({ warn: true });
   });
 });

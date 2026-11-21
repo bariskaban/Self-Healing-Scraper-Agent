@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { draftFrom, mergeServerSettings, parseMinutes, saveSettings, type SettingsDraft } from "@/data/settings";
+import { draftFrom, mergeServerSettings, parseMinutes, parseTenderLimit, saveSettings, tenderLimitNote, type SettingsDraft } from "@/data/settings";
 import type { Settings } from "@/types";
 
 export function SettingsSheet(props: {
@@ -25,13 +25,17 @@ export function SettingsSheet(props: {
   useEffect(() => { if (settings) setDraft((d) => mergeServerSettings(d, settings)); }, [settings]);
 
   const minutes = parseMinutes(draft.minutes);
-  const dirty = draft.dirtyMinutes || draft.dirtyRobots;
+  // The limit is shown only when the backend sends it; without it the form is the two older settings.
+  const hasLimit = settings?.maxTendersPerPortal !== undefined;
+  const tenders = hasLimit ? parseTenderLimit(draft.tenders) : 0;
+  const limitNote = hasLimit && tenders !== null ? tenderLimitNote(tenders) : null;
+  const dirty = draft.dirtyMinutes || draft.dirtyRobots || draft.dirtyTenders;
 
   async function save() {
-    if (minutes === null || !props.writable) return;
+    if (minutes === null || tenders === null || !props.writable) return;
     setSaving(true); setMsg(null);
     try {
-      const ack = await saveSettings((u, i) => window.fetch(u, i), { attachTimeLimitMinutes: minutes, ignoreRobotsTxt: draft.ignoreRobots });
+      const ack = await saveSettings((u, i) => window.fetch(u, i), { attachTimeLimitMinutes: minutes, ignoreRobotsTxt: draft.ignoreRobots, ...(hasLimit ? { maxTendersPerPortal: tenders } : {}) });
       setDraft(draftFrom(ack));
       props.onSaved(ack);
       setMsg({ ok: true, text: "Settings saved." });
@@ -56,6 +60,21 @@ export function SettingsSheet(props: {
             <p id="limit-help" className="text-label text-muted-foreground">Publish validated records when the limit is reached.</p>
             {minutes === null && <p className="text-label text-failed">Enter a positive whole number.</p>}
           </div>
+          {hasLimit && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="tender-limit" className="text-label">Most tenders per portal (0 = no limit)</Label>
+              <Input id="tender-limit" inputMode="numeric" value={draft.tenders} disabled={!props.writable}
+                aria-invalid={tenders === null} aria-describedby="tender-limit-help"
+                onChange={(e) => setDraft({ ...draft, tenders: e.target.value, dirtyTenders: true })} />
+              {limitNote && (
+                <p id="tender-limit-help" className={limitNote.warn ? "flex gap-2 rounded-md bg-healing-tint p-3 text-label text-healing" : "text-label text-muted-foreground"}>
+                  {limitNote.warn && <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0" />}
+                  {limitNote.text}
+                </p>
+              )}
+              {tenders === null && <p className="text-label text-failed">Enter a whole number from 0 to 100,000.</p>}
+            </div>
+          )}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4">
               <Label htmlFor="robots" className="text-label">Ignore robots.txt (testing only)</Label>
@@ -68,7 +87,7 @@ export function SettingsSheet(props: {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button type="submit" disabled={!props.writable || saving || minutes === null || !dirty}>{saving ? "Saving…" : "Save settings"}</Button>
+            <Button type="submit" disabled={!props.writable || saving || minutes === null || tenders === null || !dirty}>{saving ? "Saving…" : "Save settings"}</Button>
             <p role="status" className={msg?.ok ? "text-label text-serving" : "text-label text-failed"}>{msg?.text}</p>
           </div>
         </form>

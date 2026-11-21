@@ -134,6 +134,16 @@ class ReadLoop:
         """True when requests are sent without asking robots.txt (the mentor's switch for tests)."""
         return bool(getattr(getattr(self.fetch, "settings", None), "ignore_robots_txt", False))
 
+    @property
+    def max_tenders_per_portal(self) -> int:
+        """The most tenders a read takes from one portal; 0 is no limit (RECIPE_MAX_TENDERS_PER_PORTAL)."""
+        return self.reader.recipes.max_tenders_per_portal
+
+    def apply_tender_limit(self, limit: int) -> None:
+        """Change that limit from the next read on. In memory only, like the other dashboard settings."""
+        log.info("settings changed: max_tenders_per_portal=%d (was %d)", limit, self.max_tenders_per_portal)
+        self.reader.recipes = replace(self.reader.recipes, max_tenders_per_portal=limit)
+
     def apply_settings(self, *, attach_time_limit_seconds: float, ignore_robots_txt: bool) -> None:
         """Change the two settings of the dashboard, from the next decision and the next request on.
 

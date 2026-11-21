@@ -69,6 +69,7 @@ class DashboardSettings:
     # What POST /api/settings accepts as the attach time limit, in whole minutes.
     attach_time_limit_min_minutes: int = 1
     attach_time_limit_max_minutes: int = 1440
+    max_tenders_per_portal_max: int = 100_000  # the highest limit the page may set; 0 always means no limit
 
     def __post_init__(self) -> None:
         for name in ("recent_reads", "trend_points", "timeline_runs", "attach_time_limit_min_minutes"):
@@ -189,8 +190,13 @@ def minutes_of(seconds: float) -> int:
     return max(1, math.ceil(seconds / 60 - 1e-9))
 
 
-def settings_out(attach_time_limit_seconds: float, ignore_robots_txt: bool) -> dict[str, Any]:
-    return {"attachTimeLimitMinutes": minutes_of(attach_time_limit_seconds), "ignoreRobotsTxt": bool(ignore_robots_txt)}
+def settings_out(attach_time_limit_seconds: float, ignore_robots_txt: bool,
+                 max_tenders_per_portal: int | None = None) -> dict[str, Any]:
+    out: dict[str, Any] = {"attachTimeLimitMinutes": minutes_of(attach_time_limit_seconds),
+                           "ignoreRobotsTxt": bool(ignore_robots_txt)}
+    if max_tenders_per_portal is not None:  # left out where no reader holds the limit
+        out["maxTendersPerPortal"] = int(max_tenders_per_portal)
+    return out
 
 
 def portal_row(portal: Portal, tender_count: int, history: PortalHistory, *, next_read_at: datetime | None,
@@ -411,6 +417,8 @@ class SettingsBody(BaseModel):
 
     attachTimeLimitMinutes: StrictInt
     ignoreRobotsTxt: StrictBool
+    # The most tenders read from one portal, 0 for no limit. Optional: a page built before it existed sends two values.
+    maxTendersPerPortal: StrictInt | None = None
 
 
 # == Routes ==
@@ -423,7 +431,8 @@ def add_dashboard_routes(app: FastAPI, store: Records, on_db: Callable[..., Awai
     next_reads: Callable[[], Mapping[str, datetime]] = getattr(worker, "next_reads", dict)
 
     def live() -> dict[str, Any]:
-        return settings_out(controls.attach_time_limit_seconds, controls.ignore_robots_txt)
+        return settings_out(controls.attach_time_limit_seconds, controls.ignore_robots_txt,
+                            getattr(controls, "max_tenders_per_portal", None))
 
     @app.get("/api/dashboard")
     async def dashboard() -> JSONResponse:
@@ -452,8 +461,14 @@ def add_dashboard_routes(app: FastAPI, store: Records, on_db: Callable[..., Awai
         if not low <= body.attachTimeLimitMinutes <= high:
             raise HTTPException(status_code=422,
                                 detail=f"attachTimeLimitMinutes must be a whole number from {low} to {high}.")
+        limit = body.maxTendersPerPortal
+        if limit is not None and not 0 <= limit <= settings.max_tenders_per_portal_max:
+            raise HTTPException(status_code=422, detail="maxTendersPerPortal must be a whole number from 0 (no limit) "
+                                                        f"to {settings.max_tenders_per_portal_max}.")
         controls.apply_settings(attach_time_limit_seconds=body.attachTimeLimitMinutes * 60.0,
                                 ignore_robots_txt=body.ignoreRobotsTxt)
+        if limit is not None and hasattr(controls, "apply_tender_limit"):
+            controls.apply_tender_limit(limit)
         now = live()
         log.info("settings asked for %s, in force %s", body.model_dump(), now)
         return JSONResponse(now, headers={"Cache-Control": "no-store"})

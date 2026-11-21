@@ -95,7 +95,7 @@ All settings are environment variables. These are the ones you are likely to nee
 | `AGENT_MAX_CONCURRENT_RUNS` | `2` | How many learns, repairs and spot checks call the model at once. The others wait their turn. Raise it on a key with a high rate limit. |
 | `AGENT_RATE_LIMIT_WAIT_BUDGET_SECONDS` | `90` | How long one model call waits when OpenAI answers "rate limit" before the run gives up |
 | `READ_THREADS` | `64` | How many portals can be in a read at the same moment |
-| `RECIPE_MAX_TENDERS_PER_PORTAL` | `2000` | The most tenders read from one portal; `0` means no limit. A portal that lists more delivers its first 2,000 (the newest, where it lists newest first), its reason says "Stopped at the limit", and no tender is closed for being past the limit. Why, and what reading all of them would take: `docs/BACKLOG.md`. |
+| `RECIPE_MAX_TENDERS_PER_PORTAL` | `500` | The most tenders read from one portal; `0` means no limit. A portal that lists more delivers its first 500 (the newest, where it lists newest first), its reason says "Stopped at the limit", and no tender is closed for being past the limit. Why 500: each tender costs at least one request at one request a second, so 500 are delivered in about ten minutes and 4,000 take over an hour. It can also be changed on the dashboard (Settings). More in `docs/BACKLOG.md`. |
 
 Many more numbers are settings too, each with a prefix per area: `AGENT_`, `RECIPE_`, `CHECKS_`, `DOCS_`, `FETCH_`, `EXTRACT_`. The defaults are in `app/*/settings.py`. A request to one portal is never sent faster than once a second unless `FETCH_REQUESTS_PER_SECOND` says so; leave it alone for real portals.
 

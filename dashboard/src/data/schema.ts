@@ -14,6 +14,8 @@ export const usageSchema = z.object({
 export const settingsSchema = z.object({
   attachTimeLimitMinutes: z.number().int().positive(),
   ignoreRobotsTxt: z.boolean(),
+  /** The most tenders read from one portal; 0 is no limit. Absent on a backend without the setting. */
+  maxTendersPerPortal: z.number().int().nonnegative().optional(),
 });
 
 export const portalStateSchema = z.enum(["failed", "healing", "integrating", "serving"]);
