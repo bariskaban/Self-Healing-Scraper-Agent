@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Protocol
 
+from app import logs
 from app.checks import (
     DEFAULT_SETTINGS as DEFAULT_CHECKS, CheckSettings, DetailLook, Effect, ListFacts, block_check, confirm,
     confirm_missing, duplicate_ids, effect_of, files_failed, fingerprint, known_ids_missing,
@@ -58,6 +59,8 @@ from app.scheduler import (
     read_interval,
 )
 from app.state import Decision, ReadFacts, decide
+
+log = logs.get("reader")
 
 ROW_HASH = "_row_hash"  # kept in TenderRecord.raw until the record has a field for it
 PUBLISH_STEP = "publish"  # the step a read records when it publishes; its args hold `delivered`
@@ -169,10 +172,19 @@ class Reader:
         """Read the portal for this run, write everything, and say what it came to. Never raises
         for what a portal does; a deleted portal ends the read quietly, and once `cancel` is set
         no further request is sent."""
+        log.info("portal %s: read %s starts (%s%s)", portal_id, run.id, run.trigger.value,
+                 ", first page only" if first_page_only else "")
+        began = time.monotonic()
         try:
-            return _Read(self, portal_id, run, incident, first_page_only, cancel).go()
-        except (UnknownPortal, Cancelled):
+            outcome = _Read(self, portal_id, run, incident, first_page_only, cancel).go()
+        except (UnknownPortal, Cancelled) as stopped:
+            log.info("portal %s: read %s stopped (%s): the portal was deleted or the read cancelled", portal_id, run.id,
+                     type(stopped).__name__)
             return ReadOutcome(None, PortalState.failed, False, gone=True)
+        log.info("portal %s: read %s ended in %.1fs: state=%s passed=%s%s", portal_id, run.id, time.monotonic() - began,
+                 outcome.state.value, outcome.passed,
+                 f" cause={outcome.decision.cause.value}" if outcome.decision is not None and outcome.decision.cause else "")
+        return outcome
 
 
 class Cancelled(Exception):
@@ -215,6 +227,8 @@ class _Read:
              args: dict | None = None) -> None:
         self.seq += 1
         took = int((time.monotonic() - started) * 1000) if started is not None else None
+        (log.warning if error else log.debug)("portal %s run %s step %d %s%s: %s", self.portal_id, self.run.id, self.seq, name,
+                                              f" ({took} ms)" if took is not None else "", logs.clip(summary, 240))
         self.db.add_step(AgentStep(run_id=self.run.id, seq=self.seq, kind=StepKind.note, name=name,
                                    summary=summary, duration_ms=took, error=error, args=args))
 
@@ -235,6 +249,10 @@ class _Read:
         for result in results:
             if result is not None:
                 self.results[result.name] = result
+                (log.debug if result.passed else log.info)(
+                    "portal %s run %s check %s: %s [%s] observed=%s expected=%s %s", self.portal_id, self.run.id,
+                    result.name, "pass" if result.passed else "FAIL", result.severity.value, logs.clip(result.observed, 60),
+                    logs.clip(result.expected, 60), logs.clip(result.message, 160))
 
     def transport(self, exchanges: Sequence[Exchange]) -> CheckResult | None:
         """The transport check of a group of requests: the first that failed, else the last."""
@@ -282,13 +300,19 @@ class _Read:
             incident.learns_day, incident.learns_today = day, 0
         # A learn that calls the model is paid for. A portal without a recipe is read again on
         # every check and every refresh, so the learns of a day are capped like its repairs (Q14).
+        log.debug("portal %s: no recipe yet; learns today %d of %d", self.portal_id, incident.learns_today,
+                  self.r.checks.repairs_per_day)
         if incident.learns_today >= self.r.checks.repairs_per_day > 0:
+            log.warning("portal %s: the day's learns are spent (%d), not calling the model", self.portal_id, incident.learns_today)
             self.why_not = (f"the model already tried {incident.learns_today} time(s) today and no recipe of "
                             "its passed a full read; it tries again tomorrow")
             return None
         began = time.monotonic()
         learned = self.r.learn(self.portal, self.run.id)
         self.after_agent(learned)
+        log.info("portal %s: learn returned %s after %.1fs (model calls %d)", self.portal_id,
+                 type(learned).__name__ if learned is not None else "None", time.monotonic() - began,
+                 learned.model_calls if learned is not None else 0)
         if learned is not None and learned.model_calls:
             incident.learns_today += 1
         if isinstance(learned, NotLearned):
@@ -303,6 +327,8 @@ class _Read:
         reason = (f"No recipe could be learned for this portal, so nothing can be read.{why} A person is needed."
                   if self.r.learn is not None else
                   "This build has no learner for this portal, so nothing can be read.")
+        log.warning("portal %s: no recipe (learner configured: %s, learner said: %s)", self.portal_id,
+                    self.r.learn is not None, logs.clip(self.why_not) if self.why_not else "nothing")
         self.step("learn", reason, error="no recipe")
         self._save_portal(PortalState.failed, reason, Cause.breakage)
         self._save_run(False, PortalState.failed, reason, error="no recipe")
@@ -569,7 +595,14 @@ class _Read:
             repairs_tried=tuple(incident.repairs_tried),
             repairs_today=incident.repairs_today if incident.repairs_day == day else 0,
             structure_given_up=structure_hash is not None and structure_hash in incident.given_up_structures)
-        return decide(list(self.results.values()), facts, self.r.checks)
+        decision = decide(list(self.results.values()), facts, self.r.checks)
+        log.debug("portal %s run %s decide: state %s -> %s verdict=%s cause=%s by=%s repair=%s spot_check=%s "
+                  "(open=%d new=%d closed=%d, %d checks, %d failed) %s", self.portal_id, self.run.id,
+                  self.portal.state.value, decision.state.value, decision.verdict.value,
+                  decision.cause.value if decision.cause else None, decision.decided_by, decision.start_repair,
+                  decision.spot_check_needed, facts.open_tenders, facts.new_tenders, facts.closed_tenders,
+                  len(self.results), sum(1 for r in self.results.values() if not r.passed), logs.clip(decision.reason, 200))
+        return decision
 
     # -- writing --
 
@@ -581,6 +614,9 @@ class _Read:
                   "country_code": self.portal.country_code, "fingerprint": self.portal.fingerprint, **more}
         self.portal = current.model_copy(update=update)
         self.db.update_portal(self.portal)
+        (log.info if current.state is not state else log.debug)(
+            "portal %s: state %s -> %s cause=%s: %s", self.portal_id, current.state.value, state.value,
+            cause.value if cause else None, logs.clip(reason, 200))
 
     def _save_run(self, ok: bool, state: PortalState, reason: str, error: str | None = None) -> None:
         self.stats.http_requests = len(self.exchanges)
@@ -591,6 +627,9 @@ class _Read:
             "usage": self.usage,
             "recipe_version": self.portal.recipe_version, "error": error})
         self.db.save_run(self.run)
+        log.info("portal %s: run %s saved: %s, %d request(s), %d model call(s), $%.4f%s", self.portal_id, self.run.id,
+                 "ok" if ok else "failed", self.stats.http_requests, self.model_calls, self.usage.cost_usd,
+                 f", error={logs.clip(error, 80)}" if error else "")
 
     def _expectations(self, records: dict[str, TenderRecord], details: dict[str, DetailRead]) -> Expectations:
         """What this read measured, stored with the recipe after a read that passed."""
@@ -761,6 +800,8 @@ class _Read:
             incident.repairs_day, incident.repairs_today = day, 0
         incident.repair_attempts += 1
         incident.repairs_today += 1
+        log.info("portal %s: repair attempt %d (%d today) because: %s", self.portal_id, incident.repair_attempts,
+                 incident.repairs_today, logs.clip(reason, 200))
         if self.r.repair is None:
             incident.repairs_tried.append("no repairer in this build")
             self.step("repair", "A repair is due, but this build has no repairer.", error="no repairer")
@@ -770,6 +811,8 @@ class _Read:
         self._save_portal(decision.state, reason, decision.cause)
         fixed = self.r.repair(self.portal, self.body, failed_rows, self.run.id)
         self.after_agent(fixed)
+        log.info("portal %s: repairer returned %s after %.1fs", self.portal_id,
+                 type(fixed).__name__ if fixed is not None else "None", time.monotonic() - began)
         if fixed is None or isinstance(fixed, NotLearned):
             why = f" It says: {fixed.reason.rstrip('.')}." if isinstance(fixed, NotLearned) and fixed.reason else ""
             incident.repairs_tried.append("the repairer found no recipe")

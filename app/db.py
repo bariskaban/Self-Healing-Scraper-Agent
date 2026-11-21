@@ -35,6 +35,7 @@ import json
 import os
 import sqlite3
 import threading
+import time
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -42,6 +43,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol
 
+from app import logs
 from app.models import (
     AgentStep,
     CheckResult,
@@ -328,6 +330,10 @@ def _insert(table: str, columns: Sequence[str], upsert_key: Sequence[str] | None
 
 # == The store ==
 
+log = logs.get("db")
+SLOW_SECONDS = 1.0  # a write transaction or a wait for the writer lock longer than this is logged as a warning
+
+
 class Database:
     """The store: `app.interfaces.Store` for the API, and every read and write the worker needs."""
 
@@ -342,6 +348,7 @@ class Database:
         self._heavy = self._connect(busy_timeout_seconds)
         self._write_lock = threading.Lock()
         self._read_lock = threading.Lock()
+        log.debug("database open at %s (busy timeout %ss)", self.path, busy_timeout_seconds)
         self._heavy_lock = threading.Lock()
         self._versions: dict[str, int] = {}  # per portal: moves when what GET /portals/{id}/tenders shows may have
         self._epoch = 0                      # moves when it may have for every portal
@@ -388,15 +395,24 @@ class Database:
     @contextmanager
     def _writing(self) -> Iterator[sqlite3.Connection]:
         """One write transaction on the writer, rolled back if anything inside raises."""
+        waited = time.monotonic()
         with self._write_lock:
+            began = time.monotonic()
+            if began - waited > SLOW_SECONDS:
+                log.warning("a write waited %.2fs for the writer lock", began - waited)
             self._writer.execute("BEGIN IMMEDIATE")
             try:
                 yield self._writer
                 self._writer.execute("COMMIT")
-            except BaseException:
+            except BaseException as error:
                 if self._writer.in_transaction:  # also when COMMIT itself failed: never leave one open
                     self._writer.execute("ROLLBACK")
+                log.warning("write transaction rolled back after %.3fs: %s: %s", time.monotonic() - began,
+                            type(error).__name__, logs.clip(error, 160))
                 raise
+            finally:
+                if time.monotonic() - began > SLOW_SECONDS:
+                    log.warning("a write transaction took %.2fs", time.monotonic() - began)
 
     @staticmethod
     def _require_portal(con: sqlite3.Connection, portal_id: str) -> None:
@@ -412,6 +428,7 @@ class Database:
             if row is not None:
                 return _portal(row), False
             con.execute(_insert("portals", _PORTAL_COLUMNS), _portal_values(portal))
+            log.debug("portal %s added: %s", portal.id, logs.safe_url(portal.url))
             return portal, True
 
     def get_portal(self, portal_id: str) -> Portal | None:
@@ -433,6 +450,7 @@ class Database:
         """
         with self._writing() as con:
             deleted = con.execute("DELETE FROM portals WHERE id = ?", (portal_id,)).rowcount > 0
+            log.debug("portal %s deleted: %s", portal_id, deleted)
         self._bump(portal_id)
         return deleted
 
@@ -555,8 +573,10 @@ class Database:
             row = con.execute("SELECT * FROM runs WHERE portal_id = ? AND finished_at IS NULL "
                               "ORDER BY started_at DESC, id DESC LIMIT 1", (run.portal_id,)).fetchone()
             if row is not None:
+                log.debug("portal %s: run %s is running, so run %s did not start", run.portal_id, row["id"], run.id)
                 return _run(row)
             con.execute(_insert("runs", _RUN_COLUMNS), _run_values(run))
+            log.debug("portal %s: run %s started (%s, %s)", run.portal_id, run.id, run.kind.value, run.trigger.value)
             return run
 
     def save_run(self, run: Run) -> bool:
@@ -633,6 +653,8 @@ class Database:
             ids = [r["id"] for r in con.execute("SELECT id FROM runs WHERE finished_at IS NULL")]
             con.execute("UPDATE runs SET finished_at = ?, result = ?, error = COALESCE(error, ?) "
                         "WHERE finished_at IS NULL", (at_text, RunResult.failed.value, error))
+            if ids:
+                log.info("%d run(s) left open by a restart were closed as failed", len(ids))
             return [_run(con.execute("SELECT * FROM runs WHERE id = ?", (i,)).fetchone()) for i in ids]
 
     # -- checks, steps, snapshots --
@@ -713,6 +735,7 @@ class Database:
         with self._writing() as con:
             self._require_portal(con, recipe.portal_id)
             con.execute(_insert("recipes", _RECIPE_COLUMNS), _recipe_values(recipe))
+            log.debug("portal %s: recipe v%s stored as %s", recipe.portal_id, recipe.version, recipe.status.value)
 
     def get_recipe(self, portal_id: str, version: int) -> Recipe | None:
         with self._reading() as con:
@@ -741,6 +764,7 @@ class Database:
                         "WHERE portal_id = ? AND version = ?", (RecipeStatus.active.value, at_text, portal_id, version))
             con.execute("UPDATE portals SET recipe_version = ?, updated_at = ? WHERE id = ?",
                         (version, at_text, portal_id))
+            log.info("portal %s: recipe v%s is now the active recipe", portal_id, version)
             return _recipe(con.execute("SELECT * FROM recipes WHERE portal_id = ? AND version = ?",
                                        (portal_id, version)).fetchone())
 
@@ -751,6 +775,7 @@ class Database:
                               "WHERE portal_id = ? AND version = ? AND status = ?",
                               (RecipeStatus.rejected.value, rationale, portal_id, version,
                                RecipeStatus.candidate.value))
+            log.info("portal %s: recipe v%s rejected (%s): %s", portal_id, version, cur.rowcount > 0, logs.clip(rationale, 120))
             return cur.rowcount > 0
 
     def recipes_for_fingerprint(self, fingerprint: str, exclude_portal_id: str | None = None) -> list[Recipe]:
@@ -799,6 +824,8 @@ class Database:
             for tender_id in unlisted:
                 con.execute("UPDATE tenders SET listed = 0, last_changed_at = ? "
                             "WHERE portal_id = ? AND tender_id = ? AND listed = 1", (at_text, portal_id, tender_id))
+        log.debug("portal %s: published %d tender(s), %d with documents, %d left the list", portal_id, written,
+                  len(documents), len(list(unlisted)) if not isinstance(unlisted, Iterator) else 0)
         self._bump(portal_id)
         return written
 
@@ -823,6 +850,8 @@ class Database:
             if last_changed_at is not None:
                 con.execute("UPDATE tenders SET last_changed_at = ? WHERE portal_id = ? AND tender_id = ?",
                             (_utc(last_changed_at, "last_changed_at"), portal_id, tender_id))
+            log.debug("portal %s tender %s: %d document(s) stored, docs_status=%s", portal_id, tender_id, len(files),
+                      docs_status.value if docs_status else "unchanged")
         self._bump(portal_id)
 
     @staticmethod
@@ -890,6 +919,7 @@ class Database:
                     "AND NOT EXISTS (SELECT 1 FROM files c WHERE c.parent_file_id = f.file_id)").fetchall()
                 if not rows:
                     if removed:
+                        log.debug("%d orphan file record(s) removed", len(removed))
                         self._bump()
                     return removed
                 con.executemany("DELETE FROM files WHERE file_id = ?", [(r["file_id"],) for r in rows])

@@ -47,5 +47,5 @@ tests/fixtures/      recorded traffic per portal
 9. **Every step is logged** as an `AgentStep` with a one-line `summary` an operator understands. The dashboard reads only this table for "what the system did".
 10. **Structured output errors** go back to the model once with the validation message. A second failure ends the run as `failed`.
 11. **Tests replay, never hit live portals.** `FETCH_MODE=record|replay|live`. Executor and checks are tested offline on `tests/fixtures/`. Live portals only in `bench/`, run by a person, never by an agent (`CLAUDE.md`).
-12. **Logs** are JSON lines on stdout, each with `portal_id` and `run_id`.
+12. **Logs** are JSON lines on stdout, each with `portal_id` and `run_id`. Every module logs through `app/logs.py` (`logs.get("fetch")` is `watchtower.fetch`); `LOG_LEVEL=debug` (or `LOG_LEVEL_FETCH=debug` for one area) shows each request, check, decision and state change. The container sets `LOG_FORMAT=json`; locally the default is readable text. Never log a key, a page, a prompt or an answer in full: use `logs.clip` and `logs.safe_url`; a scrubber removes the key from every line as a last guard.
 13. **Main always builds.** Small PRs; `docker build .` for linux/amd64 must pass before merging.

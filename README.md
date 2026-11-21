@@ -144,6 +144,7 @@ States: `integrating` (being attached), `serving` (delivering correctly), `heali
 | `AGENT_<NAME>` | see `app/agent/settings.py` | Agent budgets: `AGENT_LEARN_MAX_TURNS` (40), `AGENT_REPAIR_MAX_TURNS` (20), `AGENT_LEARN_MAX_USD` (5.0), `AGENT_REPAIR_MAX_USD` (2.5), `AGENT_CONTEXT_TOKENS` (30000), and others |
 | `RECIPE_<NAME>` | see `app/recipe/settings.py` | Executor limits: `RECIPE_MAX_PAGES` (500), `RECIPE_SINGLE_WITNESS_VOUCH_SHARE` (0.8), and others |
 | `CHECKS_<NAME>` | see `app/checks/settings.py` | Check thresholds (Q10, Q14) |
+| `LOG_LEVEL` | `info` | `debug` logs requests, checks, decisions, state changes, database writes, documents and agent calls (`app/logs.py`); per area with `LOG_LEVEL_FETCH` and the like. `LOG_FILE` writes to a file, `LOG_FORMAT=json` is the container's default. No key is written to a line. |
 | `DOCS_<NAME>` | see `app/docs/settings.py` | Download and ZIP limits (250 MB per file, and others) |
 | `EXTRACT_<NAME>` | see `app/extract/settings.py` | Normaliser settings |
 | `FETCH_<NAME>` | see `app/fetch/settings.py` | Network numbers: timeouts, redirects, requests per second (1.0) |

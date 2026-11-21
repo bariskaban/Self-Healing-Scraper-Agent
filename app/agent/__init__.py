@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from app import logs
 from app.agent.learn import AgentResult, learn
 from app.agent.repair import repair
 from app.agent.runner import Model, ModelError, ModelReply, OpenAIModel, Runner, Said, StepLog, Tool, ToolCall
@@ -25,6 +26,9 @@ from app.recipe.settings import DEFAULT_RECIPE_SETTINGS, RecipeSettings
 
 __all__ = ["AgentResult", "AgentSettings", "Agents", "Model", "ModelError", "ModelReply", "OpenAIModel", "Runner",
            "Said", "SpotResult", "StepLog", "Tool", "ToolCall", "learn", "repair", "spot_check"]
+
+
+log = logs.get("agent")
 
 
 class Agents:
@@ -48,8 +52,10 @@ class Agents:
         """The agents on OpenAI when OPENAI_API_KEY is set, else None."""
         key = api_key(environ)
         if key is None:
+            log.info("OPENAI_API_KEY is not set: no learner, repairer or spot check")
             return None
         settings = AgentSettings.from_env(environ)
+        log.info("OPENAI_API_KEY is set (%d chars, not logged); budgets: %s", len(key), logs.clip(settings, 300))
         return cls(OpenAIModel(key, settings), fetch, database, models=ModelSettings.from_env(environ),
                    settings=settings, recipes=recipes)
 

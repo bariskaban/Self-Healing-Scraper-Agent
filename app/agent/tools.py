@@ -28,6 +28,7 @@ from urllib.parse import urljoin, urlsplit
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app import logs
 from app.agent import views
 from app.agent.runner import Said, Tool, strict_schema
 from app.agent.settings import DEFAULT_AGENT_SETTINGS, AgentSettings
@@ -107,6 +108,9 @@ class CheckRecipe(_Args):
     show_recipe: bool = Field(description="true also returns the working recipe as JSON")
 
 
+log = logs.get("agent.tools")
+
+
 def site_of(host: str) -> str:
     """The part of a host name that names the site: the last two labels, or three when the
     second-level label is a short generic one (gov.uk, com.tr)."""
@@ -184,11 +188,14 @@ class Workspace:
             address = str(httpx.URL(address, params=params))
         key = _key(method, address)
         if key in self.pages and data is None and body is None:
+            log.debug("portal %s: %s %s from the page cache", self.portal.id, method, logs.safe_url(address))
             return self.pages[key], False
         if self.requests >= self.max_requests:
             raise BudgetSpent(f"The budget of {self.max_requests} requests to the portal is spent. "
                               "Work with the pages already opened.")
         self.requests += 1
+        log.debug("portal %s: agent fetch %d of %d: %s %s", self.portal.id, self.requests, self.max_requests, method,
+                  logs.safe_url(address))
         try:
             got = self.fetch.fetch(self.portal.id, address, method=method, data=data, json=body)
         except RobotsForbidden:
@@ -202,6 +209,8 @@ class Workspace:
         page = CachedPage(url=address, body=got.body, status=got.status, content_type=got.headers.get("content-type"),
                           method=method, final_url=got.final_url)
         self.pages[key] = page
+        log.debug("portal %s: %s -> %s, %d bytes, %s", self.portal.id, logs.safe_url(address), got.status, len(got.body),
+                  page.content_type)
         return page, True
 
     def text(self, page: CachedPage) -> str:

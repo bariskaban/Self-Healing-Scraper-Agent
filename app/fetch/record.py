@@ -21,7 +21,10 @@ from pathlib import Path
 import httpx
 from pydantic import BaseModel, Field
 
+from app import logs
 from app.models import NetworkEntry
+
+log = logs.get("fetch.record")
 
 
 class ReplayMiss(LookupError):
@@ -104,6 +107,8 @@ class RecordingTransport(httpx.BaseTransport):
         meta_path, body_path = _paths(self.root, request)
         meta_path.parent.mkdir(parents=True, exist_ok=True)
         body_path.write_bytes(body)
+        log.debug("recorded %s %s -> %s, %d bytes, in %s", request.method, logs.safe_url(str(request.url)),
+                  response.status_code, len(body), meta_path.parent)
         meta_path.write_text(json.dumps({
             "method": request.method, "url": str(request.url), "status": response.status_code,
             "headers": [[k, v] for k, v in headers],
@@ -123,10 +128,12 @@ class ReplayTransport(httpx.BaseTransport):
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         meta_path, body_path = _paths(self.root, request)
         if not meta_path.is_file():
+            log.warning("replay miss: %s %s (looked under %s)", request.method, logs.safe_url(str(request.url)), self.root)
             raise ReplayMiss(f"No recording for {request.method} {request.url} under {self.root}. "
                              "Ask a person to record this portal with FETCH_MODE=record.")
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         body = body_path.read_bytes() if body_path.is_file() else b""
+        log.debug("replayed %s %s -> %s, %d bytes", request.method, logs.safe_url(str(request.url)), meta["status"], len(body))
         # As a stream, so httpx decodes it once, exactly as it decodes an answer from the wire.
         return httpx.Response(meta["status"], headers=[tuple(h) for h in meta["headers"]],
                               stream=httpx.ByteStream(body), request=request)

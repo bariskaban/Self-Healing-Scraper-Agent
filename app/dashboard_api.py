@@ -35,6 +35,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt
 
+from app import logs
 from app.config import ModelSettings
 from app.models import (
     AgentStep, CheckResult, Portal, Recipe, RecipeStatus, Run, RunKind, Severity, StepKind, TokenUsage, utcnow,
@@ -43,7 +44,7 @@ from app.reader import PUBLISH_STEP
 from app.scheduler import DEFAULT_SETTINGS as DEFAULT_SCHEDULE
 
 UTC = timezone.utc
-log = logging.getLogger("watchtower.dashboard")
+log = logs.get("dashboard")
 
 # The severities the page knows. `outage` is ours (Q10) and newer than the page: a check that
 # failed with it is shown as a failed check, and its name and message say it is an outage.

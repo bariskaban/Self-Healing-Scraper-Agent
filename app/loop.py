@@ -20,6 +20,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime
 
+from app import logs
 from app.checks.result import Cause
 from app.db import Database, UnknownPortal
 from app.fetch.interface import Fetch
@@ -30,7 +31,7 @@ from app.scheduler import (
     read_plan,
 )
 
-log = logging.getLogger("watchtower.loop")
+log = logs.get("loop")
 
 
 def _own_trigger(portal: Portal) -> RunTrigger:
@@ -68,6 +69,7 @@ class ReadLoop:
     def attach(self, portal: Portal) -> None:
         """Start the first read of a newly added portal."""
         run = self.db.start_run(new_run(portal, RunTrigger.attach))
+        log.info("portal %s: attach queued as run %s for %s", portal.id, run.id, logs.safe_url(portal.url))
         self._queued[portal.id] = run
         self._last_run[portal.id] = run.id
         self._spawn(portal.id)
@@ -76,11 +78,13 @@ class ReadLoop:
         """Start a read now and return its run id; the run going on, when there is one."""
         active = self.db.active_run(portal.id)
         if active is not None:
+            log.debug("portal %s: refresh asked while run %s is running; it is returned", portal.id, active.id)
             return active.id
         incident = self._incidents.setdefault(portal.id, Incident())
         last = self._last_run.get(portal.id)
         if portal.state is PortalState.failed and last is not None and not may_check_on_refresh(
                 incident.last_check_at, self.now(), self.schedule):
+            log.debug("portal %s: refresh of a failed portal inside its minute (Q14); run %s is returned", portal.id, last)
             return last  # a failed portal is checked at most once a minute (Q14)
         mine = new_run(portal, RunTrigger.refresh)
         run = self.db.start_run(mine)
@@ -88,7 +92,9 @@ class ReadLoop:
             # A read began between the look above and this start (the portal's task starts its
             # runs in a worker thread). That read is the run going on, and its task reads it:
             # queueing it here too would have it read a second time, after it has ended.
+            log.debug("portal %s: refresh found run %s already begun", portal.id, run.id)
             return run.id
+        log.info("portal %s: refresh queued as run %s (state %s)", portal.id, run.id, portal.state.value)
         self._queued[portal.id] = run
         self._last_run[portal.id] = run.id
         self._spawn(portal.id)
@@ -98,6 +104,7 @@ class ReadLoop:
     def forget(self, portal_id: str) -> None:
         """Cancel everything running for a deleted portal. No request goes to it after this."""
         task = self._tasks.pop(portal_id, None)
+        log.info("portal %s: forgotten (task %s)", portal_id, "cancelled" if task is not None else "none")
         if task is not None:
             task.cancel()
         cancel = self._cancel.pop(portal_id, None)
@@ -130,6 +137,8 @@ class ReadLoop:
         robots.txt switch needs a network layer that carries `settings` (`Fetcher` does); on any
         other it stays as it is, and `ignore_robots_txt` goes on saying so.
         """
+        log.info("settings changed: attach_time_limit=%ss ignore_robots_txt=%s (was %ss, %s)", attach_time_limit_seconds,
+                 ignore_robots_txt, self.schedule.attach_time_limit_seconds, self.ignore_robots_txt)
         self.schedule = replace(self.schedule, attach_time_limit_seconds=attach_time_limit_seconds)
         self.reader.schedule = replace(self.reader.schedule, attach_time_limit_seconds=attach_time_limit_seconds)
         settings = getattr(self.fetch, "settings", None)
@@ -145,6 +154,7 @@ class ReadLoop:
         portals = await asyncio.to_thread(self.db.list_portals)
         if cut:
             log.info("closed %d run(s) left open by a restart", len(cut))
+        log.info("read loop starting with %d portal(s)", len(portals))
         for portal in portals:
             self._spawn(portal.id)
             self._wake[portal.id].set()  # read at once: we do not know how long we were away
@@ -173,6 +183,7 @@ class ReadLoop:
             if run is None:
                 due = self._due.get(portal_id)
                 wait = None if due is None else max(0.0, (due - self.now()).total_seconds())
+                log.debug("portal %s: sleeping %s until the next read", portal_id, "until woken" if wait is None else f"{wait:.0f}s")
                 woken = wake.is_set()
                 if not woken and wait != 0.0:
                     try:
@@ -201,6 +212,8 @@ class ReadLoop:
                 first_page_only = (run.trigger is RunTrigger.schedule and portal.state is PortalState.serving
                                    and self._first_page.get(portal_id, False))
                 self._last_run[portal_id] = run.id
+                log.debug("portal %s: due, starting a %s read as run %s (state %s)", portal_id, run.trigger.value, run.id,
+                          portal.state.value)
             wake.clear()
             try:
                 outcome = await asyncio.to_thread(self.reader.read, portal_id, run, incident,
@@ -254,4 +267,7 @@ class ReadLoop:
             due = now + plan.interval
         incident.next_try_at = due if outcome.state is not PortalState.serving else None
         self._due[portal_id] = due
+        log.debug("portal %s: next read in %.0fs (state %s%s; failed checks %d, outage retries %d)", portal_id,
+                  (due - now).total_seconds(), outcome.state.value, ", first page only" if first_page else "",
+                  incident.failed_checks, incident.outage_retries)
         self._first_page[portal_id] = first_page

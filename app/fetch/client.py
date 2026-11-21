@@ -20,6 +20,7 @@ from typing import Any
 
 import httpx
 
+from app import logs
 from app.checks import DEFAULT_SETTINGS, Answer, CheckSettings, Transport, classify_answer
 from app.scheduler import parse_retry_after
 
@@ -29,6 +30,8 @@ from .limiter import PortalLimiter
 from .record import RecordingTransport, ReplayTransport, load_browsed
 from .robots import RobotsRules, origin_of, robots_url
 from .settings import DEFAULT_FETCH_SETTINGS, FetchMode, FetchSettings
+
+log = logs.get("fetch")
 
 REDIRECTS = frozenset({301, 302, 303, 307, 308})
 CHUNK_BYTES = 1024 * 1024
@@ -112,6 +115,8 @@ class Fetcher:
         self._lock = threading.Lock()
         self._sessions: dict[str, httpx.Client] = {}
         self._robots: dict[tuple[str, str], RobotsRules] = {}
+        log.debug("fetcher ready: mode=%s rate=%s/s ignore_robots=%s recordings=%s", settings.mode.value,
+                  settings.requests_per_second, settings.ignore_robots_txt, settings.recordings_dir)
 
     @classmethod
     def from_env(cls) -> "Fetcher":
@@ -139,6 +144,7 @@ class Fetcher:
                                       headers={"User-Agent": self.settings.user_agent},
                                       event_hooks={"response": [_remember_answer]})
                 self._sessions[portal_id] = client
+                log.debug("portal %s: new session (%s transport)", portal_id, self.settings.mode.value)
             return client
 
     def forget(self, portal_id: str) -> None:
@@ -149,6 +155,7 @@ class Fetcher:
         if client is not None:
             client.close()
         self.limiter.forget(portal_id)
+        log.debug("portal %s: session, robots rules and rate state dropped", portal_id)
 
     def close(self) -> None:
         with self._lock:
@@ -180,9 +187,14 @@ class Fetcher:
                 self._robots_gate(portal_id, str(current))
             request = client.build_request(method, current, headers=headers, **body)
             self.limiter.acquire(portal_id)
+            log.debug("portal %s: -> %s %s%s", portal_id, method, logs.safe_url(str(current)),
+                      f" hop {len(hops)}" if hops else "")
+            started = self._clock()
             try:
                 response = client.send(request, stream=True)
             except httpx.HTTPError as exc:
+                log.debug("portal %s: <- %s %s failed after %.2fs: %s: %s", portal_id, method,
+                          logs.safe_url(str(current)), self._clock() - started, type(exc).__name__, logs.clip(exc))
                 return None, exc, str(current), tuple(hops)
             except httpx.InvalidURL:
                 # httpx reads the Location of every redirect, even one it does not follow, and
@@ -195,6 +207,10 @@ class Fetcher:
                 response = httpx.Response(refused.status_code, headers=plain, request=request)  # httpx closed it unread
                 return response, None, str(current), tuple(hops)
             location = response.headers.get("location")
+            log.debug("portal %s: <- %s %s %s in %.2fs, type=%s length=%s%s", portal_id, response.status_code, method,
+                      logs.safe_url(str(current)), self._clock() - started, response.headers.get("content-type"),
+                      response.headers.get("content-length", "?"),
+                      f", location={logs.safe_url(location)}" if location else "")
             target = None
             if response.status_code in REDIRECTS and location and len(hops) < self.settings.max_redirects:
                 target = self._redirect_target(current, location)
@@ -256,8 +272,12 @@ class Fetcher:
             too_long = retry_after is not None and retry_after > self.checks.retry_after_inline_max_seconds
             open_response = response if keep_open else None  # a 2xx download, its body not read yet
 
+            log.debug("portal %s: %s %s answered %s: kind=%s tries=%d%s", portal_id, method, logs.safe_url(final_url),
+                      answer.status, kind.value, tries + 1, f" retry_after={retry_after}s" if retry_after else "")
             if kind is Transport.rate_limited:  # T2: halve the portal's rate, then go on
                 at_slowest = self.limiter.slow_down(portal_id)
+                log.info("portal %s: rate limited (HTTP %s), rate halved%s", portal_id, answer.status,
+                         ", already at the slowest" if at_slowest else "")
                 if at_slowest or too_long:
                     return _Last(answer, final_url, hops, resp_headers, body, max(tries, 1), at_slowest,
                                  retry_after if too_long else None, open_response)
@@ -267,7 +287,10 @@ class Fetcher:
             tries += 1
             if kind is Transport.outage and tries < self.checks.request_tries and not too_long:  # T1
                 self._close(open_response)
-                self.limiter.hold(portal_id, max(self._pause(tries), retry_after or 0.0))
+                pause = max(self._pause(tries), retry_after or 0.0)
+                log.info("portal %s: %s %s did not answer (try %d of %d), pausing %.1fs", portal_id, method,
+                         logs.safe_url(final_url), tries, self.checks.request_tries, pause)
+                self.limiter.hold(portal_id, pause)
                 continue
             return _Last(answer, final_url, hops, resp_headers, body, tries, False,
                          retry_after if too_long else None, open_response)
@@ -286,6 +309,7 @@ class Fetcher:
             rules = self._robots.get(key)
         if rules is not None and self._clock() - rules.fetched_at < self.settings.robots_cache_seconds:
             return rules
+        log.debug("portal %s: fetching robots.txt of %s", portal_id, origin)
         last = self._request(portal_id, "GET", robots_url(url), page_load=False, stream=False, obey_robots=False)
         now = self._clock()
         status = last.answer.status
@@ -297,12 +321,14 @@ class Fetcher:
             raise RobotsUnavailable(self._fetched(robots_url(url), last))
         with self._lock:
             self._robots[key] = rules
+        log.debug("portal %s: robots.txt of %s read (status %s), cached", portal_id, origin, status)
         return rules
 
     def _robots_gate(self, portal_id: str, url: str) -> None:
         if self.settings.ignore_robots_txt:
             return
         if not self._rules(portal_id, url).allowed(url, self.settings.user_agent):
+            log.info("portal %s: robots.txt forbids %s", portal_id, logs.safe_url(url))
             raise RobotsForbidden(url)
 
     def robots_forbids_every_path(self, portal_id: str, url: str) -> bool:
@@ -326,6 +352,7 @@ class Fetcher:
     @contextmanager
     def download(self, portal_id: str, url: str, *, headers: dict[str, str] | None = None) -> Iterator[_Streamed]:
         last = self._request(portal_id, "GET", url, page_load=False, stream=True, obey_robots=True, headers=headers)
+        log.debug("portal %s: download %s -> status %s", portal_id, logs.safe_url(url), last.answer.status)
         if last.answer.status is None:
             raise FetchFailed(url, last.answer, last.tries, last.at_slowest)
         if last.response is not None:
