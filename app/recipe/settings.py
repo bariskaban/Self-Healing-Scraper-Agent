@@ -25,9 +25,10 @@ class RecipeSettings:
     # The most tenders read from one portal; 0 means no limit. The list is cut at this many tenders
     # (newest first where the portal lists them so), and only those get a detail page and documents.
     # A cut list counts as partial: no tender is closed for being absent from it (RECIPE_MAX_TENDERS_PER_PORTAL).
-    # 2,000 by default: a national portal with tens of thousands of tenders then delivers its first 2,000
-    # instead of nothing (e-Zamowienia's API refuses every page past tender 10,000; docs/BACKLOG.md).
-    max_tenders_per_portal: int = 2000
+    # 500 by default. Every tender costs at least one request, at one request a second, before anything
+    # is delivered: 500 tenders are there in about ten minutes, TenderNed's 4,132 took over an hour, and
+    # e-Zamowienia's API refuses every page past tender 10,000, so it delivered nothing (docs/BACKLOG.md).
+    max_tenders_per_portal: int = 500
     # How many problems a dry run reports before it only counts them.
     max_problems: int = 50
     # Python's re has no timeout, and a recipe's regular expressions are written by a model. So
