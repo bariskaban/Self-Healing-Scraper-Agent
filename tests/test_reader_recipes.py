@@ -103,6 +103,14 @@ def test_a_recipe_stored_after_a_repair_names_the_version_it_replaces_and_the_so
     assert shown["id"] == run.id and shown["modelCalls"] == 3
     assert (shown["recipeChange"]["from"], shown["recipeChange"]["to"]) == (2, 3)
     assert "nodes.list" in shown["recipeChange"]["changedParts"]
+    # GET /portals/{id}/runs answers that run, and only that one, as a repair (the contract: every read and every repair).
+    assert db.repair_run_ids(PID) == {run.id}
+    # A repair that found nothing leaves its steps: that run is a repair too.
+    from app.models import AgentStep, StepKind
+    _, later = read(RunTrigger.refresh, incident, learn=lambda portal, run_id: first)
+    assert db.repair_run_ids(PID) == {run.id}
+    db.add_step(AgentStep(run_id=later.id, seq=99, kind=StepKind.decision, name="repair_failed", summary="No recipe."))
+    assert db.repair_run_ids(PID) == {run.id, later.id} and db.repair_run_ids("another") == set()
 
 
 def test_a_limit_per_portal_keeps_the_first_tenders_and_closes_none_on_a_later_read(site):

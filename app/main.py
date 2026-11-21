@@ -17,6 +17,7 @@ Run: uvicorn app.main:app --host 0.0.0.0 --port 8080
 """
 from __future__ import annotations
 
+import json
 import asyncio
 import hashlib
 import mimetypes
@@ -49,7 +50,7 @@ from app.reader import Learned, Learner, NotLearned, Reader, Repairer, SpotCheck
 from app.recipe.settings import RecipeSettings
 from app.scheduler import SchedulerSettings
 from app.tenders_answer import TendersAnswers
-from app.models import CreatedId, Portal, PortalCreate, RunAccepted, url_key, utcnow
+from app.models import CreatedId, Portal, RunAccepted, url_key, utcnow
 
 T = TypeVar("T")
 
@@ -102,6 +103,10 @@ def parse_changed_since(raw: str) -> datetime:
     """
     text = _LOST_PLUS.sub(r"\1+\2", raw.strip())  # "10:00:00 01:00" was "10:00:00+01:00"
     when = datetime.fromisoformat(text)
+    if when.microsecond == 0:
+        # Our answers print `lastChangedAt` in whole seconds, and the stored time is finer. A caller who
+        # sends back the newest value it saw must not get that tender again: the whole second counts as seen.
+        when = when.replace(microsecond=999_999)
     return when if when.tzinfo is not None else when.replace(tzinfo=timezone.utc)
 
 
@@ -301,11 +306,19 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
                 if since is None or record.effective_last_changed(now) > since]
 
     @app.post("/portals", status_code=201)
-    async def add_portal(body: PortalCreate) -> JSONResponse:
-        """Add a portal by its address. Answers at once; the attach runs in the background."""
-        if not usable_address(body.url):
-            raise HTTPException(status_code=400, detail="url must be an http or https address.")
-        url = body.url.strip()
+    async def add_portal(request: Request) -> JSONResponse:
+        """Add a portal by its address. Answers at once; the attach runs in the background.
+
+        The body is read by hand: a caller that sends no JSON content type, or more fields than
+        `url`, still adds its portal. Anything without a usable `url` is a 400."""
+        try:
+            sent = json.loads(await request.body())
+        except ValueError:
+            sent = None
+        url = sent.get("url") if isinstance(sent, dict) else None
+        if not isinstance(url, str) or not usable_address(url):
+            raise HTTPException(status_code=400, detail='The body must be {"url": "..."} with an http or https address.')
+        url = url.strip()
         portal, created = await on_db(
             store.add_portal, Portal(id=portal_id_for(url), url=url, url_key=url_key(url)))
         log.info("portal %s %s: %s", portal.id, "added" if created else "already known", logs.safe_url(url))
@@ -374,7 +387,15 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
         """Every read and repair of the portal, oldest first."""
         await known(portal_id)
         runs = await on_db(store.list_runs, portal_id)
-        return JSONResponse([run.to_api().model_dump(mode="json") for run in runs])
+        # The reader repairs inside a read run. The contract asks for "every read and every repair",
+        # so a run in which a repair took place is answered as `repair` (the dashboard does the same).
+        repairs = getattr(store, "repair_run_ids", None)
+        repaired = await on_db(repairs, portal_id) if repairs is not None else set()
+        out = [run.to_api().model_dump(mode="json") for run in runs]
+        for row in out:
+            if row["id"] in repaired:
+                row["kind"] = "repair"
+        return JSONResponse(out)
 
     @app.get("/files/{file_id}")
     async def get_file(file_id: str) -> FileResponse:

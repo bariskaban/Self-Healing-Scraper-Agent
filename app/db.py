@@ -520,6 +520,19 @@ class Database:
                                (portal_id,)).fetchall()
         return [_run(r) for r in rows]
 
+    def repair_run_ids(self, portal_id: str) -> set[str]:
+        """The portal's runs in which a repair took place: the repairer worked in them (its steps
+        are there from its first model call on), or they stored a recipe that replaces another.
+        The reader repairs inside a read run, so the `runs` row itself says `read`."""
+        with self._reading() as con:
+            rows = con.execute(
+                "SELECT DISTINCT s.run_id FROM agent_steps s JOIN runs r ON r.id = s.run_id"
+                " WHERE r.portal_id = ? AND (s.name LIKE 'repair%' OR s.prompt_id LIKE 'repair/%')"
+                " UNION SELECT created_by_run_id FROM recipes"
+                " WHERE portal_id = ? AND parent_version IS NOT NULL AND created_by_run_id IS NOT NULL",
+                (portal_id, portal_id)).fetchall()
+        return {row[0] for row in rows}
+
     def get_file(self, file_id: str) -> FileRecord | None:
         with self._reading() as con:
             row = con.execute("SELECT * FROM files WHERE file_id = ?", (file_id,)).fetchone()

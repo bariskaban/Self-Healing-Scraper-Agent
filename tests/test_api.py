@@ -153,7 +153,28 @@ def test_changed_since_keeps_only_tenders_that_changed_later(system):
     ("2026-12-09 10:00:00 01:00", datetime(2026, 12, 9, 10, 0, tzinfo=CET)),
 ])
 def test_changed_since_forms(raw, expected):
-    assert parse_changed_since(raw) == expected
+    # A value in whole seconds counts that whole second as seen (our answers print whole seconds).
+    assert parse_changed_since(raw) == expected.replace(microsecond=999_999)
+
+
+def test_changed_since_given_to_the_microsecond_is_taken_as_it_is():
+    assert parse_changed_since("2026-12-09T10:00:00.250000+01:00") == datetime(2026, 12, 9, 10, 0, 0, 250000, tzinfo=CET)
+
+
+def test_the_newest_last_changed_at_sent_back_returns_nothing_again(system):
+    client, portal_id = system[0], system[2]
+    tenders = client.get(f"/portals/{portal_id}/tenders").json()
+    newest = max(t["lastChangedAt"] for t in tenders)
+    assert client.get(f"/portals/{portal_id}/tenders", params={"changedSince": newest}).json() == []
+
+
+def test_a_portal_is_added_whatever_the_content_type_and_with_more_fields_than_url(system):
+    client = system[0]
+    plain = client.post("/portals", content='{"url": "https://one.example"}', headers={"content-type": "text/plain"})
+    more = client.post("/portals", json={"url": "https://one.example", "name": "One"})
+    assert plain.status_code == more.status_code == 201 and plain.json() == more.json()
+    for bad in ('{"url": 5}', "{}", "not json", "", '["https://one.example"]', '{"url": "ftp://one.example"}'):
+        assert client.post("/portals", content=bad).status_code == 400, bad
 
 
 @pytest.mark.parametrize("raw", ["yesterday", "", "2026-13-40T10:00:00+01:00", "10:00"])
