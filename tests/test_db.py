@@ -417,7 +417,7 @@ def test_steps_and_snapshots_come_back(db):
     db.add_portal(portal(1))
     r = db.start_run(run("p1"))
     steps = [AgentStep(run_id=r.id, seq=2, at=T0, kind=StepKind.llm, name="gpt-6.2-sol", summary="Wrote the list node",
-                       prompt_id="learn/system@4", usage=TokenUsage(input_tokens=30_000, output_tokens=2_000)),
+                       prompt_id="learn/system@3", usage=TokenUsage(input_tokens=30_000, output_tokens=2_000)),
              AgentStep(run_id=r.id, seq=1, at=T0, kind=StepKind.tool, name="open", summary="Opened the entry page",
                        args={"url": "https://portal1.example/"}, result="200, 3 JSON calls", duration_ms=1200)]
     for s in steps:
