@@ -168,15 +168,15 @@ stateDiagram-v2
     integrating --> serving: every open tender read and checked, or the attach time limit passed
     integrating --> failed: blocked, or no recipe works
     serving --> serving: read passes
-    serving --> healing: breakage confirmed, outage, or no passing read for 3 intervals
-    serving --> failed: a login or bot wall now blocks it
+    serving --> healing: breakage confirmed (a repair starts)
+    serving --> failed: a login or bot wall now blocks it, or the portal stops answering (cause `outage`), or no passing read for 3 intervals
     healing --> serving: a read passes and reproduces the last good tenders
-    healing --> failed: repair budget used up, or no answer for 60 minutes
-    failed --> serving: a check passes with the old recipe
+    healing --> failed: repair budget used up, or the portal stops answering
+    failed --> serving: a check passes with the old recipe, also when an outage ends
     failed --> healing: a page structure not seen before, one repair
 ```
 
-A portal is reported `serving` only while its reads pass every check. `healing` covers both a repair and an outage; an outage never starts a repair. `failed` is not final: the portal keeps being checked, and one that comes back is served again (Q14).
+A portal is reported `serving` only while its reads pass every check. `healing` means a repair is under way and nothing else (the brief: "Broken. A repair is running"). A portal that does not answer is `failed` with the cause `outage`, from the first read that finds it (decision of a person, 20 Nov 2026, replacing Q10's `healing`): it cannot deliver, no repair starts, and nobody has to act. The cause says whether a person can help: `block` and a spent repair budget need one, an `outage` does not. An outage is tried again on the outage ladder (1, 2, 4, 8, 15, 30 minutes) before the failed schedule starts. `failed` is not final: the portal keeps being checked, and one that comes back is served again (Q14).
 
 ### The recipe
 
@@ -254,7 +254,7 @@ From Q10. A read is judged by evidence that does not depend on how many tenders 
 | C6 canary | Two known detail pages and one known file are fetched again on every read | Fails twice: **Breakage** |
 | C7 structure | The sorted set of tag-and-class paths (key paths for JSON), ignoring text, row positions and numeric ids, differs from the stored one by more than this portal's floor | Spot check; never a failure alone |
 | D1 files | Failed files against the failure share of earlier good reads, exact test at 1 in 1,000; always when every file fails | Below: publish the rest, log the failures on the run. Above: by cause. |
-| F1 age | `serving`, and no read has passed for 3 read intervals | `healing`, "no successful read since …" |
+| F1 age | `serving`, and no read has passed for 3 read intervals | `failed`, cause `outage`, "no successful read since …" |
 
 **Field-level rule** (Q2, with the audit's fix). Each field's locators run on every read. Agreement after parsing: accept. Disagreement: null, flagged `conflict`. A single surviving locator is accepted only when its value equals the last good value for the same tender; otherwise null. Many single survivors in one read count as lost values in C3. Locators written by one model from one page are not independent witnesses, so agreement that counts comes from different sources: list row against detail page, page against the portal's API, this read against the last good one. The raw extracted string must appear in the fetched page before it is normalised.
 
@@ -268,11 +268,11 @@ From Q10. A read is judged by evidence that does not depend on how many tenders 
 | --- | --- | --- | --- |
 | Pass | `serving` | none | "Read at 14:02 found 23 open tenders, 2 new and 1 closed. Every check passed." |
 | Pass, empty | `serving` | none | "The portal lists no open tenders at 14:02. Its own 'no results' notice is shown, and the 4 tenders we knew are closed." |
-| Outage | `healing` at once; `failed` after 60 minutes without an answer | none | "The portal has not answered since 14:07 (HTTP 503, three tries). Still delivering the 23 tenders read at 14:02. Next try 14:09." |
+| Outage | `failed` at once, cause `outage` (no person needed; retried on the outage ladder) | none | "The portal has not answered since 14:07 (HTTP 503, three tries). Still delivering the 23 tenders read at 14:02. Next try 14:09." |
 | Block | `failed` at once, after one confirming fetch | none | "Login required: the tender list redirects to /anmelden and shows a password field. We do not log in." |
 | Breakage | `healing`, repair starts | yes | "The list reads 9 tenders but the portal prints 23, also on a second read. Repairing; still delivering the 23 tenders read at 14:02." |
 | Breakage, budget used | `failed` | none after | "The layout changed at 14:07. Three repair attempts failed (list locator, paging, full re-learn). A person is needed." |
-| Stale | `healing` | none | "No read has passed since 13:20. Reads are not completing." |
+| Stale | `failed`, cause `outage` | none | "No read has passed since 13:20. Reads are not completing." |
 
 A failed check keeps the last good tenders published.
 

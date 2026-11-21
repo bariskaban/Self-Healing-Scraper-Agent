@@ -48,8 +48,10 @@ def refresh(client: TestClient, pid: str) -> dict:
     return settled(client, pid, run_id)
 
 
-def test_attach_serving_break_healing_and_back(site):
+def test_attach_serving_break_healing_and_back(site, monkeypatch):
     mock, client = site
+    # A failed portal is checked on a refresh once a minute at most (Q14); this test does not wait a minute.
+    monkeypatch.setattr("app.loop.may_check_on_refresh", lambda *args, **kwargs: True)
     pid = client.post("/portals", json={"url": URL}).json()["id"]
     assert client.get(f"/portals/{pid}/tenders").json() == []  # nothing is delivered while integrating
 
@@ -78,10 +80,11 @@ def test_attach_serving_break_healing_and_back(site):
     runs = client.get(f"/portals/{pid}/runs").json()
     assert [(run["kind"], run["result"]) for run in runs] == [("read", "ok")]
 
-    # The portal stops answering: healing, the last good tenders stay, and no repair starts.
+    # The portal stops answering: failed with the cause outage (not healing: no repair is running), the
+    # last good tenders stay, and no repair starts.
     mock.outage = True
     portal = refresh(client, pid)
-    assert (portal["state"], portal["cause"], portal["tenderCount"]) == ("healing", "outage", 45)
+    assert (portal["state"], portal["cause"], portal["tenderCount"]) == ("failed", "outage", 45)
     assert "not answered" in portal["reason"] and "recipe is unchanged" in portal["reason"]
     assert len(client.get(f"/portals/{pid}/tenders").json()) == 45
 
@@ -156,6 +159,35 @@ def test_a_refresh_during_a_read_answers_with_the_run_going_on_and_delete_stops_
     asked = len(mock.requests)
     time.sleep(0.3)
     assert len(mock.requests) - asked <= 2  # a request already under way may land; nothing after it
+
+
+def test_an_outage_is_retried_on_the_outage_ladder_then_on_the_failed_schedule():
+    """An outage is `failed`, but nobody has to look at it: it is tried again after 1, 2, 4, 8, 15 and 30
+    minutes, and only when that hour is used up does the failed schedule (5 min, 15 min, 1 h, then 6 h) start."""
+    from datetime import datetime, timezone
+
+    from app.checks.result import Cause
+    from app.loop import ReadLoop
+    from app.models import PortalState
+    from app.reader import Incident, ReadOutcome
+    from app.state import Decision, Verdict
+
+    now = datetime(2026, 11, 20, 12, 0, tzinfo=timezone.utc)
+    loop = ReadLoop(None, None, None, now=lambda: now, rng=lambda: 0.5)  # a store, reader and fetcher are not used here
+    incident = Incident()
+
+    def plan(cause: Cause, scheduled: bool = True) -> float:
+        decision = Decision(verdict=Verdict.outage, state=PortalState.failed, cause=cause, reason="Not answering.")
+        loop._plan_next("p1", incident, ReadOutcome(decision, PortalState.failed, False), scheduled=scheduled)
+        return (loop._due["p1"] - now).total_seconds()
+
+    assert [plan(Cause.outage) for _ in range(6)] == [60, 120, 240, 480, 900, 1800]   # the outage ladder
+    assert incident.failed_checks == 0                                               # not the failed schedule
+    assert plan(Cause.outage) == 300 and incident.failed_checks == 1                 # ladder used up: failed, 5 min
+    assert plan(Cause.outage) == 900                                                 # then 15 min
+    other = Incident()
+    incident.__dict__.update(other.__dict__)
+    assert plan(Cause.block) == 6 * 3600                                             # a block is never on the ladder
 
 
 def test_a_crashed_read_keeps_the_usage_it_had_saved(tmp_path):

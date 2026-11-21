@@ -268,7 +268,7 @@ Who builds what and in what order: [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md).
 
 ### [ ] Q10. Failure rules (Owner: Goktug)
 - [x] Research: `research/q10-failure-rules.md`
-- [x] `outage` severity and `cause` on a portal (PR 18)
+- [x] `outage` severity and `cause` on a portal (PR 18); since 20 Nov 2026 an outage is `failed` with cause `outage` from the first read that finds it (it was `healing` without a repair), and the last good tenders stay served
 - [x] Checks (`app/checks/`): T1, T2, T4, O1, O2, C1 to C7, D1, F1 and the confirm step
 - [x] State machine (`app/state.py`)
 - [x] Checks and `decide` called from the read loop; last good tenders stay served while healing

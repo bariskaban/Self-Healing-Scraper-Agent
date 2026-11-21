@@ -91,7 +91,7 @@ class Severity(StrEnum):
     warn = "warn"      # shown on the dashboard, state unchanged
     fail = "fail"      # the read is wrong: portal goes healing and a repair may start
     block = "block"    # login, captcha or other block: portal goes failed
-    outage = "outage"  # the portal is not answering: portal goes healing, no repair starts (Q10)
+    outage = "outage"  # the portal is not answering: portal goes failed with cause outage, no repair starts
 
 
 class Cause(StrEnum):

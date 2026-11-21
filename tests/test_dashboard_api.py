@@ -477,8 +477,9 @@ def snapshot(client: TestClient, pid: str, name: str) -> tuple[dict, list[dict]]
     return row, timeline
 
 
-def test_attach_an_outage_and_recovery_as_the_dashboard_shows_them(site):
+def test_attach_an_outage_and_recovery_as_the_dashboard_shows_them(site, monkeypatch):
     mock, client = site
+    monkeypatch.setattr("app.loop.may_check_on_refresh", lambda *args, **kwargs: True)  # no minute's wait (Q14)
     pid = client.post("/portals", json={"url": URL}).json()["id"]
     fits_dashboard(client.get("/api/dashboard").json())  # also while the attach runs
     fits_timeline(client.get(f"/api/portals/{pid}/timeline").json())
@@ -506,11 +507,12 @@ def test_attach_an_outage_and_recovery_as_the_dashboard_shows_them(site):
                                     for check in attach["checks"])
     assert {"list_outcome", "robots"} <= {check["name"] for check in attach["checks"]}
 
-    # The portal stops answering: healing, the last good tenders stay, and nothing new is published.
+    # The portal stops answering: failed with the cause outage, the last good tenders stay, and nothing new is
+    # published.
     mock.outage = True
-    assert refresh(client, pid)["state"] == "healing"
+    assert refresh(client, pid)["state"] == "failed"
     row, timeline = snapshot(client, pid, "outage")
-    assert (row["state"], row["cause"], row["tenderCount"]) == ("healing", "outage", 45)
+    assert (row["state"], row["cause"], row["tenderCount"]) == ("failed", "outage", 45)
     assert row["recentReads"] == ["ok", "failed"] and row["deliveryTrend"] == [45] and row["readsLastHour"] == 2
     assert row["lastRun"]["result"] == "failed" and row["nextReadAt"] is not None
     assert [run["id"] for run in timeline][0] == attach["id"] and len(timeline) == 2  # oldest first

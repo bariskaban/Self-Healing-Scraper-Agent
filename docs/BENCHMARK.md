@@ -17,7 +17,7 @@ Match predicted tenders to gold by `id` (fallback: `url`).
 * **Field scores**, per field, over matched tenders: `correct`, `wrong` (value present but differs), `missing` (gold has it, we sent null), `invented` (gold null, we sent a value). Report `recall = correct / gold non-null` and `error rate = (wrong + invented) / predicted non-null`.
 * **Field score** (one number) = recall minus 2 × error rate, because a wrong value is worse than a missing one.
 * **Documents**: file recall by sha256 (fallback: name and size); bytes correct = our sha256 equals the gold file's.
-* **State accuracy**: the harness polls `GET /portals/{id}` every 10 s; each poll is right if the state matches the scenario's expected state. Also **time to notice** (change to `healing`) and **false alarms** (healing or failed on an unchanged portal).
+* **State accuracy**: the harness polls `GET /portals/{id}` every 10 s; each poll is right if the state matches the scenario's expected state. Also **time to notice** (change to `healing`, or to `failed` for an outage) and **false alarms** (healing or failed on an unchanged portal).
 * **Repair success**: back to `serving` with tender recall at least 0.95 within 15 minutes of the change. Also repair tokens and euros.
 * **Cost**: tokens and euros per attach and per repair, from the `portal_costs` view. **Model calls during regular reads must be 0**, except a spot check when C3 (changed values) or C7 (structure) fires (Q10).
 * **Time to attach** and **HTTP requests per attach**.
@@ -52,8 +52,8 @@ Added from the answers to Q10, Q12 and Q14:
 18. 429, and 403 with `Retry-After`: expect the portal's request rate to halve and the state to stay `serving`.
 19. List emptied without the "no results" notice: must not pass; expect the confirm step, then `healing`.
 20. One tender's deadline moved on its detail page only: seen by the rotation; `lastChangedAt` moves; stays `serving`.
-21. Answers 503 for 3 minutes, then recovers: `healing` with "not answering", then `serving`; 0 model calls.
-22. Down for over an hour, then back: `failed` after 60 minutes, `serving` at the next check; 0 model calls.
+21. Answers 503 for 3 minutes, then recovers: `failed` with cause `outage` and "not answering", then `serving`; 0 model calls.
+22. Down for over an hour, then back: `failed` with cause `outage` from the first read (retried on the outage ladder, then the failed schedule), `serving` at the next check; 0 model calls.
 23. Login wall shown, then removed: `failed` with the reason, then `serving` at the next check; 0 model calls.
 24. Layout changed twice in a row: one repair per change, two in all.
 25. Large variant: `serving` at the records gate, each known document listed with `sha256` and `path` null until its bytes are in; complete later.

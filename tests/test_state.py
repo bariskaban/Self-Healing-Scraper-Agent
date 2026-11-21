@@ -103,17 +103,21 @@ def test_pass_empty():
 
 def test_outage():
     d = decide([OUTAGE_503], facts(outage_since=NOW, next_try_at=NOW + timedelta(minutes=2)))
-    assert (d.verdict, d.state, d.cause, d.start_repair) == (Verdict.outage, healing, Cause.outage, False)
+    assert (d.verdict, d.state, d.cause, d.start_repair) == (Verdict.outage, failed, Cause.outage, False)
     assert plain(d) == ("The portal has not answered since 14:07 UTC (HTTP 503, 3 tries). Still delivering the 23 "
                         "tenders read at 14:02 UTC. Next try 14:09 UTC. The recipe is unchanged.")
 
 
-def test_outage_is_healing_for_an_hour_and_failed_after_it():
-    start = NOW - timedelta(minutes=59)
-    assert decide([OUTAGE_503], facts(state_before=healing, outage_since=start)).state is healing
-    late = decide([OUTAGE_503], facts(state_before=healing, outage_since=NOW - timedelta(minutes=60)))
-    assert (late.verdict, late.state) == (Verdict.outage_long, failed)
-    assert (late.cause, late.start_repair) == (Cause.outage, False)
+def test_an_outage_is_failed_with_its_cause_from_the_first_read_and_never_healing():
+    """Decision of 20 Nov 2026: healing is a repair under way; an outage has none, so it is `failed`
+    (cannot deliver) with the cause `outage`. How long it has lasted changes the words, not the state."""
+    for minutes in (0, 59, 60, 600):
+        d = decide([OUTAGE_503], facts(state_before=serving, outage_since=NOW - timedelta(minutes=minutes)))
+        assert (d.state, d.cause, d.start_repair) == (failed, Cause.outage, False)
+    first = decide([OUTAGE_503], facts(outage_since=NOW))
+    late = decide([OUTAGE_503], facts(state_before=failed, cause_before=Cause.outage,
+                                      outage_since=NOW - timedelta(minutes=60)))
+    assert (first.verdict, late.verdict) == (Verdict.outage, Verdict.outage_long)
 
 
 def test_outage_long():
@@ -127,12 +131,12 @@ def test_outage_long():
 
 def test_outage_certificate():
     d = decide([CERTIFICATE], facts(outage_since=NOW))
-    assert (d.verdict, d.state, d.cause, d.start_repair) == (Verdict.outage, healing, Cause.outage, False)
+    assert (d.verdict, d.state, d.cause, d.start_repair) == (Verdict.outage, failed, Cause.outage, False)
     assert plain(d).startswith("The portal's certificate cannot be verified (incomplete chain), in the plain "
                                "client and in the browser. We do not read a site we cannot verify.")
     assert "Still delivering the 23 tenders read at 14:02 UTC." in d.reason
-    # ... then failed, as any outage.
-    later = decide([CERTIFICATE], facts(now=NOW + timedelta(hours=2), state_before=healing, outage_since=NOW))
+    # ... and still failed, with the time it has lasted, as any outage.
+    later = decide([CERTIFICATE], facts(now=NOW + timedelta(hours=2), state_before=failed, outage_since=NOW))
     assert (later.state, later.cause, later.start_repair) == (failed, Cause.outage, False)
     assert "certificate" in plain(later) and "2 hours" in later.reason
 
@@ -171,7 +175,7 @@ def test_stale():
     row = stale(RUN, state=serving, last_good_at=NOW - timedelta(minutes=47), now=NOW,
                 read_interval=timedelta(minutes=2))
     d = decide([row], facts(last_good_at=NOW - timedelta(minutes=47)))
-    assert (d.verdict, d.state, d.cause, d.start_repair) == (Verdict.stale, healing, Cause.outage, False)
+    assert (d.verdict, d.state, d.cause, d.start_repair) == (Verdict.stale, failed, Cause.outage, False)
     assert plain(d).startswith("No read has passed since 13:20 UTC. Reads are not completing.")
 
 
@@ -201,7 +205,7 @@ def test_an_outage_or_a_block_never_starts_a_repair(name, before):
 
 def test_an_outage_outranks_a_breakage_seen_in_the_same_read():
     d = decide([BROKEN_TOTAL, OUTAGE_503], facts(outage_since=NOW))
-    assert (d.state, d.cause, d.start_repair) == (healing, Cause.outage, False)
+    assert (d.state, d.cause, d.start_repair) == (failed, Cause.outage, False)
 
 
 def test_a_block_outranks_everything():
@@ -212,7 +216,7 @@ def test_a_block_outranks_everything():
 
 def test_a_rate_limit_that_persists_at_the_slowest_rate_is_an_outage():
     d = decide([NO_REPAIR_ROWS["rate limit at the slowest rate"]], facts(outage_since=NOW))
-    assert (d.state, d.cause) == (healing, Cause.outage)
+    assert (d.state, d.cause) == (failed, Cause.outage)
     assert "HTTP 429" in plain(d)
 
 
@@ -341,11 +345,11 @@ def test_a_structure_we_gave_up_on_never_gets_a_repair_whatever_the_state_was():
 
 # == While attaching ============================================================
 
-def test_attach_block_is_failed_outage_waits_and_breakage_learns_again():
+def test_attach_block_and_outage_are_failed_and_breakage_learns_again():
     new = dict(state_before=integrating, last_good_at=None, last_good_tenders=0)
     assert decide([LOGIN], facts(**new)).state is failed
     down = decide([OUTAGE_503], facts(outage_since=NOW, **new))
-    assert (down.state, down.cause, down.start_repair) == (integrating, Cause.outage, False)
+    assert (down.state, down.cause, down.start_repair) == (failed, Cause.outage, False)  # nothing delivered, no repair
     assert "Nothing is delivered yet." in plain(down)
     assert decide([OUTAGE_503], facts(outage_since=NOW - timedelta(hours=2), **new)).state is failed
     again = decide([BROKEN_TOTAL], facts(**new))
@@ -465,11 +469,11 @@ def test_list_that_empties_without_the_notice_is_suspect_and_confirmed_a_breakag
     assert "does not say the list is empty" in plain(d) and "still delivering the 23 tenders" in d.reason
 
 
-def test_a_503_that_persists_is_healing_with_no_repair():
+def test_a_503_that_persists_is_failed_with_no_repair():
     one_try = decide([transport_check(RUN, Answer(status=503), tries=1)], facts())
     assert (one_try.verdict, one_try.state) == (Verdict.pending, serving)     # two more tries first
     d = decide([transport_check(RUN, Answer(status=503), tries=3)], facts(outage_since=NOW))
-    assert (d.state, d.cause, d.start_repair) == (healing, Cause.outage, False)
+    assert (d.state, d.cause, d.start_repair) == (failed, Cause.outage, False)
 
 
 def test_a_429_changes_no_state():
@@ -493,7 +497,7 @@ def test_without_a_list_that_arrived_nothing_is_called_a_pass():
 def test_a_settled_outage_does_not_wait_for_other_suspects():
     no_list = list_outcome(RUN, ListFacts(rows=0, answer=Answer(status=503)))
     d = decide([OUTAGE_503, no_list], facts(outage_since=NOW))
-    assert (d.verdict, d.state, d.cause, d.start_repair) == (Verdict.outage, healing, Cause.outage, False)
+    assert (d.verdict, d.state, d.cause, d.start_repair) == (Verdict.outage, failed, Cause.outage, False)
 
 
 def test_a_login_wall_is_failed_at_once():

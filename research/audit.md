@@ -234,3 +234,7 @@ Each is one setting, and each file says what would change it.
 - The research machine could not open every site. The ACM and Wiley libraries and OpenAI's older docs host refused. TED and the EU's legal site answered with a bot challenge, which we did not try to pass. Patterno's portal list opened once its second address was allowed, and is counted in [patterno-landscape.md](patterno-landscape.md).
 - Portal measurements are from one day and small samples.
 - Nothing here has been run against a real judge. The rules in Q10 and Q12 are designs until the prototypes pass on the mock portal.
+
+## Decisions of a person after this check
+
+- **20 Nov 2026: an outage is `failed`, not `healing`.** Q10 reports a portal that stops answering as `healing` (then `failed` after 60 minutes). The brief defines `healing` as "Broken. A repair is running", and an outage has no repair (this audit already noted it: Q7, "An outage"). Decided by David: an outage is `failed` with the cause `outage` from the first read that finds it; the cause says whether a person can help (`block` and a spent repair budget need one, an `outage` does not). `healing` is kept for a repair that is running. The retries stay on the outage ladder (Q14), then the failed schedule. This overrides Q10's state for an outage; the rest of Q10 stands. `DESIGN.md` is changed to match.

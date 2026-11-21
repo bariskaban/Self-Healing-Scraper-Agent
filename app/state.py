@@ -173,11 +173,12 @@ def _outage(row: CheckResult, facts: ReadFacts, settings: CheckSettings) -> Deci
             lead = _text(row.message, f"This has lasted {span(lasted)}." if long else "")
         return Decision(verdict=Verdict.outage_long, state=PortalState.failed, cause=Cause.outage,
                         reason=_text(lead, _recheck(facts)), decided_by=row.name)
+    # An outage is `failed` from the first read that finds it (decision of 20 Nov 2026): the portal cannot
+    # deliver, and nobody can do anything about it. The cause says so; the retries are the outage ladder.
     attaching = facts.state_before is PortalState.integrating
     lead = f"The portal has not answered since {clock(since, facts.now)} ({detail})." if detail else row.message
     next_try = f"Next try {clock(facts.next_try_at, facts.now)}." if facts.next_try_at else ""
-    return Decision(verdict=Verdict.outage, cause=Cause.outage,
-                    state=PortalState.integrating if attaching else PortalState.healing,
+    return Decision(verdict=Verdict.outage, cause=Cause.outage, state=PortalState.failed,
                     reason=_text(lead, _sentence(_delivering(facts)), next_try,
                                  "" if attaching else "The recipe is unchanged."),
                     decided_by=row.name)
@@ -223,7 +224,7 @@ def _breakage(row: CheckResult, facts: ReadFacts, settings: CheckSettings) -> De
 
 
 def _stale(row: CheckResult, facts: ReadFacts) -> Decision:
-    return Decision(verdict=Verdict.stale, state=PortalState.healing, cause=Cause.outage,
+    return Decision(verdict=Verdict.stale, state=PortalState.failed, cause=Cause.outage,
                     reason=_text(row.message, _sentence(_delivering(facts))), decided_by=row.name)
 
 
