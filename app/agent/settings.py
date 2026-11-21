@@ -40,6 +40,10 @@ class AgentSettings:
     rate_limit_waits: int = 5
     rate_limit_wait_seconds: float = 15.0
     rate_limit_wait_max_seconds: float = 60.0
+    # How many learns, repairs and spot checks may run at once. They share one limit of tokens a minute
+    # (1,000,000 on the development key); one learn uses about 300,000 of them. Ten portals added together
+    # used to go over it, and the learns that lost out died of it. Now the others wait their turn.
+    max_concurrent_runs: int = 2
     # Reasoning effort per job; blank sends none. Q9 could not confirm the levels of every model.
     reasoning_learn: str = "medium"
     reasoning_repair: str = "medium"
