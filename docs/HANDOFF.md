@@ -70,7 +70,7 @@ class Repairer(Protocol):
 
 - **Pull request 46** (recipe schema rules) waits for a person's approval. It refuses a recipe that never reads a required field, taken literally: say if `url` should be exempt when the list links to the tender's page.
 - **`docs/SHARED-INTERFACE-REQUESTS.md`**: five things the code needs on `app/models.py` and `app/schema.sql` (the incident facts now kept in memory and lost on a restart, the row hash, a portal's own "closed", a `subject` on check rows, a skip reason for an unreadable ZIP entry). Each is a pull request of its own for a person.
-- **`EUR_PER_USD`** defaults to 0.90, a placeholder. Set it to the day's ECB rate at hand-in (README, G4). A value that is no number stops the app at start; a blank one keeps the default.
+- **`EUR_PER_USD`** defaults to 0.90, a placeholder. Set it to the day's ECB rate at hand-in (CHECKME, G4). A value that is no number stops the app at start; a blank one keeps the default.
 - **`POST /api/settings`** can switch robots.txt off and, like the whole API, has no authentication. A team decision.
 - **Danil**: the page does not know the check severity `outage`, so the route sends it as `fail`. On a first load with the API down the page shows a loading skeleton under the offline badge.
 - **David**: Italy and France have no confirmed test portal address; a person opens them in a browser before recording. The dashboard is a React build although `DESIGN.md` says server-rendered with no build step: `DESIGN.md` should say what is true.

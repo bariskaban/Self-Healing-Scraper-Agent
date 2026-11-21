@@ -31,7 +31,7 @@ Everything waits on two small interfaces, so those come first.
 
 | Step | Stream A | Stream B | Stream C |
 | --- | --- | --- | --- |
-| 1. Now | **Recipe schema** `recipe/v1` as a Pydantic model, in its own pull request. A person approves it (README, G9). | The runner on a mocked model: budgets, context trimming, usage, steps, the one retry. Needs nothing from A or C. | **The fetch interface** and a replay implementation that reads `tests/fixtures/`, so A and B can code against it. |
+| 1. Now | **Recipe schema** `recipe/v1` as a Pydantic model, in its own pull request. A person approves it (CHECKME, G9). | The runner on a mocked model: budgets, context trimming, usage, steps, the one retry. Needs nothing from A or C. | **The fetch interface** and a replay implementation that reads `tests/fixtures/`, so A and B can code against it. |
 | 2 | The executor on pages from disk: locators, value parsing, HTML and JSON list nodes, paging, detail pages, documents. Then `try_locator` and `dry_run` for B. | The tools (on the fetch interface and A's two functions), then learn, on the mock portal's pages. | The limiter, httpx, the browser, record and replay. `app/db.py` behind the API's `Store`. |
 | 3 | The read loop on the mock portal with a hand-written recipe: attach, `serving`, a break, `healing`. No agent needed yet. | Repair and the spot check. | What the loop needs to write: recipes, runs, checks, steps, tenders, files. |
 | 4 | The loop calls the agent: learn on attach, repair on a breakage. | Learn against the mock portal with the development key (a person starts each live run). | Recordings of the test portals (a person, `FETCH_MODE=record`). |

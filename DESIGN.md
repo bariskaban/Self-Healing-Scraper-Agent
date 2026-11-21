@@ -548,10 +548,10 @@ The biggest risk is reporting `serving` while delivering wrong data; most rules 
 
 ### For the team
 
-- [x] Who is on the team, and who owns what? See the README.
+- [x] Who is on the team, and who owns what? See CHECKME.md.
 - [x] Which model provider? OpenAI; the models are chosen by benchmark and price (Q9).
 - [x] When is the deadline? Saturday 21 November 2026, 10:30.
-- [ ] Approve the recipe schema before the agents fan out (README, G9).
+- [ ] Approve the recipe schema before the agents fan out (CHECKME, G9).
 - [ ] How do the judges get into the repo? It is private today, and it holds both of Patterno's PDFs in `hackathon-pdfs/`; the declaration asks us to keep their non-public material confidential. Invite the judges, or take the PDFs out of the history before the repo goes public.
 
 ### For the mentors
