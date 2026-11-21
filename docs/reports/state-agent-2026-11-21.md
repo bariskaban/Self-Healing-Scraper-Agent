@@ -17,7 +17,7 @@ Written for David, by Goktug's Claude session (stream B: `app/agent/`). It cover
 | 56 | Demo: a second mock portal (`https://login.mock.example`) and `POST /demo/layout`, `/demo/login-wall`, `/demo/reset`, `GET /demo/runs/{id}` |
 | 60 | `variants/`: eight made-up portals with exact truth, each with a redesigned face; `python -m variants.run` |
 | 64 | Rate-limit wait; a repair must give the last good read's tenders again; repair prompt 2 (only the domain stays); `portal_hints` (sitemaps); mock `paths_moved`; `variants/real.py`; the report on the real portals |
-| 67 (open) | A failed repair is followed by a learn with the old recipe as a draft; a repair must keep the tenders' files; the learner stops early on session paging |
+| 67 | A failed repair is followed by a learn with the old recipe as a draft; a repair must keep the tenders' files; the learner stops early on session paging |
 
 Your handoff "finding a portal again after its paths move" is done in 64: the `paths_moved` switch, the prompt section, `portal_hints` with its size cap, the tests, and the live proof you said was missing.
 
@@ -61,6 +61,45 @@ Numbers are single runs. Full tables: `docs/reports/agent-on-made-up-portals.md`
 | No step for "the page answers 404" | repair prompt, tools | go to the domain root, follow links, `portal_hints`, keep the ids |
 | A list loaded by a script's own call was not found again in 20 calls | repair | a failed repair is followed by a learn with the old recipe as a draft (40 calls) |
 | The learner spent its whole budget on session paging | learn prompt | stop after two tries and say so |
+
+## For your decision: the learn after a failed repair
+
+This is on `main` since pull request 67 and it is on by default. It costs money in a place where nothing cost money before, so you should look at it and say whether it stays as it is.
+
+**What it does.** A repair is a patch: the model gets the old recipe, the failed checks and 20 calls, and changes as little as it can. When that run ends without a recipe that passed its dry run, `repair()` now starts a second run: a learn from scratch on the learn's budget (40 calls, $5.00, 60 requests), with the old recipe handed over as a draft and the tenders of the last good read as what must come out again. This is step 3 of "Repair" in `DESIGN.md` ("learn again from scratch, with the rejected recipe handed to the learner as a draft"), which was not built before. Code: `app/agent/repair.py` (the loop at the end of `repair`), `app/agent/learn.py` (`draft`, `known`, `pages`), the section "When you are given a draft" in `prompts/learn_system.md`.
+
+**Why it was added.** `eb2b-gddkia` in the "only the domain left" scenario. Its list is not behind a link: an ExtJS script builds the call (`/auction/auction/list`) from a module, a controller and an action, and no page states that address. The first learn needed 40 calls to find it. With the stored address gone, the patch run searched the 2.3 MB script for 19 calls and gave up. The other nine portals in that scenario were found again by the patch alone, in 4 to 18 calls.
+
+**What happened with it on, one live run.**
+
+| | Calls | Cost | Result |
+| --- | --- | --- | --- |
+| The patch | 20 | about $0.21 | no recipe: "the old tender-list address returns 403, and I found no replacement" |
+| The learn that followed, with the draft | 39 | about $0.92 | found `/auction/auction/list` again; dry run 2000 tenders |
+| Together | 59 | $1.13 | the baseline's five tenders came out with the same ids and values; only the list node differs from the old recipe; 201 seconds |
+
+For comparison: the first learn of that portal cost $0.69, and the median repair on the real portals $0.12.
+
+**What it guarantees and what it does not.**
+- The learn's result must differ from the draft and must give the last good read's tenders again (ids, values, files) in its dry run, like any repair. In the app the reader then runs its full trial read before anything is swapped.
+- The pages the patch already fetched are kept, so the learn does not ask the portal for them again. The request budgets of the two runs add up (30 + 60).
+- The two runs are one repair attempt for the reader. Its limits are unchanged: three attempts per incident, three repairs per portal per day.
+- It runs after every failed patch, also when the patch failed for a reason a second run cannot change. The reader starts a repair only for a breakage (never for an outage or a block), so a login wall does not reach it; but a portal that truly dropped its tender list would now cost a patch and a learn, three times, before it is `failed`.
+
+**What it can cost at worst.** One attempt: $2.50 (patch cap) plus $5.00 (learn cap). One incident: three attempts, $22.50. One portal in a day: the same three. These are caps; the one measured case cost $1.13. Before pull request 67 the worst case of an incident was $7.50.
+
+**The choices.**
+
+| Choice | How | Effect |
+| --- | --- | --- |
+| Keep it (what `main` does) | nothing | The hard case is healed. A hopeless repair costs up to three times as much as before. |
+| Turn it off | `AGENT_REPAIR_RELEARNS=0` | Back to the patch alone. `eb2b-gddkia` with a lost address ends `failed` after three patches (about $0.63 in the measured case). |
+| Keep it, cheaper | lower `AGENT_LEARN_MAX_USD` and `AGENT_LEARN_MAX_TURNS` for everything, or (code) give the learn after a repair its own, smaller caps | Bounds the worst case. With 25 calls the measured case would not have finished (it needed 39). |
+| Keep it, once per incident (code) | let only the last of the three attempts be followed by a learn | Two cheap tries first, the expensive one last. About ten lines in `repair()` plus the attempt number from the reader. |
+
+My view: keep it for the hand-in. "Repair" is a fifth of the score and a portal left `failed` because of a moved address is the visible failure; the measured cost is $1.13 on the hardest portal we have, and the caps hold. The "once per incident" variant is the better design and is small, but it touches the reader's protocol, which is yours and Goktug's to change.
+
+**What is not known.** One run, one portal. Whether the learn would also rescue a repair on a portal whose pages really changed (not only our address) was not tried live; the scripted test (`tests/agent/test_learn_repair_check.py`, "a repair that finds nothing is followed by a learn...") shows the mechanics only.
 
 ## What you need to know for your own work
 
