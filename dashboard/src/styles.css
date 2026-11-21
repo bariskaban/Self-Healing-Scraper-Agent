@@ -203,7 +203,7 @@
   /* The infographic cards of the overview: white, rounded, a soft shadow, lots of air. */
   .info-card { border-radius: 1.25rem; background: var(--surface); box-shadow: var(--card-shadow); border: 1px solid var(--border); padding: 1.5rem; }
   .info-calm { background: var(--inset); min-height: 9rem; }
-  .nav-link { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 9999px; padding: 0.5rem 0.85rem; font-size: 0.9rem; font-weight: 500; color: var(--muted-text); white-space: nowrap; cursor: pointer; transition: background-color 0.2s, color 0.2s; }
+  .nav-link { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 9999px; padding: 0.55rem 1.05rem; font-size: 0.95rem; font-weight: 500; color: var(--muted-text); white-space: nowrap; cursor: pointer; transition: background-color 0.2s, color 0.2s; }
   .nav-link:hover { background: var(--inset); color: var(--foreground); }
   .nav-link[aria-current="page"] { background: rgb(99 102 241 / 0.12); color: var(--accent-ink); font-weight: 600; }
   .chip {

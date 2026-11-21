@@ -58,12 +58,12 @@ export function TopBar({ current, status, canAdd = true, addOffReason, onSetting
   const tab = (name: Tab) => (current === name ? "page" as const : undefined);
   return (
     <header className="pointer-events-none sticky top-3 z-40 px-3 lg:px-8">
-      <div className="glass pointer-events-auto mx-auto flex max-w-[100rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[1.6rem] px-3 py-2 shadow-[0_14px_40px_-22px_rgb(60_50_120/0.45)] sm:rounded-full sm:pl-3 sm:pr-2">
+      <div className="glass pointer-events-auto mx-auto flex max-w-[100rem] flex-wrap items-center gap-x-6 gap-y-2 rounded-[1.6rem] px-3 py-2 shadow-[0_14px_40px_-22px_rgb(60_50_120/0.45)] sm:rounded-full sm:pl-3 sm:pr-2">
         <a href="#/" className="flex items-center gap-2.5 rounded-full pr-1 text-foreground">
           <TowerMark className="size-9 shrink-0" />
           <span className="text-[1.12rem] font-semibold tracking-tight">Watchtower</span>
         </a>
-        <nav aria-label="Sections" className="flex flex-wrap items-center gap-0.5">
+        <nav aria-label="Sections" className="flex flex-wrap items-center gap-1.5 xl:gap-2.5">
           <a href="#/" className="nav-link" aria-current={tab("portals")}>Portals</a>
           <a href={PAGE_HASH.tenders} className="nav-link" aria-current={tab("tenders")} title="Every tender from every portal">Tenders</a>
           <a href={PAGE_HASH.scale} className="nav-link" aria-current={tab("scale")} title="Cost per portal and software families">Cost &amp; scale</a>

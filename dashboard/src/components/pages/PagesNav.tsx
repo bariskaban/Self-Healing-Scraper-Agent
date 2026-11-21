@@ -11,7 +11,7 @@ const LINKS: { page: Page; label: string; Icon: LucideIcon; title: string }[] = 
 /** Links to the extra pages. Icon only on small screens, with the name kept for screen readers. */
 export function PagesNav({ current = null }: { current?: Page | null }) {
   return (
-    <nav aria-label="Pages" className="flex items-center gap-0.5">
+    <nav aria-label="Pages" className="flex items-center gap-1.5 xl:gap-2.5">
       {LINKS.map(({ page, label, Icon, title }) => (
         <a key={page} href={PAGE_HASH[page]} title={title} aria-current={current === page ? "page" : undefined}
           className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors",
