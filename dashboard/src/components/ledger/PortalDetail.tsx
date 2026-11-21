@@ -7,7 +7,7 @@ import type { DetailView, Source } from "@/types";
 import { CostLabel, ResultMark, SectionHead, Skel, StateBadge, idx } from "./primitives";
 import { TenderCountChart } from "./Charts";
 import { RunSheet } from "./RunSheet";
-import { TenderTable } from "./TenderTable";
+import { TenderList } from "./TenderList";
 import { RepairBand } from "./RepairBand";
 import { repairRuns } from "./evidence";
 import { clock, stillServing } from "./overview";
@@ -40,7 +40,7 @@ export function PortalDetail({ detail, source, basic, now, eurPerUsd }: { detail
       </div>
     );
   }
-  const { portal: p, timeline, tenders } = detail;
+  const { portal: p, timeline } = detail;
   const runs = newestFirst(timeline);
   const { active, earlier } = repairRuns(p, timeline);
   const run = selected ? timeline.find((r) => r.id === selected) ?? null : null;
@@ -92,10 +92,10 @@ export function PortalDetail({ detail, source, basic, now, eurPerUsd }: { detail
       </section>
 
       <section aria-labelledby="tenders-h">
-        <SectionHead id="tenders-h" label="Delivered tenders" title={<>{tenders.length} {tenders.length === 1 ? "record" : "records"} <span className="text-muted-foreground">available now</span></>}>
+        <SectionHead id="tenders-h" label="Delivered tenders" title={<>{p.tenderCount.toLocaleString("en-US")} {p.tenderCount === 1 ? "record" : "records"} <span className="text-muted-foreground">available now</span></>}>
           {p.lastSuccessAt && <p className="text-sm text-muted-foreground">Last correct delivery at <time dateTime={p.lastSuccessAt}>{clock(p.lastSuccessAt, p.timezone)}</time></p>}
         </SectionHead>
-        <TenderTable tenders={tenders} timeZone={p.timezone} live={source === "live"} />
+        <TenderList key={p.id} portalId={p.id} mode={source === "demo" ? "demo" : basic ? "basic" : "api"} timeZone={p.timezone} live={source === "live"} />
       </section>
 
       <section aria-labelledby="runs-h">

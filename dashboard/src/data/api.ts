@@ -59,11 +59,21 @@ export async function getJson<T>(
   }
 }
 
-/** The timeline is a dashboard route under /api; tenders are the public contract route (docs/DASHBOARD_API.md). */
-export const portalPath = (id: string, part: "timeline" | "tenders") =>
-  `${part === "tenders" ? "" : "/api"}/portals/${encodeURIComponent(id)}/${part}`;
+/** The timeline is a dashboard route under /api. */
+export const portalPath = (id: string, part: "timeline") => `/api/portals/${encodeURIComponent(id)}/${part}`;
 
-/** The public contract routes of one portal, used when the /api routes are not there. */
+/** One page of the tender list (dashboard route, paged, no files). */
+export const tenderPagePath = (id: string, limit: number, offset: number) =>
+  `/api/portals/${encodeURIComponent(id)}/tenders?limit=${limit}&offset=${offset}`;
+
+/** One tender with its files, fetched when its row is opened. */
+export const tenderPath = (id: string, tenderId: string) =>
+  `/api/portals/${encodeURIComponent(id)}/tenders/${encodeURIComponent(tenderId)}`;
+
+/**
+ * The public contract routes of one portal, used when the /api routes are not there ("basic live").
+ * The tenders route answers every tender at once; only basic live may read it, once, and cuts it.
+ */
 export const contractPath = (id: string, part: "runs" | "tenders") =>
   `/portals/${encodeURIComponent(id)}/${part}`;
 
