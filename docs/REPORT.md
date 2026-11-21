@@ -261,6 +261,15 @@ Fifteen questions were researched before the build (`research/q01` to `q15`), th
 
 **What we decided.** A read stops at 500 tenders (`RECIPE_MAX_TENDERS_PER_PORTAL`, also a field in the dashboard's settings). The reason says "Stopped at the limit", and no tender is closed for being past it. Measured afterwards, live, with both portals learned again on the new code: e-Zamowienia delivered 500 tenders 17 minutes after its list was read (two requests per tender), and TenderNed 25 minutes after (three). Before the limit the first delivered nothing and the second was still reading after 36 minutes. A portal with fewer than 500 tenders is not touched by the limit.
 
+**How many portals the limit touches.** We counted the lists of the 11 real portals we learned, on 21 Nov, list pages only, no model:
+
+| Tenders listed | Portals |
+| --- | --- |
+| Under 500: read in full | 6 of 11: NFZ (5), DTVP (8), Inneko (39), Frankfurt (50), vmstart (110), tender24 (121) |
+| Over 500: the first 500 delivered | 5 of 11: Deutsche eVergabe (947), Vergabe Niedersachsen (2,020), TenderNed (4,132 open), eb2b GDDKiA (5,300), e-Zamowienia (more than 10,000; its API stops there) |
+
+Six of eleven is 55%, with a 95% Wilson interval of 28% to 79%: about half, and no more can be said from eleven portals. Our test set also leans towards large national portals on purpose, so the share among the 4,500 portals Patterno reads is likely higher, but we did not measure that.
+
 **The price.** The brief asks for every open tender. Above the limit we deliver the first 500, the newest where the portal lists newest first. We chose a part in minutes over the whole in an hour or never.
 
 **Option not built: rounds.** Read tenders 1 to 500, then 501 to 1,000 on the next read, and so on. It needs a remembered position per portal, and it changes the rule by which the reader concludes that a tender has left the list: today, absence from a full read; with rounds, absence from a full pass. A mistake there closes open tenders on every portal. Too deep a change for the last hours.
