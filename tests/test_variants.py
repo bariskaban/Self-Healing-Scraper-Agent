@@ -57,3 +57,27 @@ def test_a_changed_variant_keeps_its_tenders_and_addresses_but_none_of_its_hooks
         assert "/api/v3" in api(after, "/static/app.4f2a.js").text
     else:
         assert want["title"] in new.replace("&#x27;", "'") and hooks(old) and not hooks(old) & hooks(new)
+
+
+@pytest.mark.parametrize("name", sorted(n for n in VARIANTS if VARIANTS[n]().expect == "serve"))
+def test_a_moved_variant_keeps_only_its_domain(name):
+    from variants.portals import MOVED
+
+    before, after = VARIANTS[name](), VARIANTS[name]()
+    after.moved = True
+    fetch = VariantFetch(after)
+    old, new = before.truth()[0], after.truth()[0]
+    assert new["url"] == old["url"].replace(before.base_url, before.base_url + MOVED) and new["id"] == old["id"]
+    assert fetch.fetch("p", old["url"]).status == 404                 # every old address is gone
+    assert fetch.fetch("p", new["url"]).status == 200
+    root = fetch.fetch("p", after.base_url + "/")
+    assert root.status == 200 and f'href="{MOVED}/"' in root.text     # the domain's root leads to the new place
+    entry = fetch.fetch("p", after.base_url + MOVED + "/")
+    assert entry.status == 200 and 'href="/' not in entry.text.replace(f'href="{MOVED}/', "")
+    file = before.tenders[0].files[0]
+    assert fetch.fetch("p", f"{after.base_url}{MOVED}/files/{old['id']}/{file.name}").body == file.body
+    if name == "json_api":
+        script = fetch.fetch("p", f"{after.base_url}{MOVED}/static/app.4f2a.js").text
+        assert f'API="{MOVED}/api/v2"' in script
+        listing = fetch.fetch("p", f"{after.base_url}{MOVED}/api/v2/notices?page=0&size=20").json()
+        assert listing["content"][0]["link"].startswith(MOVED + "/notice/")

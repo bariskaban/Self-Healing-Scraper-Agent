@@ -107,11 +107,12 @@ def run_one(name: str, runner: Runner, settings: AgentSettings, models: ModelSet
     return out
 
 
-def repair_one(learned: dict, runner: Runner, settings: AgentSettings, models: ModelSettings) -> dict:
-    """The portal after its redesign, the recipe learned before it, and one repair."""
+def repair_one(learned: dict, runner: Runner, settings: AgentSettings, models: ModelSettings,
+               face: str = "changed") -> dict:
+    """The portal after its redesign or its move (or both), the recipe learned before it, and one repair."""
     name = learned["variant"]
     variant = VARIANTS[name]()
-    variant.changed = True
+    variant.changed, variant.moved = face in ("changed", "both"), face in ("moved", "both")
     old = AuthoredRecipe.model_validate(learned["recipe"])
     zone = learned.get("timezone")
     before = score(read_all(old, variant, zone), variant)
@@ -126,7 +127,7 @@ def repair_one(learned: dict, runner: Runner, settings: AgentSettings, models: M
     result = repair(portal, RecipeBody.from_authored(old), rows, fetch=VariantFetch(variant), known=known,
                     runner=runner, steps=steps, models=models, settings=settings)
     usage = result.usage
-    out = {"variant": name, "what": "repair after a redesign", "expect": "serve", "learned": result.recipe is not None,
+    out = {"variant": name, "what": f"repair, face {face}", "expect": "serve", "learned": result.recipe is not None,
            "seconds": round(time.time() - began), "model_calls": result.model_calls, "requests": result.requests,
            "input_tokens": usage.input_tokens, "cached_share": round(usage.cached_input_tokens / usage.input_tokens, 2)
            if usage.input_tokens else None, "output_tokens": usage.output_tokens, "cost_usd": round(usage.cost_usd, 3),
@@ -157,6 +158,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--out", help="write every result, with recipe and steps, to this JSON file")
     parser.add_argument("--repair-from", help="a results file of an earlier run: each recipe in it is repaired "
                                               "on its portal after the redesign, instead of learning")
+    parser.add_argument("--face", choices=("changed", "moved", "both"), default="changed",
+                        help="with --repair-from: a redesign (hooks renamed), a move (every address but the "
+                             "domain changed), or both")
     args = parser.parse_args(argv)
     key = api_key()
     if key is None:
@@ -169,7 +173,7 @@ def main(argv: list[str] | None = None) -> None:
         with open(args.repair_from, encoding="utf-8") as handle:
             todo = [r for r in json.load(handle) if r.get("recipe") and (not args.names or r["variant"] in args.names)]
     for name in todo:
-        results.append(repair_one(name, runner, settings, models) if args.repair_from
+        results.append(repair_one(name, runner, settings, models, args.face) if args.repair_from
                        else run_one(name, runner, settings, models))
         print(line(results[-1]), flush=True)
         if args.out:

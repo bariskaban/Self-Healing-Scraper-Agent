@@ -121,7 +121,9 @@ def run_repair(script, known=()):
 
 
 def test_repair_starts_from_the_current_recipe_its_dry_run_today_and_the_failed_checks():
-    record = TenderRecord(portal_id="p1", tender_id="MP-2026-0012", title="Training courses", url=f"{URL}/tenders/MP-2026-0012")
+    newest = swapped().truth()[0]
+    assert newest["id"] == "MP-2026-0012"
+    record = TenderRecord(portal_id="p1", tender_id=newest["id"], title=newest["title"], url=newest["url"])
     node = list_node_reading("td.published", "td.deadline")
     result, model, steps, fetch = run_repair([
         [call("replace_node", node=node)],
@@ -207,3 +209,26 @@ def test_the_pages_of_a_spot_check_come_through_the_network_layer_as_plain_text(
     assert [page.tender_id for page in pages] == [truth[0]["id"], truth[1]["id"]] and len(fetch.asked) == 2
     assert truth[0]["title"] in pages[0].text and "<" not in pages[0].text
     assert pages[0].values["submission_deadline"] == truth[0]["submission_deadline"].isoformat()
+
+
+def test_a_repair_whose_records_differ_from_the_last_good_read_is_not_accepted():
+    # The portal swapped its two date columns. A "repair" that leaves the swap in reads dates, but the wrong ones.
+    fetch = MockFetch(swapped())
+    truth = fetch.mock.truth()
+    known = [TenderRecord(portal_id="p1", tender_id=t["id"], title=t["title"], url=t["url"], buyer_name=t["buyer_name"],
+                          publication_date=t["publication_date"], submission_deadline=t["submission_deadline"])
+             for t in truth]
+    # Read the dates from the list only, so that the swapped columns show in the records.
+    list_only = json.loads(json.dumps(GOOD))
+    list_only["nodes"][0]["fields"] = list_node_reading("td.published", "td.deadline")["fields"]
+    list_only["nodes"][1]["fields"] = [f for f in list_only["nodes"][1]["fields"]
+                                       if f["name"] not in ("publication_date", "submission_deadline")]
+    model, steps = ScriptedModel([[call("propose_recipe", recipe=list_only, timezone="Europe/Amsterdam",
+                                        country_code="NL")],
+                                  {"done": True, "what_changed": "Read the dates from the list."}]), StepLog("run1")
+    target = portal().model_copy(update={"timezone": "Europe/Amsterdam"})
+    result = repair(target, RecipeBody.from_authored(mock_recipe()), [], fetch=fetch, known=known,
+                    runner=Runner(model), steps=steps, models=MODELS)
+    assert result.recipe is None
+    said = next(item["output"] for item in model.requests[1]["input"] if item.get("type") == "function_call_output")
+    assert '"accepted": false' in said and "differs from the last good read" in said and "publication_date" in said

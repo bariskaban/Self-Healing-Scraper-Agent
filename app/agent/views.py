@@ -252,3 +252,35 @@ def search(body: str, pattern: str, *, settings: AgentSettings = DEFAULT_AGENT_S
         return "No match."
     head = f"{total} match(es)" + (f", the first {len(lines)} shown" if total > len(lines) else "") + ":"
     return head + "\n" + "\n".join(lines)
+
+
+_LOC = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>", re.IGNORECASE)
+
+
+def sitemap_addresses(body: bytes, settings: AgentSettings = DEFAULT_AGENT_SETTINGS) -> tuple[list[str], bool]:
+    """The addresses a sitemap file names (a part of it, when it is large), and whether it is an
+    index of further sitemaps. A gzipped file is unpacked; anything that is no sitemap gives none."""
+    import gzip
+    import zlib
+
+    if body[:2] == b"\x1f\x8b":
+        try:
+            body = gzip.GzipFile(fileobj=__import__("io").BytesIO(body)).read(settings.hints_sitemap_bytes)
+        except (OSError, EOFError, zlib.error):
+            return [], False
+    text = body[: settings.hints_sitemap_bytes].decode("utf-8", errors="replace")
+    found = [place.replace("&amp;", "&") for place in _LOC.findall(text)]
+    return found[: settings.hints_addresses], "<sitemapindex" in text[:2000].lower()
+
+
+def addresses_view(addresses: list[str], settings: AgentSettings = DEFAULT_AGENT_SETTINGS) -> str:
+    """Addresses grouped by their pattern, the largest groups first, each with a few samples."""
+    groups: dict[str, list[str]] = {}
+    for address in addresses:
+        groups.setdefault(_pattern(address), []).append(address)
+    ranked = sorted(groups.items(), key=lambda item: -len(item[1]))
+    lines = [f"{len(found)} x {pattern}\n    e.g. " + "  ".join(found[: settings.hints_samples])
+             for pattern, found in ranked[: settings.links_groups]]
+    if len(ranked) > settings.links_groups:
+        lines.append(f"… and {len(ranked) - settings.links_groups} more group(s).")
+    return "\n".join(lines)

@@ -34,6 +34,12 @@ class AgentSettings:
     # a timeout, a connection error or a 5xx answer.
     model_timeout_seconds: float = 120.0
     model_retries: int = 2
+    # A call the API refuses for its rate limit (429) is tried again after the wait the API names,
+    # or after this many seconds times the number of the wait; never longer than the maximum
+    # (CONVENTIONS.md, rule 8: a Retry-After of up to 60 s is obeyed), and this many times at most.
+    rate_limit_waits: int = 5
+    rate_limit_wait_seconds: float = 15.0
+    rate_limit_wait_max_seconds: float = 60.0
     # Reasoning effort per job; blank sends none. Q9 could not confirm the levels of every model.
     reasoning_learn: str = "medium"
     reasoning_repair: str = "medium"
@@ -57,6 +63,13 @@ class AgentSettings:
     links_groups: int = 40
     search_matches: int = 20
     search_context_chars: int = 120
+    # `portal_hints` reads at most this many sitemap files, this many bytes of each, and this many
+    # addresses in all, and shows `links_groups` groups of them: a national portal's sitemap lists
+    # tens of thousands of notices (audit of Q3), and it must never reach the model whole.
+    hints_sitemaps: int = 3
+    hints_sitemap_bytes: int = 2_000_000
+    hints_addresses: int = 5_000
+    hints_samples: int = 2
     # A dry run of the working recipe reads at most this many list pages and this many tenders'
     # own pages, and may fetch this many pages it lacks before it reports the rest as missing.
     dry_run_list_pages: int = 2

@@ -18,6 +18,11 @@ Each portal also has a changed face, for trying the repairer: set `variant.chang
 HTML portals every class and id gets a new name and `data-*` hooks are renamed, and the JSON API moves
 from /api/v2 to /api/v3 with its keys in snake_case. A recipe learned before the change reads nothing after it.
 
+A third face is `variant.moved = True`: the portal after it moved house. Only the domain stays (the
+mentor: the domain is the one thing that can be assumed not to change). Every page, API call and file
+lives under `/portal/v3` now, every old address answers 404, and the domain's root is a new landing page
+that links to the old entry's new place. Ids and values stay. It can be combined with `changed`.
+
 `VARIANTS[name]()` gives a `Variant`; `respond` answers a request, `truth` is what a correct read gives.
 Run them with `python -m variants.run` (a person, with the development key).
 """
@@ -68,10 +73,25 @@ class Variant:
     expect: str = "serve"                       # serve | give_up
     requests: list[tuple[str, str]] = field(default_factory=list)
     changed: bool = False                       # the portal after a redesign: see `_redesigned`
+    moved: bool = False                         # every address but the domain changed: see `_moved`
 
     def respond(self, method: str, url: str, form: dict[str, str] | None = None) -> Answer:
         parts = urlsplit(url)
         self.requests.append((method.upper(), parts.path + (f"?{parts.query}" if parts.query else "")))
+        if self.moved:
+            if parts.path in ("", "/"):
+                return 200, HTML, _page("Welcome", f'<h1>Welcome</h1>\n<p>This site has a new structure.</p>\n'
+                                        f'<p><a href="{MOVED}/">Procurement portal</a></p>')
+            if parts.path == "/robots.txt":
+                return self._respond(parts)
+            if not parts.path.startswith(MOVED + "/"):
+                return 404, HTML, _page("Not found", "<p>This page no longer exists.</p>")
+            parts = parts._replace(path=parts.path[len(MOVED):])
+            status, head, body = self._faces(parts)
+            return status, head, _moved(body, head.get("Content-Type", ""))
+        return self._faces(parts)
+
+    def _faces(self, parts) -> Answer:
         if not self.changed:
             return self._respond(parts)
         if parts.path.startswith("/api/v2"):
@@ -92,11 +112,23 @@ class Variant:
     def truth(self) -> list[dict]:
         if self.expect != "serve":
             return []
-        return [{"id": self.ident(t), "url": self.base_url + self.tender_url(t), "title": t.title,
+        prefix = MOVED if self.moved else ""
+        return [{"id": self.ident(t), "url": self.base_url + prefix + self.tender_url(t), "title": t.title,
                  "buyer_name": t.buyer_name, "publication_date": t.publication_date,
                  "submission_deadline": t.submission_deadline, "reference_number": t.reference_number,
                  "cpv_codes": [code.split("-")[0] for code in t.cpv], "procedure_type": PROCEDURE[t.procedure_word],
                  "contract_nature": NATURE[t.nature_word], "documents": len(t.files)} for t in self.tenders]
+
+
+MOVED = "/portal/v3"
+_LOCAL_ADDRESS = re.compile(r'''((?:href|src|action)="|"(?:link|url)":\s*"|(?:API|api)="|fetch\(")/(?!/)''')
+
+
+def _moved(body: bytes, content_type: str) -> bytes:
+    """The same content with every address of the portal's own under `MOVED`."""
+    if not any(kind in content_type for kind in ("html", "json", "javascript")):
+        return body
+    return _LOCAL_ADDRESS.sub(lambda m: f"{m.group(1)}{MOVED}/", body.decode("utf-8")).encode("utf-8")
 
 
 _NAMES = re.compile(r'\b(class|id)="([^"]*)"')

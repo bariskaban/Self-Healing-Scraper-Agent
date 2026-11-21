@@ -9,6 +9,7 @@ model elsewhere.
 
 The tools:
   open_page, view_page, page_links, search_page   look at the portal
+  portal_hints                                    the sitemaps the portal's robots.txt names, as address patterns
   call_api                                        one HTTP request with parameters or a body
   try_locator                                     what a locator finds on a cached page
   propose_recipe, replace_node, check_recipe      write the recipe; each one validates and dry-runs it
@@ -41,6 +42,9 @@ from app.recipe.settings import DEFAULT_RECIPE_SETTINGS, RecipeSettings
 # fills none of one of them is accepted only with a warning the model has read.
 WANTED = ("url", "title", "buyer_name", "publication_date", "submission_deadline")
 # Not required, but delivered when the portal states them: a recipe that reads none is told once.
+# What a repair's dry run must give again for the tenders of the last good read. The address of a
+# tender's page is compared by nobody: everything after the domain may move.
+COMPARED = ("title", "buyer_name", "publication_date", "submission_deadline", "reference_number")
 WELCOME = ("reference_number", "description", "cpv_codes", "procedure_type", "contract_nature")
 
 
@@ -66,6 +70,10 @@ class PageLinks(_Args):
 class SearchPage(_Args):
     url: str = Field(description="a page opened before (HTML, JSON or a script file)")
     pattern: str = Field(description="a regular expression, matched without regard to case in the raw body")
+
+
+class PortalHints(_Args):
+    pass
 
 
 class CallApi(_Args):
@@ -139,6 +147,8 @@ class Workspace:
         self.recipe: AuthoredRecipe | None = None
         self.timezone: str | None = portal.timezone
         self.country_code: str | None = portal.country_code
+        # A repair knows the tenders of the last good read, by id: a dry run must give them again.
+        self.known: dict[str, Any] = {}
         self.accepted: Accepted | None = None   # the working recipe, when its last dry run passed
         self.passed: Accepted | None = None     # the newest recipe that ever passed in this run
         self.last_check: DryRun | None = None
@@ -265,12 +275,43 @@ class Workspace:
         if capped:
             result.problems = [problem for problem in result.problems if problem != ceiling]
         self.last_check = result
+        if not result.problems:
+            result.problems += self._against_last_good(result)
         warnings = self._warnings(result)
         missing = [page for page in result.missing_pages if page[4:] not in asked or page.startswith("POST ")]
         if result.records and not result.problems and not missing and \
                 result.filled.get("title", 0) == len(result.records):
             self.accepted = self.passed = Accepted(recipe, self.timezone, self.country_code, result)
         return result, warnings
+
+    def _against_last_good(self, result: DryRun) -> list[str]:
+        """What a repair's dry run gives differently from the last good read, as problems: the same
+        tenders must come out with the same ids and values (DESIGN.md, Repair, Acceptance). Only
+        the first tenders are compared, the ones whose own page the dry run read."""
+        if not self.known or not result.records:
+            return []
+        read = result.records[: self.settings.dry_run_details]
+        pairs = [(self.known[record.tender_id], record) for record in read if record.tender_id in self.known]
+        if not pairs:
+            if any(record.tender_id in self.known for record in result.records):
+                return []
+            return [f"None of the {len(result.records)} ids read is an id of the last good read (read: "
+                    f"{', '.join(r.tender_id for r in read)}; last good: {', '.join(list(self.known)[:3])}). "
+                    "The id is taken from the wrong place, or these are other tenders."]
+        out = []
+        for name in COMPARED:
+            had = [(old, new) for old, new in pairs if getattr(old, name) is not None]
+            lost = [new.tender_id for old, new in had if getattr(new, name) is None]
+            differ = [new.tender_id for old, new in had if getattr(new, name) not in (None, getattr(old, name))]
+            if lost and name != "url":
+                out.append(f"{name} is missing on {len(lost)} of {len(had)} tenders that had it in the last good "
+                           f"read (for example {lost[0]}: it was {getattr(had[0][0], name)!s:.80}).")
+            if differ and name != "url" and len(differ) * 2 > len(had):
+                old, new = next((o, n) for o, n in had if n.tender_id == differ[0])
+                out.append(f"{name} differs from the last good read on {len(differ)} of {len(had)} tenders (for "
+                           f"example {differ[0]}: was {getattr(old, name)!s:.80}, now {getattr(new, name)!s:.80}). "
+                           "The value is taken from the wrong place.")
+        return out
 
     def _limited(self, recipe: AuthoredRecipe) -> tuple[AuthoredRecipe, bool]:
         """The recipe with its list paging capped for the dry run: two pages show that paging works."""
@@ -367,7 +408,10 @@ def _tool(name: str, description: str, args: type[BaseModel], run: Callable[[Any
             return Said(f"The arguments do not fit the tool's schema: {faults}", f"{name}: arguments refused")
         return run(parsed)
 
-    return Tool(name=name, description=description, parameters=strict_schema(args), run=call)
+    schema = strict_schema(args)
+    schema.setdefault("properties", {})  # a tool without arguments: strict calling still wants both keys
+    schema.setdefault("required", [])
+    return Tool(name=name, description=description, parameters=schema, run=call)
 
 
 def tools(space: Workspace) -> list[Tool]:
@@ -413,6 +457,46 @@ def tools(space: Workspace) -> list[Tool]:
             return problem  # type: ignore[return-value]
         text = views.search(space.text(page), args.pattern, settings=space.settings)
         return Said(text, f"Searched {page.url} for /{args.pattern}/: {text.splitlines()[0]}")
+
+    def portal_hints(args: PortalHints) -> Said:
+        home = urlsplit(space.portal.url)
+        root = f"{home.scheme}://{home.netloc}"
+        lines, sitemaps = [], []
+        robots, problem = fetched(f"{root}/robots.txt")
+        if robots is not None and robots.status == 200:
+            for line in space.text(robots).splitlines():
+                name, _, value = line.partition(":")
+                if name.strip().lower() == "sitemap" and value.strip():
+                    sitemaps.append(value.strip())
+            lines.append(f"robots.txt names {len(sitemaps)} sitemap(s)." if sitemaps else "robots.txt names no sitemap.")
+        else:
+            lines.append("robots.txt could not be read." if robots is None else f"robots.txt answered {robots.status}.")
+        todo = (sitemaps or [f"{root}/sitemap.xml"])[: space.settings.hints_sitemaps]
+        addresses: list[str] = []
+        read = 0
+        while todo and read < space.settings.hints_sitemaps:
+            place = todo.pop(0)
+            page, problem = fetched(place)
+            read += 1
+            if page is None or page.status != 200:
+                lines.append(f"{place}: " + (problem.text if page is None else f"answered {page.status}."))
+                continue
+            body = page.body if isinstance(page.body, bytes) else page.body.encode("utf-8")
+            found, index = views.sitemap_addresses(body, space.settings)
+            if index:
+                lines.append(f"{place} is an index of {len(found)} sitemap(s):\n"
+                             + views.addresses_view(found, space.settings))
+                todo = found[:1] + todo  # one of them is read, as a sample of what they hold
+                continue
+            lines.append(f"{place} names {len(found)} address(es)"
+                         + (f" in its first {space.settings.hints_sitemap_bytes:,} bytes" if len(body) > space.settings.hints_sitemap_bytes else "") + ".")
+            addresses += found
+        addresses = addresses[: space.settings.hints_addresses]
+        if addresses:
+            lines.append("Addresses by pattern (a sitemap also lists old pages: it is a hint to where things "
+                         "are, never the list of current tenders):\n" + views.addresses_view(addresses, space.settings))
+        return Said("\n".join(lines), f"Read the portal's robots.txt and sitemap: {len(addresses)} address(es) "
+                                      f"in {read} sitemap file(s).")
 
     def call_api(args: CallApi) -> Said:
         params = {pair.name: pair.value for pair in args.params} or None
@@ -490,6 +574,10 @@ def tools(space: Workspace) -> list[Tool]:
         _tool("search_page", "Search the raw body of an opened page with a regular expression: finds API "
               "addresses in scripts and embedded app state the trimmed view leaves out. No request.",
               SearchPage, search_page),
+        _tool("portal_hints", "The portal's own map of itself: the sitemaps its robots.txt names (or /sitemap.xml), "
+              "as address patterns with counts and samples. Use it when the links from the domain's root do not "
+              "lead to the tender list, or after the portal's addresses moved. Costs up to four requests.",
+              PortalHints, portal_hints),
         _tool("call_api", "One HTTP request with query parameters or a body (a JSON API, a search form). "
               "Cached under its address.", CallApi, call_api),
         _tool("try_locator", "What a locator finds on an opened page, before it goes into the recipe. No request.",
