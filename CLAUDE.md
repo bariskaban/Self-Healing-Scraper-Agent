@@ -6,7 +6,7 @@ Guidance for working in this repository. See README.md for how to run it and CHE
 
 - `DESIGN.md` is the spec. Read it before you start, and build what it says.
 - Each decision in `DESIGN.md` names its research question (Q1 to Q14). The reasons and thresholds are in `research/qNN-*.md`; the register is `research/README.md`.
-- Order of precedence, highest first: the track description and the API contract (`hackathon-pdfs/Patterno-Track-Description.pdf`, summarised in `DESIGN.md`); the corrections in `research/audit.md`; the research answer files; `DESIGN.md`; `CONVENTIONS.md`. Between two research files, the question owner's file beats side notes in other files, and our own measurements beat published figures.
+- Order of precedence, highest first: the organisers' track description and its API contract (summarised in `DESIGN.md`; the document itself is not kept in the repository); the corrections in `research/audit.md`; the research answer files; `DESIGN.md`; `CONVENTIONS.md`. Between two research files, the question owner's file beats side notes in other files, and our own measurements beat published figures.
 - If you find two of these disagreeing, do not settle it yourself in code. Say so in the pull request, or stop and ask.
 - Numbers the design marks as our own choice (thresholds, intervals, budgets) are settings in config, never constants in the logic.
 

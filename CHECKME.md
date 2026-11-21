@@ -364,7 +364,6 @@ Who builds what and in what order: [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md).
 ├── tests/                    pytest suites, one folder per module
 ├── docs/                     build plan, handoff, dashboard API, benchmark, interface requests
 ├── research/                 Q1 to Q15 research answers, audit, tools, measured sources
-└── hackathon-pdfs/           track description and participant declaration
 ```
 
 ---
