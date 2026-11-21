@@ -34,12 +34,15 @@ class AgentSettings:
     # a timeout, a connection error or a 5xx answer.
     model_timeout_seconds: float = 120.0
     model_retries: int = 2
-    # A call the API refuses for its rate limit (429) is tried again after the wait the API names,
-    # or after this many seconds times the number of the wait; never longer than the maximum
-    # (CONVENTIONS.md, rule 8: a Retry-After of up to 60 s is obeyed), and this many times at most.
-    rate_limit_waits: int = 5
-    rate_limit_wait_seconds: float = 15.0
-    rate_limit_wait_max_seconds: float = 60.0
+    # A call the API refuses for its rate limit (429) is tried again until this many seconds of
+    # waiting are spent on that one call. The limit is tokens a minute, shared by every run, so the
+    # wait the API names ("try again in 0.7 s") is too short to count on: each wait is at least
+    # `rate_limit_wait_seconds`, doubled wait after wait up to the maximum, plus a random part of up
+    # to `rate_limit_wait_jitter` of it so that runs that were refused together do not come back together.
+    rate_limit_wait_budget_seconds: float = 90.0
+    rate_limit_wait_seconds: float = 5.0
+    rate_limit_wait_max_seconds: float = 30.0
+    rate_limit_wait_jitter: float = 0.25
     # How many learns, repairs and spot checks may run at once. They share one limit of tokens a minute
     # (1,000,000 on the development key); one learn uses about 300,000 of them. Ten portals added together
     # used to go over it, and the learns that lost out died of it. Now the others wait their turn.

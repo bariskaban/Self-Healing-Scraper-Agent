@@ -207,20 +207,32 @@ def test_between_two_batches_of_dropped_steps_each_call_only_adds_to_the_one_bef
 def test_a_rate_limit_is_waited_out_and_the_call_tried_again():
     waited: list[float] = []
     limit = lambda seconds=None: ModelError("RateLimitError: 429", rate_limited=True, retry_after=seconds)  # noqa: E731
-    model = ScriptedModel([limit(7.0), limit(), limit(500.0), [call("echo", text="a")], GOOD])
+    model = ScriptedModel([limit(0.7), limit(), limit(500.0), [call("echo", text="a")], GOOD])
     steps = StepLog("run1")
-    out = Runner(model, AgentSettings(), sleep=waited.append).run(
+    out = Runner(model, AgentSettings(), sleep=waited.append, chance=lambda: 0.0).run(
         job="learn", model="gpt-6.2-sol", prompt=PROMPT, task="the task", tools=[echo()], answer_type=Answer,
         max_turns=5, max_usd=None, steps=steps)
     assert out.answer is not None and out.model_calls == 2      # the refused calls are not counted or paid
-    assert waited == [7.0, 30.0, 60.0]                          # the API's wait, ours growing, never over the maximum
+    # Never shorter than our own growing wait, however short the API's; never past the budget of 90 s.
+    assert waited == [5.0, 10.0, 75.0] and not out.rate_limited
     assert sum(1 for step in steps.steps if step.name == "learn_rate_limited") == 3
 
 
-def test_a_rate_limit_that_does_not_pass_ends_the_run_after_the_waits_allowed():
+def test_a_rate_limit_that_does_not_pass_ends_the_run_when_the_time_to_wait_is_spent():
     waited: list[float] = []
-    model = ScriptedModel([ModelError("RateLimitError: 429", rate_limited=True)] * 10)
-    out = Runner(model, AgentSettings(rate_limit_waits=2), sleep=waited.append).run(
+    model = ScriptedModel([ModelError("RateLimitError: 429", rate_limited=True, retry_after=0.695)] * 20)
+    out = Runner(model, AgentSettings(), sleep=waited.append, chance=lambda: 1.0).run(
         job="learn", model="gpt-6.2-sol", prompt=PROMPT, task="t", tools=[], answer_type=Answer, max_turns=5,
         max_usd=None, steps=StepLog("run1"))
-    assert out.answer is None and "RateLimitError" in out.stopped and len(waited) == 2 and len(model.requests) == 3
+    assert out.answer is None and "RateLimitError" in out.stopped and out.rate_limited
+    # 5, 10, 20, 30 s, each a quarter longer by chance, and the last cut to what is left of the 90 s.
+    assert waited == [6.25, 12.5, 25.0, 37.5, 8.75] and sum(waited) == 90.0
+    assert len(model.requests) == len(waited) + 1
+
+
+def test_another_model_error_is_not_waited_for_and_is_no_rate_limit():
+    waited: list[float] = []
+    out = Runner(ScriptedModel([ModelError("APIError: 500")]), AgentSettings(), sleep=waited.append).run(
+        job="learn", model="gpt-6.2-sol", prompt=PROMPT, task="t", tools=[], answer_type=Answer, max_turns=5,
+        max_usd=None, steps=StepLog("run1"))
+    assert out.answer is None and not out.rate_limited and waited == []

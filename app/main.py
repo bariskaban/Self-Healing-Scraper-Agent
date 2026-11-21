@@ -142,7 +142,8 @@ def agent_hooks(agents: Any, *, mock_by_model: bool = False
 
     def result(found: Any) -> Learned | NotLearned:
         if found.recipe is None:
-            return NotLearned(reason=found.reason, model_calls=found.model_calls, usage=found.usage)
+            return NotLearned(reason=found.reason, model_calls=found.model_calls, usage=found.usage,
+                              rate_limited=getattr(found, "rate_limited", False))
         return Learned(recipe=found.recipe, timezone=found.timezone, country_code=found.country_code,
                        model_calls=found.model_calls, usage=found.usage)
 

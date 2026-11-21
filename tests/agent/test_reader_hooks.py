@@ -59,6 +59,22 @@ def test_paid_learns_are_capped_per_day_and_start_again_the_next_day(db):
     assert len(calls) == 4
 
 
+def test_a_learn_the_models_rate_limit_ended_does_not_count_as_a_learn_of_the_day(db):
+    calls = []
+
+    def learner(portal, run_id):
+        calls.append(run_id)
+        return NotLearned(reason="the model call failed: RateLimitError: 429", model_calls=2, usage=SPENT,
+                          rate_limited=len(calls) <= 4)
+
+    reader = Reader(db, None, lambda: None, learn=learner, now=lambda: datetime(2026, 11, 20, 12, tzinfo=timezone.utc))
+    incident = Incident()
+    for _ in range(9):
+        reader.read("p1", start(db), incident)
+    assert len(calls) == 4 + reader.checks.repairs_per_day     # the four rate-limited learns were free tries
+    assert incident.learns_today == 3
+
+
 def test_a_learner_that_spends_nothing_is_not_capped(db):
     calls = []
     reader = Reader(db, None, lambda: None, learn=lambda portal, run_id: calls.append(run_id))

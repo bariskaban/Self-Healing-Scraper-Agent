@@ -43,6 +43,7 @@ class AgentResult:
     usage: TokenUsage = field(default_factory=TokenUsage)
     model_calls: int = 0
     requests: int = 0
+    rate_limited: bool = False  # no recipe, and the run ended on the model's rate limit: not the portal's fault
 
 
 def learn(portal: Portal, *, fetch: Fetch, runner: Runner, steps: StepLog,
@@ -96,6 +97,7 @@ def finish(job: str, space: Workspace, outcome, steps: StepLog, *, unchanged: Au
         best = None  # a repair that changed nothing is no repair
     cost = f"{outcome.model_calls} model call(s), {space.requests} request(s), ${outcome.usage.cost_usd:.2f}"
     if best is None:
+        result.rate_limited = outcome.rate_limited
         result.reason = (said if answer is not None and said else outcome.stopped
                          or "the model finished without a recipe that passed its dry run")
         steps.add(StepKind.decision, f"{job}_failed", f"No recipe came out of the {job}: {result.reason} ({cost}).",
