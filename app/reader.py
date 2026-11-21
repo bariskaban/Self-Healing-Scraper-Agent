@@ -239,6 +239,11 @@ class _Read:
             self.model_calls += result.model_calls
             self.usage = self.usage.add(result.usage)
         self.seq = max([self.seq, *(step.seq for step in self.db.list_steps(self.run.id))])
+        if result is not None and result.model_calls:
+            # Saved at once, not at the end of the read: an attach can read pages for many minutes
+            # after its learn, and what the model cost must not show as zero, or be lost, meanwhile.
+            self.run = self.run.model_copy(update={"model_calls": self.model_calls, "usage": self.usage})
+            self.db.save_run(self.run)
 
     def add(self, *results: CheckResult | None) -> None:
         for result in results:
@@ -349,7 +354,7 @@ class _Read:
         outcome = list_outcome(run_id, facts, usual_signs=signs)
         put(outcome)
         put(block_check(run_id, listed.list_answer, outcome_missing=not outcome.passed, usual_signs=signs))
-        if not outcome.passed or listed.first_page_only:
+        if not outcome.passed or listed.partial:
             return out
         put(paging_complete(run_id, reached_end=listed.reached_end, pages=listed.pages))
         put(duplicate_ids(run_id, listed.ids))
@@ -376,7 +381,9 @@ class _Read:
         suspects = [name for name, row in first.items() if effect_of(row) is Effect.suspect]
         self.exchanges += listed.exchanges
         self.step("read_list", f"Read the tender list: {listed.pages} page(s), {listed.rows} row(s), "
-                               f"{len(listed.items)} tender(s).", began)
+                               f"{len(listed.items)} tender(s)."
+                               + (f" Stopped at the limit of {self.r.recipes.max_tenders_per_portal} tenders per portal."
+                                  if listed.capped else ""), began)
         if not suspects:
             return listed, first
         # The second look: the same part again, at once (Q10, step 4).
@@ -423,7 +430,7 @@ class _Read:
                     [ListRow(item.tender_id, item.row_hash, item.deadline) for item in listed.items],
                     now, interval, self.r.schedule)
                 to_read = list(dict.fromkeys([*plan.fetch, *plan.documents_pending, *plan.rotation]))
-                unlisted = plan.unlisted if not listed.first_page_only else ()
+                unlisted = plan.unlisted if not listed.partial else ()
             details = self._read_details([items[tender_id] for tender_id in to_read if tender_id in items])
             records = self._records(items, details, known_by_id, now)
             self._content_checks(records, known_by_id, listed, details, unlisted, now)
@@ -540,7 +547,7 @@ class _Read:
         for row in rows:
             # These suspects are settled without a second fetch: the pages were read moments ago.
             self.add(confirm(row, row) if effect_of(row) is Effect.suspect else row)
-        if listed.first_page_only:
+        if listed.partial:
             return
         since = now - self.portal.last_success_at if self.portal.last_success_at else None
         missing = known_ids_missing(run_id, last_good, [item.tender_id for item in listed.items], now=now,

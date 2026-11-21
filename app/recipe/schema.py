@@ -40,11 +40,21 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+try:  # Python's own parser of regular expressions, to look at a pattern's structure
+    from re import _parser as _regex_parser
+except ImportError:  # before Python 3.11 it had this name
+    import sre_parse as _regex_parser
+
 FORMAT = "recipe/v1"
 
 PAGING_PLACEHOLDERS = frozenset({"page", "offset", "size", "cursor"})
 _PLACEHOLDER = re.compile(r"\{([a-z_]+)\}")
 _POSITIONAL_XPATH = re.compile(r"\[\s*\d+\s*\]|position\(\)|last\(\)")
+# The one position that is an anchor: `[n]` straight after the node test of a sibling step,
+# as in `//dt[.='Angebotsfrist']/following-sibling::dd[1]`, "the value next to this label" (Q2).
+_SIBLING_INDEX = re.compile(r"((?:following|preceding)-sibling::(?:\*|[A-Za-z_][\w.-]*))\[\s*\d+\s*\]")
+# What every tender should have (the brief's required fields); `id` may also come from the address.
+REQUIRED_FIELDS = ("id", "url", "title", "buyer_name", "publication_date", "submission_deadline")
 
 
 class Part(BaseModel):
@@ -80,7 +90,7 @@ class Action(StrEnum):
 class LocatorKind(StrEnum):
     jsonpath = "jsonpath"  # `$.a.b`, `$.items[*]`, `$.a[0]`, `$.a[?(@.k=="v")].x`: this subset only
     css = "css"            # a CSS selector, relative to the item on a list
-    xpath = "xpath"        # a relative XPath on ids, attributes or text; never absolute, never positional
+    xpath = "xpath"        # a relative XPath on ids, attributes or text; never absolute; `[n]` only after a sibling step
     label = "label"        # the value structurally next to a label text ("Angebotsfrist")
     regex = "regex"        # first group of a pattern over the page's or the item's text
 
@@ -342,8 +352,9 @@ def _locator_problems(where: str, locator: Locator) -> list[str]:
     if locator.kind is LocatorKind.xpath:
         if expr.startswith("/") and not expr.startswith("//"):
             out.append(f"{where}: no absolute XPath. Anchor on an id, an attribute or a text.")
-        if _POSITIONAL_XPATH.search(expr):
-            out.append(f"{where}: no positional XPath (`[2]`, `position()`, `last()`): a position is not an anchor.")
+        if _POSITIONAL_XPATH.search(_SIBLING_INDEX.sub(r"\1", expr)):
+            out.append(f"{where}: no positional XPath (`[2]`, `position()`, `last()`): a position is not an anchor. "
+                       "Only `[n]` straight after `following-sibling::name` or `preceding-sibling::name` is allowed.")
     if locator.kind is LocatorKind.css and re.search(r":nth-(child|of-type)|:first-child|:last-child", expr):
         out.append(f"{where}: no position in a CSS selector (`nth-child` and the like).")
     if locator.kind is LocatorKind.regex:
@@ -356,7 +367,61 @@ def _regex_problems(where: str, pattern: str) -> list[str]:
         re.compile(pattern)
     except re.error as error:
         return [f"{where}: not a valid regular expression ({error})."]
+    if nested_quantifier(pattern):
+        return [f"{where}: the pattern repeats without limit something that itself repeats without limit, as "
+                "`(a+)+` does. Such a pattern can run for hours on one text. Give the inner or the outer repeat "
+                "an upper bound, for example `(?:-\\d{1,9})+`, or write it without the group."]
     return []
+
+
+def nested_quantifier(pattern: str) -> bool:
+    """True when a repeat without an upper bound holds another one: `(a+)+`, `(\\d*)*`, `(?:x+|y)+`.
+
+    The executor runs a recipe's patterns with Python's `re`, which has no timeout, and this
+    shape is the common cause of a match that never ends. The test is a heuristic on the
+    pattern's own structure, as Python parses it:
+
+      * a repeat is without an upper bound when it is `*`, `+` or `{n,}`, greedy or lazy;
+      * it is refused when anything inside what it repeats is such a repeat too, at any depth
+        (in a group, a branch of `|`, a lookahead);
+      * possessive repeats and atomic groups are left alone: they do not backtrack.
+
+    It refuses some harmless patterns, such as `(?:\\d+\\.)+` (the dot keeps the repeats
+    apart), and it lets pass slow ones without nesting, such as `a*a*a*b`. The first costs the
+    learner one bounded rewrite; the second is bounded by the length of the text the executor
+    hands a pattern, not here.
+    """
+    try:
+        tree = _regex_parser.parse(pattern)
+    except (re.error, RecursionError, OverflowError):
+        return False  # not a pattern at all: `_regex_problems` says so
+    return _nested(tree, inside=False)
+
+
+def _nested(items, inside: bool) -> bool:
+    """Whether a repeat without an upper bound is found while `inside` another one."""
+    constants = _regex_parser
+    for op, argument in items:
+        if op in (constants.MAX_REPEAT, constants.MIN_REPEAT):
+            _, most, repeated = argument
+            unbounded = most == constants.MAXREPEAT
+            if unbounded and inside:
+                return True
+            if _nested(repeated, inside or unbounded):
+                return True
+        elif op is constants.SUBPATTERN:
+            if _nested(argument[-1], inside):
+                return True
+        elif op is constants.BRANCH:
+            if any(_nested(branch, inside) for branch in argument[1]):
+                return True
+        elif op in (constants.ASSERT, constants.ASSERT_NOT):
+            if _nested(argument[1], inside):
+                return True
+        elif op is constants.GROUPREF_EXISTS:
+            if any(_nested(branch, inside) for branch in argument[1:] if branch is not None):
+                return True
+    return False
 
 
 def _template_problems(where: str, template: str | None, allowed: frozenset[str]) -> list[str]:
@@ -479,6 +544,9 @@ def problems(recipe: AuthoredRecipe) -> list[str]:
                         out.append(f"{at}: {pair.name!r} maps to {pair.value!r}, which is not one of "
                                    f"{', '.join(sorted(targets))}.")
         if node.paging is not None:
+            if node.paging.kind is PagingKind.load_more and node.kind is not NodeKind.browser:
+                out.append(f"{where}.paging: load_more paging presses a button, which only a browser node can do; "
+                           f"this node is {node.kind.value}.")
             for need in _PAGING_NEEDS.get(node.paging.kind, ()):
                 if getattr(node.paging, need) is None:
                     out.append(f"{where}.paging: {node.paging.kind.value} paging needs `{need}`.")
@@ -517,6 +585,8 @@ def problems(recipe: AuthoredRecipe) -> list[str]:
             out += _request_problems(f"{where}.request", edge.request, field_names,
                                      need_url=edge.action is not Action.submit_form)
 
+    out += _required_field_problems(recipe, lists)
+
     # Every node must be reachable from the start, or it is never read.
     reached, frontier = {recipe.start}, [recipe.start]
     while frontier:
@@ -527,6 +597,28 @@ def problems(recipe: AuthoredRecipe) -> list[str]:
                 frontier.append(edge.target)
     for node_id in sorted(known - reached):
         out.append(f"Node {node_id!r} cannot be reached from the start node.")
+    return out
+
+
+def _required_field_problems(recipe: AuthoredRecipe, lists: list[Node]) -> list[str]:
+    """A list that says it carries every required field must read each one the recipe reads at all.
+
+    This is a contradiction inside the recipe, so it is refused. A required field that no node
+    reads is not: that is a fact about the portal (it may not show a buyer), and the agent's
+    `propose_recipe` reports it as a warning ("No record has a ...") instead of refusing the recipe.
+    `id` may come from the address (`identity.from_url`).
+    """
+    out: list[str] = []
+    from_address = {"id"} if recipe.identity.from_url is not None else set()
+    read_somewhere = {field.name.value for node in recipe.nodes for field in node.fields} | from_address
+    for node in lists:
+        if node.facts is None or not node.facts.has_all_required:
+            continue
+        on_list = {field.name.value for field in node.fields} | from_address
+        for name in REQUIRED_FIELDS:
+            if name in read_somewhere and name not in on_list:
+                out.append(f"node {node.id}: `has_all_required` is true, but the list does not read `{name}`. "
+                           "Add the field to the list, or set `has_all_required` to false.")
     return out
 
 

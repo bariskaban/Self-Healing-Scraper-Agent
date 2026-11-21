@@ -4,7 +4,8 @@ One run is a loop of model calls and tool calls that ends in a validated answer:
 
   * the model and the cap on calls are named on every run;
   * what each call sends is trimmed: the task, the one-line summaries of the steps that no
-    longer fit, and the newest steps in full, so the input stays near `context_tokens`;
+    longer fit, and the newest steps in full, so the input stays under `context_tokens`; steps
+    are dropped in batches, so that between two batches the prompt cache keeps hitting;
   * the budget (calls and USD) is checked between model calls, outside the tools, and a spent
     budget stops the run;
   * a final answer that does not validate goes back once with the validation message; a second
@@ -98,14 +99,21 @@ class ModelReply:
 
 
 class ModelError(Exception):
-    """A model call that got no usable answer, after the client's own retries."""
+    """A model call that got no usable answer, after the client's own retries.
+
+    `rate_limited` says the API refused it for the rate limit (HTTP 429); `retry_after` is the
+    wait in seconds the API named, when it named one."""
+
+    def __init__(self, message: str, *, rate_limited: bool = False, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.rate_limited, self.retry_after = rate_limited, retry_after
 
 
 class Model(Protocol):
     def respond(self, *, model: str, instructions: str, input: list[dict[str, Any]],
                 tools: Sequence[Tool], answer: tuple[str, dict[str, Any]] | None,
-                reasoning: str | None) -> ModelReply:
-        """One model call. `answer` is the name and JSON schema the final answer must fit.
+                reasoning: str | None, cache_key: str | None = None) -> ModelReply:
+        """One model call. `cache_key` is the same for every call of a run: it keeps them on one prompt cache. `answer` is the name and JSON schema the final answer must fit.
         Raises ModelError when no answer came."""
         ...
 
@@ -206,32 +214,59 @@ class _Turn:
 class Runner:
     """Runs agents on one model client. One instance for the process; `run` blocks."""
 
-    def __init__(self, model: Model, settings: AgentSettings = DEFAULT_AGENT_SETTINGS) -> None:
-        self.model, self.settings = model, settings
+    def __init__(self, model: Model, settings: AgentSettings = DEFAULT_AGENT_SETTINGS,
+                 sleep: Callable[[float], None] = time.sleep) -> None:
+        self.model, self.settings, self._sleep = model, settings, sleep
+
+    def _respond(self, steps: StepLog, job: str, **request: Any) -> ModelReply:
+        """One model call. A rate limit is waited out and tried again, a few times: several portals
+        learning at once share one limit of tokens a minute, and a learn must not die of that."""
+        waits = 0
+        while True:
+            try:
+                return self.model.respond(**request)
+            except ModelError as error:
+                if not error.rate_limited or waits >= self.settings.rate_limit_waits:
+                    raise
+                waits += 1
+                pause = min(error.retry_after or self.settings.rate_limit_wait_seconds * waits,
+                            self.settings.rate_limit_wait_max_seconds)
+                steps.add(StepKind.note, f"{job}_rate_limited",
+                          f"The model's rate limit was reached; waiting {pause:.0f} s before trying again "
+                          f"(wait {waits} of at most {self.settings.rate_limit_waits}).")
+                self._sleep(pause)
 
     def _size(self, items: Sequence[dict[str, Any]]) -> int:
         """About how many tokens these items are as input."""
         return int(sum(len(json.dumps(item, ensure_ascii=False)) for item in items) / self.settings.chars_per_token)
 
-    def _input(self, task: str, turns: Sequence[_Turn]) -> list[dict[str, Any]]:
-        """The task, a summary of the steps that no longer fit, and the newest steps in full."""
-        first = {"role": "user", "content": task}
-        room = self.settings.context_tokens - self._size([first])
-        kept = len(turns)
-        while kept > 0:
-            size = self._size(turns[kept - 1].items)
-            if size > room and kept < len(turns):  # the newest turn always goes in whole
-                break
-            room -= size
-            kept -= 1
-        out = [first]
-        if kept:
-            lines = [line for turn in turns[:kept] for line in turn.lines]
+    def _keep_from(self, task: str, turns: Sequence[_Turn], dropped: int) -> int:
+        """How many of the oldest turns are sent as one line each from now on.
+
+        Turns are dropped in batches: nothing changes while the input fits `context_tokens`, and
+        when it no longer does, enough turns go to bring it down to `context_keep_share` of that.
+        Between two batches every call's input is the one before it with more at the end, so
+        the prompt cache keeps hitting; a prefix that changed on every call would never hit.
+        """
+        room = self.settings.context_tokens - self._size([{"role": "user", "content": task}])
+        sizes = [self._size(turn.items) for turn in turns]
+        if sum(sizes[dropped:]) <= room:
+            return dropped
+        target = room * self.settings.context_keep_share
+        while dropped < len(turns) - 1 and sum(sizes[dropped:]) > target:  # the newest turn always goes in whole
+            dropped += 1
+        return dropped
+
+    def _input(self, task: str, turns: Sequence[_Turn], dropped: int) -> list[dict[str, Any]]:
+        """The task, a summary of the first `dropped` steps, and the steps after them in full."""
+        out: list[dict[str, Any]] = [{"role": "user", "content": task}]
+        if dropped:
+            lines = [line for turn in turns[:dropped] for line in turn.lines]
             out.append({"role": "user", "content":
                         "Your earlier steps in this run, shortened to save context (the pages you opened are "
                         "still cached, and the working recipe is kept: use the tools to see them again):\n"
                         + "\n".join(f"- {line}" for line in lines)})
-        for turn in turns[kept:]:
+        for turn in turns[dropped:]:
             out += turn.items
         return out
 
@@ -245,7 +280,9 @@ class Runner:
         by_name = {tool.name: tool for tool in tools}
         answer = (answer_type.__name__, strict_schema(answer_type))
         turns: list[_Turn] = []
+        dropped = 0
         retried = False
+        cache_key = f"{job}-{steps.run_id}"[:64]  # one cache route per run
 
         def stop(reason: str) -> Outcome:
             out.stopped = reason
@@ -261,8 +298,10 @@ class Runner:
                 return stop(f"its budget of ${max_usd:.2f} is spent")
             began = time.monotonic()
             try:
-                reply = self.model.respond(model=model, instructions=prompt.text, input=self._input(task, turns),
-                                           tools=tools, answer=answer, reasoning=reasoning or None)
+                dropped = self._keep_from(task, turns, dropped)
+                reply = self._respond(steps, job, model=model, instructions=prompt.text,
+                                      input=self._input(task, turns, dropped), tools=tools, answer=answer,
+                                      reasoning=reasoning or None, cache_key=cache_key)
             except ModelError as error:
                 return stop(f"the model call failed: {error}")
             took = int((time.monotonic() - began) * 1000)
@@ -380,7 +419,7 @@ class OpenAIModel:
 
     def respond(self, *, model: str, instructions: str, input: list[dict[str, Any]],
                 tools: Sequence[Tool], answer: tuple[str, dict[str, Any]] | None,
-                reasoning: str | None) -> ModelReply:
+                reasoning: str | None, cache_key: str | None = None) -> ModelReply:
         import openai
 
         request: dict[str, Any] = {"model": model, "instructions": instructions, "input": input, "store": False}
@@ -393,11 +432,21 @@ class OpenAIModel:
                                           "strict": True}}
         if reasoning:
             request["reasoning"] = {"effort": reasoning}
+        if cache_key:
+            request["prompt_cache_key"] = cache_key
         log.debug("model request: %s, %d input item(s), %d tool(s), reasoning=%s, instructions %d chars", model,
                   len(input), len(tools), reasoning, len(instructions))
         began = time.monotonic()
         try:
             response = self._client.responses.create(**request)
+        except openai.RateLimitError as error:
+            wait = None
+            try:
+                wait = float(error.response.headers.get("retry-after") or "")
+            except (AttributeError, ValueError):
+                pass
+            raise ModelError(f"RateLimitError: {_one_line(str(error), 300)}", rate_limited=True,
+                             retry_after=wait) from None
         except openai.OpenAIError as error:
             log.warning("model request failed after %.1fs: %s", time.monotonic() - began, type(error).__name__)
             # The message of an API error names the fault, never the key.

@@ -204,3 +204,92 @@ def test_every_tool_schema_is_strict():
         schema = one.parameters
         assert schema["type"] == "object" and schema["additionalProperties"] is False
         assert set(schema["required"]) == set(schema["properties"]), one.name
+
+
+# -- portal_hints --
+
+class Pages:
+    """A network layer that answers from a dict of address to (status, content type, body)."""
+
+    def __init__(self, pages: dict) -> None:
+        self.pages, self.asked = pages, []
+
+    def fetch(self, portal_id, url, *, method="GET", params=None, data=None, json=None, headers=None, page_load=True):
+        import httpx
+
+        from app.checks import Answer
+        from app.fetch.interface import Fetched
+
+        self.asked.append(url)
+        status, kind, body = self.pages.get(url, (404, "text/html", b"not found"))
+        return Fetched(url=url, final_url=url, status=status, headers=httpx.Headers({"content-type": kind}),
+                       body=body, answer=Answer(status=status, page_load=page_load))
+
+
+def hints(pages: dict, **settings) -> tuple[str, Pages, Workspace]:
+    fetch = Pages(pages)
+    made = Workspace(portal(f"{URL}/old/list"), fetch, max_requests=settings.pop("max_requests", 30),
+                     settings=AgentSettings(**settings))
+    said = {tool.name: tool for tool in tools(made)}["portal_hints"].run({})
+    return said.text, fetch, made
+
+
+def sitemap(*places: str) -> bytes:
+    return ("<urlset>" + "".join(f"<url><loc>{place}</loc></url>" for place in places) + "</urlset>").encode()
+
+
+def test_portal_hints_groups_the_sitemaps_addresses_by_pattern():
+    places = [f"{URL}/notices/{n}" for n in range(1000, 1300)] + [f"{URL}/notices", f"{URL}/about", f"{URL}/news/a&amp;b"]
+    text, fetch, made = hints({f"{URL}/robots.txt": (200, "text/plain", f"User-agent: *\nAllow: /\nSITEMAP: {URL}/map.xml\n".encode()),
+                               f"{URL}/map.xml": (200, "application/xml", sitemap(*places))})
+    assert "robots.txt names 1 sitemap(s)." in text and "names 303 address(es)" in text
+    assert "300 x mock.example/notices/{n}" in text and f"e.g. {URL}/notices/1000  {URL}/notices/1001" in text
+    assert f"{URL}/news/a&b" in text and "never the list of current tenders" in text
+    assert fetch.asked == [f"{URL}/robots.txt", f"{URL}/map.xml"] and made.requests == 2   # counted against the budget
+    assert len(text) < 2500                                                            # 303 addresses, a few lines
+
+
+def test_portal_hints_never_hands_over_a_large_sitemap_whole():
+    big = sitemap(*[f"{URL}/aankondigingen/{n}" for n in range(95_000)])
+    text, _, _ = hints({f"{URL}/robots.txt": (200, "text/plain", f"Sitemap: {URL}/s.xml".encode()),
+                        f"{URL}/s.xml": (200, "application/xml", big)}, hints_sitemap_bytes=200_000, hints_addresses=1000)
+    assert len(big) > 4_000_000 and len(text) < 1500
+    assert "names 1000 address(es) in its first 200,000 bytes" in text and "1000 x mock.example/aankondigingen/{n}" in text
+
+
+def test_portal_hints_reads_one_sitemap_of_an_index_and_unpacks_gzip():
+    import gzip
+
+    index = ("<sitemapindex>" + "".join(f"<sitemap><loc>{URL}/sitemaps/part-{n}.xml.gz</loc></sitemap>" for n in range(1, 41))
+             + "</sitemapindex>").encode()
+    part = gzip.compress(sitemap(*[f"{URL}/tender/{n}" for n in range(50)]))
+    text, fetch, _ = hints({f"{URL}/robots.txt": (200, "text/plain", f"Sitemap: {URL}/sitemap_index.xml".encode()),
+                            f"{URL}/sitemap_index.xml": (200, "application/xml", index),
+                            f"{URL}/sitemaps/part-1.xml.gz": (200, "application/gzip", part)})
+    assert "is an index of 40 sitemap(s)" in text and "40 x mock.example/sitemaps/part-{n}.xml.gz" in text
+    assert "50 x mock.example/tender/{n}" in text
+    assert fetch.asked == [f"{URL}/robots.txt", f"{URL}/sitemap_index.xml", f"{URL}/sitemaps/part-1.xml.gz"]
+
+
+def test_portal_hints_without_a_sitemap_says_so_and_tries_the_usual_place_once():
+    text, fetch, _ = hints({f"{URL}/robots.txt": (200, "text/plain", b"User-agent: *\nAllow: /\n")})
+    assert "robots.txt names no sitemap." in text and f"{URL}/sitemap.xml: answered 404." in text
+    assert fetch.asked == [f"{URL}/robots.txt", f"{URL}/sitemap.xml"]
+    text, _, _ = hints({})
+    assert "robots.txt answered 404." in text
+
+
+def test_portal_hints_stays_on_the_portals_site_and_inside_the_request_budget():
+    text, fetch, _ = hints({f"{URL}/robots.txt": (200, "text/plain", b"Sitemap: https://elsewhere.example/sitemap.xml")})
+    assert "not part of the portal's site" in text and fetch.asked == [f"{URL}/robots.txt"]
+    text, fetch, _ = hints({f"{URL}/robots.txt": (200, "text/plain", f"Sitemap: {URL}/s.xml".encode())}, max_requests=1)
+    assert "budget of 1 requests" in text and fetch.asked == [f"{URL}/robots.txt"]
+
+
+def test_portal_hints_on_the_mock_portal_after_its_paths_moved_names_the_new_addresses():
+    mock = MockPortal(tenders=12, page_size=5)
+    mock.paths_moved = True
+    made, fetch, tool = space(mock)
+    text = tool["portal_hints"].run({}).text
+    assert "12 x mock.example/portal/v{n}/tenders/MP-{n}-{n}" in text
+    assert "e.g. https://mock.example/portal/v2/tenders/MP-2026-0012" in text

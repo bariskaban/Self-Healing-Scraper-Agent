@@ -14,6 +14,8 @@ export function SettingsSheet(props: {
   settings: Settings | null;
   writable: boolean;
   onSaved: (s: Settings) => void;
+  /** why the form is read-only, when it is not the demo snapshot */
+  readOnlyReason?: string;
 }) {
   const { settings } = props;
   const [draft, setDraft] = useState<SettingsDraft>(() => draftFrom(settings ?? { attachTimeLimitMinutes: 20, ignoreRobotsTxt: false }));
@@ -43,7 +45,7 @@ export function SettingsSheet(props: {
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="text-section">Settings</SheetTitle>
-          <SheetDescription>{props.writable ? "Applies to all portals." : "Read-only while showing demo data or while the API is offline."}</SheetDescription>
+          <SheetDescription>{props.writable ? "Applies to all portals." : props.readOnlyReason ?? "Read-only while showing demo data or while the API is offline."}</SheetDescription>
         </SheetHeader>
         <form className="mt-6 flex flex-col gap-6" onSubmit={(e) => { e.preventDefault(); void save(); }}>
           <div className="flex flex-col gap-2">

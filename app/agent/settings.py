@@ -23,12 +23,23 @@ class AgentSettings:
     # Each model call's input is kept near this many tokens: older steps are replaced by their
     # one-line summaries (Q9: a context that grows with every tool result costs 4.6 times as much).
     context_tokens: int = 30_000
+    # When a call would pass `context_tokens`, the oldest steps are summarised until what is left is
+    # this share of it. Dropping in batches keeps the start of the prompt the same from call to
+    # call, which is what the prompt cache needs (the first real portal paid 72% of its learn
+    # on calls where the cache missed).
+    context_keep_share: float = 0.5
     # Characters taken as one token when the size of a call is estimated before it is sent.
     chars_per_token: float = 3.5
     # Seconds one model call may take (CONVENTIONS.md, rule 8), and how often the client retries
     # a timeout, a connection error or a 5xx answer.
     model_timeout_seconds: float = 120.0
     model_retries: int = 2
+    # A call the API refuses for its rate limit (429) is tried again after the wait the API names,
+    # or after this many seconds times the number of the wait; never longer than the maximum
+    # (CONVENTIONS.md, rule 8: a Retry-After of up to 60 s is obeyed), and this many times at most.
+    rate_limit_waits: int = 5
+    rate_limit_wait_seconds: float = 15.0
+    rate_limit_wait_max_seconds: float = 60.0
     # Reasoning effort per job; blank sends none. Q9 could not confirm the levels of every model.
     reasoning_learn: str = "medium"
     reasoning_repair: str = "medium"
@@ -36,6 +47,9 @@ class AgentSettings:
     # Requests one learn or one repair may send to the portal while it explores (Q3: about 60).
     learn_max_requests: int = 60
     repair_max_requests: int = 30
+    # A repair that finds no recipe is followed by this many learns from scratch, with the old recipe
+    # as a draft and the learn's own budget (DESIGN.md, Repair, step 3). 0 turns that off.
+    repair_relearns: int = 1
     # A page view handed to the model is cut into parts of this many characters (about 4K tokens, Q4).
     view_chars: int = 14_000
     # Text inside one element, and one attribute value, are cut to this many characters in a view.
@@ -52,6 +66,13 @@ class AgentSettings:
     links_groups: int = 40
     search_matches: int = 20
     search_context_chars: int = 120
+    # `portal_hints` reads at most this many sitemap files, this many bytes of each, and this many
+    # addresses in all, and shows `links_groups` groups of them: a national portal's sitemap lists
+    # tens of thousands of notices (audit of Q3), and it must never reach the model whole.
+    hints_sitemaps: int = 3
+    hints_sitemap_bytes: int = 2_000_000
+    hints_addresses: int = 5_000
+    hints_samples: int = 2
     # A dry run of the working recipe reads at most this many list pages and this many tenders'
     # own pages, and may fetch this many pages it lacks before it reports the rest as missing.
     dry_run_list_pages: int = 2
@@ -69,11 +90,11 @@ class AgentSettings:
     def __post_init__(self) -> None:
         for f in fields(self):
             value = getattr(self, f.name)
-            if isinstance(value, (int, float)) and not isinstance(value, bool) and f.name != "model_retries":
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and f.name not in ("model_retries", "repair_relearns"):
                 if not value > 0:
                     raise ValueError(f"agent setting {f.name} must be positive")
-        if self.model_retries < 0:
-            raise ValueError("agent setting model_retries must not be negative")
+        if self.model_retries < 0 or self.repair_relearns < 0:
+            raise ValueError("agent settings model_retries and repair_relearns must not be negative")
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "AgentSettings":

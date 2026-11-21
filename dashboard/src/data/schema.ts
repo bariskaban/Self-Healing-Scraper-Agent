@@ -122,3 +122,28 @@ export const tenderSchema = z.object({
 });
 
 export const tendersSchema = z.array(tenderSchema);
+
+/** PortalOut: one entry of the public GET /portals. The contract routes carry nothing else about a portal. */
+export const contractPortalSchema = z.object({
+  id: z.string().min(1),
+  url: z.string(),
+  state: portalStateSchema,
+  reason: z.string(),
+  tenderCount: z.number().int().nonnegative(),
+  lastSuccessAt: iso.nullable(),
+  cause: z.string().nullish(),
+});
+export const contractPortalsSchema = z.array(contractPortalSchema);
+
+/** RunOut: one entry of the public GET /portals/{id}/runs, oldest first. */
+export const contractRunSchema = z.object({
+  id: z.string().min(1),
+  kind: runKind,
+  startedAt: iso,
+  finishedAt: iso.nullable(),
+  result: runResult,
+});
+export const contractRunsSchema = z.array(contractRunSchema);
+
+/** 201 answer of POST /portals. The same address always gets the same id. */
+export const createdIdSchema = z.object({ id: z.string().min(1) });

@@ -49,7 +49,7 @@ def test_learn_returns_the_recipe_that_passed_its_dry_run():
     assert {"open_page", "try_locator", "propose_recipe", "replace_node"} <= set(first["tools"])
     assert first["instructions"].startswith("You learn how to read one public procurement portal")
     assert steps.steps[-1].name == "learn_done" and "$" in steps.steps[-1].summary
-    assert {step.prompt_id for step in steps.steps if step.kind is StepKind.llm} == {"learn/system@2"}
+    assert {step.prompt_id for step in steps.steps if step.kind is StepKind.llm} == {"learn/system@4"}
     # The recipe really reads the portal: a dry run on the pages the learn fetched gives the tenders.
     assert all(step.summary and "\n" not in step.summary for step in steps.steps)
 
@@ -109,19 +109,23 @@ def list_node_reading(published: str, deadline: str) -> dict:
     return node
 
 
-def run_repair(script, known=()):
+def run_repair(script, known=(), relearns=0, documents=None):
     model, steps = ScriptedModel(script), StepLog("run1", first=9)
+    settings = AgentSettings(repair_relearns=relearns)
     fetch = MockFetch(swapped())
     rows = [failed("run1", "changed.submission_deadline", "The deadline of 9 of 12 known tenders changed.",
                    cause=Cause.breakage)]
     target = portal().model_copy(update={"timezone": "Europe/Amsterdam"})
     result = repair(target, RecipeBody.from_authored(mock_recipe()), rows, fetch=fetch, known=known,
-                    runner=Runner(model), steps=steps, models=MODELS)
+                    known_documents=documents, runner=Runner(model, settings), steps=steps, models=MODELS,
+                    settings=settings)
     return result, model, steps, fetch
 
 
 def test_repair_starts_from_the_current_recipe_its_dry_run_today_and_the_failed_checks():
-    record = TenderRecord(portal_id="p1", tender_id="MP-2026-0012", title="Training courses", url=f"{URL}/tenders/MP-2026-0012")
+    newest = swapped().truth()[0]
+    assert newest["id"] == "MP-2026-0012"
+    record = TenderRecord(portal_id="p1", tender_id=newest["id"], title=newest["title"], url=newest["url"])
     node = list_node_reading("td.published", "td.deadline")
     result, model, steps, fetch = run_repair([
         [call("replace_node", node=node)],
@@ -207,3 +211,70 @@ def test_the_pages_of_a_spot_check_come_through_the_network_layer_as_plain_text(
     assert [page.tender_id for page in pages] == [truth[0]["id"], truth[1]["id"]] and len(fetch.asked) == 2
     assert truth[0]["title"] in pages[0].text and "<" not in pages[0].text
     assert pages[0].values["submission_deadline"] == truth[0]["submission_deadline"].isoformat()
+
+
+def test_a_repair_whose_records_differ_from_the_last_good_read_is_not_accepted():
+    # The portal swapped its two date columns. A "repair" that leaves the swap in reads dates, but the wrong ones.
+    fetch = MockFetch(swapped())
+    truth = fetch.mock.truth()
+    known = [TenderRecord(portal_id="p1", tender_id=t["id"], title=t["title"], url=t["url"], buyer_name=t["buyer_name"],
+                          publication_date=t["publication_date"], submission_deadline=t["submission_deadline"])
+             for t in truth]
+    # Read the dates from the list only, so that the swapped columns show in the records.
+    list_only = json.loads(json.dumps(GOOD))
+    list_only["nodes"][0]["fields"] = list_node_reading("td.published", "td.deadline")["fields"]
+    list_only["nodes"][1]["fields"] = [f for f in list_only["nodes"][1]["fields"]
+                                       if f["name"] not in ("publication_date", "submission_deadline")]
+    model, steps = ScriptedModel([[call("propose_recipe", recipe=list_only, timezone="Europe/Amsterdam",
+                                        country_code="NL")],
+                                  {"done": True, "what_changed": "Read the dates from the list."}]), StepLog("run1")
+    target = portal().model_copy(update={"timezone": "Europe/Amsterdam"})
+    result = repair(target, RecipeBody.from_authored(mock_recipe()), [], fetch=fetch, known=known,
+                    runner=Runner(model), steps=steps, models=MODELS, settings=AgentSettings(repair_relearns=0))
+    assert result.recipe is None
+    said = next(item["output"] for item in model.requests[1]["input"] if item.get("type") == "function_call_output")
+    assert '"accepted": false' in said and "differs from the last good read" in said and "publication_date" in said
+
+
+def test_a_repair_that_finds_nothing_is_followed_by_a_learn_from_scratch_with_the_old_recipe_as_a_draft():
+    node = list_node_reading("td.published", "td.deadline")
+    newest = swapped().truth()[0]
+    record = TenderRecord(portal_id="p1", tender_id=newest["id"], title=newest["title"], url=newest["url"])
+    result, model, steps, _ = run_repair([
+        {"done": False, "what_changed": "I could not find where the dates went."},       # the patch gives up
+        [call("search_page", url=None, pattern="deadline")],                               # the learn takes over
+        [call("replace_node", node=node)],
+        {"done": True, "summary": "The list's two date columns changed places."}], known=[record], relearns=1)
+    assert result.recipe is not None and result.recipe.nodes[0].model_dump(mode="json") == node
+    assert result.model_calls == 4 and result.usage.input_tokens == 4000      # both runs are counted
+    again = model.requests[1]
+    assert again["instructions"].startswith("You learn how to read") and again["model"] == MODELS.learn
+    task = again["input"][0]["content"]
+    assert "its recipe stopped working: I could not find where the dates went." in task
+    assert "start from https://mock.example/" in task and newest["id"] in task and '"start": "list"' in task
+    names = [step.name for step in steps.steps]
+    assert names.index("repair_failed") < names.index("learn_done")
+    # Searching with no address looks through every page opened so far.
+    said = next(item["output"] for item in model.requests[2]["input"] if item.get("type") == "function_call_output")
+    assert "== https://mock.example/tenders" in said
+
+
+def test_a_learn_again_that_hands_back_the_draft_unchanged_is_no_repair():
+    result, _, steps, _ = run_repair([{"done": False, "what_changed": "Nothing found."},
+                                      [call("check_recipe", show_recipe=False)],
+                                      {"done": True, "summary": "The draft still works."}], relearns=1)
+    assert result.recipe is None and steps.steps[-1].name == "learn_failed" and result.model_calls == 3
+
+
+def test_a_repair_that_loses_the_files_of_known_tenders_is_not_accepted():
+    fetch_truth = swapped().truth()
+    known = [TenderRecord(portal_id="p1", tender_id=t["id"], title=t["title"], url=t["url"]) for t in fetch_truth]
+    without_files = json.loads(json.dumps(GOOD))
+    without_files["nodes"][1]["documents"]["links"]["expr"] = "ul.attachments a.none"
+    result, model, _, _ = run_repair(
+        [[call("propose_recipe", recipe=without_files, timezone="Europe/Amsterdam", country_code="NL")],
+         {"done": True, "what_changed": "Changed the document links."}],
+        known=known, documents={t["id"]: len(t["documents"]) for t in fetch_truth})
+    assert result.recipe is None
+    said = next(item["output"] for item in model.requests[1]["input"] if item.get("type") == "function_call_output")
+    assert '"accepted": false' in said and "tenders that had files in the last good read have none now" in said

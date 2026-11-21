@@ -1,0 +1,4062 @@
+[
+ {
+  "variant": "fr_cards",
+  "what": "repair, face moved",
+  "expect": "serve",
+  "learned": true,
+  "seconds": 55,
+  "model_calls": 10,
+  "requests": 11,
+  "input_tokens": 241098,
+  "cached_share": 0.84,
+  "output_tokens": 3073,
+  "cost_usd": 0.126,
+  "reason": "The portal moved under `/portal/v3/`, so the recipe now follows the new homepage link and updated notice links; the dry run passed, and all three reference tenders retain their original IDs.",
+  "old_recipe_matched_after_change": 0,
+  "steps": [
+   "tool open_page: Opened https://fr-cards.variants.example/: status 200, 219 bytes.",
+   "tool open_page: Opened https://fr-cards.variants.example/portal/v3/: status 200, 231 bytes.",
+   "tool open_page: Opened https://fr-cards.variants.example/portal/v3/consultations: status 200, 9,390 bytes.",
+   "tool open_page: Opened https://fr-cards.variants.example/portal/v3/consultation/MP-2026-0045: status 200, 1,448 bytes.",
+   "tool try_locator: Tried css locator \".objet a[href*='/consultation/']\" on https://fr-cards.variants.example/portal/v3/consultations: 5 value(s) in 20 item(s).",
+   "tool try_locator: Tried css locator \"a[href$='/consultations']\" on https://fr-cards.variants.example/portal/v3/: 1 value(s).",
+   "tool propose_recipe: Dry run of the recipe: 40 record(s) from 40 row(s), 3 tender page(s) read; it passed.",
+   "tool page_links: Listed the links of https://fr-cards.variants.example/portal/v3/consultations containing 'page='.",
+   "tool page_links: Listed the links of https://fr-cards.variants.example/portal/v3/consultations?page=2 containing 'page='.",
+   "tool open_page: Opened https://fr-cards.variants.example/portal/v3/consultations?page=3: status 200, 2,501 bytes.",
+   "tool open_page: Opened https://fr-cards.variants.example/portal/v3/consultation/MP-2026-0001: status 200, 1,331 bytes.",
+   "tool open_page: Opened https://fr-cards.variants.example/portal/v3/consultation/MP-2026-0002: status 200, 1,398 bytes.",
+   "tool open_page: Opened https://fr-cards.variants.example/portal/v3/consultation/MP-2026-0003: status 200, 1,294 bytes.",
+   "decision repair_done: The repair left a recipe whose dry run read 40 tender(s) (10 model call(s), 11 request(s), $0.13)."
+  ],
+  "recipe": {
+   "start": "home",
+   "nodes": [
+    {
+     "id": "home",
+     "kind": "html",
+     "role": "entry",
+     "request": {
+      "method": "GET",
+      "url": "/",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     },
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "portal",
+     "kind": "html",
+     "role": "step",
+     "request": null,
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "consultations",
+     "kind": "html",
+     "role": "list",
+     "request": null,
+     "items": {
+      "kind": "css",
+      "expr": "div.consultation[data-ref]",
+      "labels": [],
+      "attr": null
+     },
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./@data-ref",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": ".objet a[href*='/consultation/']",
+         "labels": [],
+         "attr": "href"
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": "(MP-\\d{4}-\\d{4,})$"
+       }
+      },
+      {
+       "name": "url",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".objet a[href*='/consultation/']",
+         "labels": [],
+         "attr": "href"
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//a[contains(@href,'/consultation/')]/@href",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "url",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".objet a[href*='/consultation/']",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//a[contains(@href,'/consultation/')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".organisme",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".infos .date-publication",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//span[starts-with(normalize-space(.),'Publi\u00e9 le ')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%d %B %Y"
+        ],
+        "words": [],
+        "pattern": "(\\d{1,2}\\s+[^\\d\\s]+\\s+\\d{4})$"
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".infos .date-limite",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//span[starts-with(normalize-space(.),'Date limite de remise des plis')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%d %B %Y \u00e0 %H:%M"
+        ],
+        "words": [],
+        "pattern": "(\\d{1,2}\\s+[^\\d\\s]+\\s+\\d{4}\\s+\u00e0\\s+\\d{1,2}:\\d{2})$"
+       }
+      }
+     ],
+     "paging": {
+      "kind": "next_link",
+      "next": {
+       "kind": "css",
+       "expr": "nav.pagination a[rel='next'][href]",
+       "labels": [],
+       "attr": "href"
+      },
+      "param": null,
+      "first": null,
+      "size_param": null,
+      "size": null,
+      "form": null,
+      "max_pages": null
+     },
+     "facts": {
+      "total": {
+       "kind": "css",
+       "expr": "p.resultats strong",
+       "labels": [],
+       "attr": null
+      },
+      "total_counts_closed": false,
+      "empty_marker": null,
+      "newest_first": true,
+      "has_all_required": true,
+      "change_mark": null
+     },
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "notice",
+     "kind": "html",
+     "role": "detail",
+     "request": null,
+     "items": null,
+     "fields": [
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "h1.objet",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "head title",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Organisme"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)='Organisme']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Date de publication"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)='Date de publication']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%d %B %Y"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Date limite de remise des plis"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)='Date limite de remise des plis']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%d %B %Y \u00e0 %H:%M"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "R\u00e9f\u00e9rence"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)='R\u00e9f\u00e9rence']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "description",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "div.description",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Proc\u00e9dure"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)='Proc\u00e9dure']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "Appel d'offres ouvert",
+          "value": "open"
+         },
+         {
+          "name": "Proc\u00e9dure ouverte",
+          "value": "open"
+         },
+         {
+          "name": "Appel d'offres restreint",
+          "value": "restricted"
+         },
+         {
+          "name": "Proc\u00e9dure restreinte",
+          "value": "restricted"
+         },
+         {
+          "name": "Proc\u00e9dure n\u00e9goci\u00e9e",
+          "value": "negotiated"
+         },
+         {
+          "name": "Proc\u00e9dure n\u00e9goci\u00e9e avec mise en concurrence",
+          "value": "negotiated"
+         },
+         {
+          "name": "Proc\u00e9dure n\u00e9goci\u00e9e sans mise en concurrence",
+          "value": "negotiated"
+         },
+         {
+          "name": "Proc\u00e9dure avec n\u00e9gociation",
+          "value": "negotiated"
+         },
+         {
+          "name": "Proc\u00e9dure concurrentielle avec n\u00e9gociation",
+          "value": "negotiated"
+         },
+         {
+          "name": "Dialogue comp\u00e9titif",
+          "value": "other"
+         },
+         {
+          "name": "Partenariat d'innovation",
+          "value": "other"
+         },
+         {
+          "name": "Attribution directe",
+          "value": "other"
+         },
+         {
+          "name": "Proc\u00e9dure adapt\u00e9e",
+          "value": "other"
+         },
+         {
+          "name": "March\u00e9 \u00e0 proc\u00e9dure adapt\u00e9e",
+          "value": "other"
+         },
+         {
+          "name": "Autre proc\u00e9dure",
+          "value": "other"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Type de march\u00e9"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)='Type de march\u00e9']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "Travaux",
+          "value": "works"
+         },
+         {
+          "name": "Services",
+          "value": "services"
+         },
+         {
+          "name": "Fournitures",
+          "value": "supplies"
+         },
+         {
+          "name": "March\u00e9 de travaux",
+          "value": "works"
+         },
+         {
+          "name": "March\u00e9 de services",
+          "value": "services"
+         },
+         {
+          "name": "March\u00e9 de fournitures",
+          "value": "supplies"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "cpv_codes",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Codes CPV"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)='Codes CPV']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "cpv",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "postal_code",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Lieu d'ex\u00e9cution"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)=\"Lieu d'ex\u00e9cution\"]]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "postal_code",
+        "formats": [],
+        "words": [],
+        "pattern": "^(\\d{4}\\s?[A-Z]{2})\\b"
+       }
+      },
+      {
+       "name": "city",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Lieu d'ex\u00e9cution"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//dl[contains(concat(' ',normalize-space(@class),' '),' fiche ')]/dd[preceding-sibling::dt[1][normalize-space(.)=\"Lieu d'ex\u00e9cution\"]]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": "^\\d{4}\\s?[A-Z]{2}\\s+(.+)$"
+       }
+      }
+     ],
+     "paging": null,
+     "facts": null,
+     "documents": {
+      "links": {
+       "kind": "css",
+       "expr": "ul.dce a.doc[href]",
+       "labels": [],
+       "attr": "href"
+      },
+      "url": null,
+      "then": null,
+      "name": {
+       "kind": "xpath",
+       "expr": ".",
+       "labels": [],
+       "attr": null
+      },
+      "size": {
+       "kind": "xpath",
+       "expr": "following-sibling::span[contains(concat(' ',normalize-space(@class),' '),' sz ')]",
+       "labels": [],
+       "attr": null
+      },
+      "all_in_one_zip": false,
+      "request": null
+     },
+     "steps": [],
+     "family": null
+    }
+   ],
+   "edges": [
+    {
+     "source": "home",
+     "target": "portal",
+     "action": "follow_link",
+     "per_item": false,
+     "link": {
+      "kind": "xpath",
+      "expr": "//a[normalize-space(.)='Procurement portal']/@href",
+      "labels": [],
+      "attr": null
+     },
+     "request": null
+    },
+    {
+     "source": "portal",
+     "target": "consultations",
+     "action": "follow_link",
+     "per_item": false,
+     "link": {
+      "kind": "css",
+      "expr": "a[href$='/consultations']",
+      "labels": [],
+      "attr": "href"
+     },
+     "request": null
+    },
+    {
+     "source": "consultations",
+     "target": "notice",
+     "action": "follow_link",
+     "per_item": true,
+     "link": {
+      "kind": "css",
+      "expr": ".objet a[href*='/consultation/']",
+      "labels": [],
+      "attr": "href"
+     },
+     "request": null
+    }
+   ],
+   "identity": {
+    "from_url": "/consultation/(MP-\\d{4}-\\d{4,})(?:[/?#]|$)",
+    "shape": "^MP-\\d{4}-\\d{4,}$",
+    "must_agree": true
+   },
+   "family": null,
+   "host": {
+    "language": "fr",
+    "settings": []
+   },
+   "rationale": "The portal moved under `/portal/v3/`, so the recipe now follows the new homepage link and updated notice links; the dry run passed, and all three reference tenders retain their original IDs."
+  },
+  "nodes_changed": [
+   "portal",
+   "consultations"
+  ],
+  "score": {
+   "truth": 45,
+   "read": 45,
+   "matched": 45,
+   "problems": [],
+   "fields": {
+    "url": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "title": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "buyer_name": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "publication_date": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "submission_deadline": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "reference_number": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "cpv_codes": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "procedure_type": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "contract_nature": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    }
+   },
+   "documents_right": 45
+  }
+ },
+ {
+  "variant": "it_detail",
+  "what": "repair, face moved",
+  "expect": "serve",
+  "learned": true,
+  "seconds": 24,
+  "model_calls": 8,
+  "requests": 10,
+  "input_tokens": 189147,
+  "cached_share": 0.82,
+  "output_tokens": 1107,
+  "cost_usd": 0.094,
+  "reason": "The site root now shows a welcome page, so I pointed the list request to the linked procurement portal at `/portal/v3/`, and the dry run passed.",
+  "old_recipe_matched_after_change": 0,
+  "steps": [
+   "tool open_page: Opened https://it-detail.variants.example/: status 200, 219 bytes.",
+   "tool open_page: Opened https://it-detail.variants.example/portal/v3/: status 200, 6,871 bytes.",
+   "tool try_locator: Tried css locator 'td.oggetto a[href]' on https://it-detail.variants.example/portal/v3/: 5 value(s) in 20 item(s).",
+   "tool replace_node: Replaced node 'list'. Dry run of the recipe: 40 record(s) from 40 row(s), 3 tender page(s) read; it passed.",
+   "tool open_page: Opened https://it-detail.variants.example/portal/v3/gare/elenco.do?p=3: status 200, 2,086 bytes.",
+   "tool open_page: Opened https://it-detail.variants.example/portal/v3/gare/dettaglio.do?codice=MP-2026-0001: status 200, 1,776 bytes.",
+   "tool open_page: Opened https://it-detail.variants.example/portal/v3/gare/dettaglio.do?codice=MP-2026-0002: status 200, 1,845 bytes.",
+   "tool open_page: Opened https://it-detail.variants.example/portal/v3/gare/dettaglio.do?codice=MP-2026-0003: status 200, 1,744 bytes.",
+   "tool open_page: Opened https://it-detail.variants.example/portal/v3/gare/elenco.do?p=2: status 200, 6,874 bytes.",
+   "tool try_locator: Tried css locator '.pagine b + a[href]' on https://it-detail.variants.example/portal/v3/gare/elenco.do?p=2: 1 value(s).",
+   "decision repair_done: The repair left a recipe whose dry run read 40 tender(s) (8 model call(s), 10 request(s), $0.09)."
+  ],
+  "recipe": {
+   "start": "list",
+   "nodes": [
+    {
+     "id": "list",
+     "kind": "html",
+     "role": "list",
+     "request": {
+      "method": "GET",
+      "url": "/portal/v3/",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     },
+     "items": {
+      "kind": "css",
+      "expr": "#elenco tbody tr.gara",
+      "labels": [],
+      "attr": null
+     },
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "td.codice",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "td.oggetto a[href*='codice=']",
+         "labels": [],
+         "attr": "href"
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": "^(?:[^\\s]*[?&]codice=)?(MP-\\d{4}-\\d+)(?:[&#].*)?$"
+       }
+      },
+      {
+       "name": "url",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "td.oggetto a[href]",
+         "labels": [],
+         "attr": "href"
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//a[contains(@href,'/gare/dettaglio.do?codice=')]",
+         "labels": [],
+         "attr": "href"
+        }
+       ],
+       "value": {
+        "type": "url",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "td.oggetto a[href]",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//a[contains(@href,'/gare/dettaglio.do?codice=')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "td.ente",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "td.pubblicazione",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%d/%m/%Y"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "td.tipo",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "Lavori",
+          "value": "works"
+         },
+         {
+          "name": "Servizi",
+          "value": "services"
+         },
+         {
+          "name": "Forniture",
+          "value": "supplies"
+         },
+         {
+          "name": "Lavoro",
+          "value": "works"
+         },
+         {
+          "name": "Servizio",
+          "value": "services"
+         },
+         {
+          "name": "Fornitura",
+          "value": "supplies"
+         }
+        ],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": {
+      "kind": "next_link",
+      "next": {
+       "kind": "css",
+       "expr": ".pagine b + a[href]",
+       "labels": [],
+       "attr": "href"
+      },
+      "param": null,
+      "first": null,
+      "size_param": null,
+      "size": null,
+      "form": null,
+      "max_pages": null
+     },
+     "facts": {
+      "total": {
+       "kind": "regex",
+       "expr": "Risultati:\\s*(\\d+)",
+       "labels": [],
+       "attr": null
+      },
+      "total_counts_closed": false,
+      "empty_marker": null,
+      "newest_first": true,
+      "has_all_required": false,
+      "change_mark": null
+     },
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "detail",
+     "kind": "html",
+     "role": "detail",
+     "request": null,
+     "items": null,
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Codice gara:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='Codice gara:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "body > h1",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "head > title",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Stazione appaltante:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='Stazione appaltante:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Data di pubblicazione:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='Data di pubblicazione:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%d/%m/%Y"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Scadenza presentazione offerte:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='Scadenza presentazione offerte:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%d/%m/%Y ore %H:%M"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "CIG:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='CIG:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "description",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".descrizione",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Procedura:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='Procedura:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "Procedura aperta",
+          "value": "open"
+         },
+         {
+          "name": "Procedura ristretta",
+          "value": "restricted"
+         },
+         {
+          "name": "Procedura negoziata",
+          "value": "negotiated"
+         },
+         {
+          "name": "Procedura negoziata senza previa pubblicazione",
+          "value": "negotiated"
+         },
+         {
+          "name": "Procedura negoziata con previa pubblicazione",
+          "value": "negotiated"
+         },
+         {
+          "name": "Procedura negoziata senza bando",
+          "value": "negotiated"
+         },
+         {
+          "name": "Procedura competitiva con negoziazione",
+          "value": "negotiated"
+         },
+         {
+          "name": "Dialogo competitivo",
+          "value": "other"
+         },
+         {
+          "name": "Partenariato per l'innovazione",
+          "value": "other"
+         },
+         {
+          "name": "Affidamento diretto",
+          "value": "other"
+         },
+         {
+          "name": "Altra procedura",
+          "value": "other"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "cpv_codes",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "CPV:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='CPV:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "cpv",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "postal_code",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Luogo:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='Luogo:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "postal_code",
+        "formats": [],
+        "words": [],
+        "pattern": "^(\\d{4}\\s?[A-Z]{2})(?=\\s|$)"
+       }
+      },
+      {
+       "name": "city",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Luogo:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//div[@class='scheda']//span[normalize-space(.)='Luogo:']/following-sibling::span[@class='valore']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": "^\\d{4}\\s?[A-Z]{2}\\s+(.+)$"
+       }
+      }
+     ],
+     "paging": null,
+     "facts": null,
+     "documents": {
+      "links": {
+       "kind": "css",
+       "expr": "ul.allegati a.doc[href]",
+       "labels": [],
+       "attr": "href"
+      },
+      "url": null,
+      "then": null,
+      "name": {
+       "kind": "xpath",
+       "expr": ".",
+       "labels": [],
+       "attr": null
+      },
+      "size": {
+       "kind": "xpath",
+       "expr": "following-sibling::span[@class='sz']",
+       "labels": [],
+       "attr": null
+      },
+      "all_in_one_zip": false,
+      "request": null
+     },
+     "steps": [],
+     "family": null
+    }
+   ],
+   "edges": [
+    {
+     "source": "list",
+     "target": "detail",
+     "action": "follow_link",
+     "per_item": true,
+     "link": {
+      "kind": "css",
+      "expr": "td.oggetto a[href]",
+      "labels": [],
+      "attr": "href"
+     },
+     "request": null
+    }
+   ],
+   "identity": {
+    "from_url": "[?&]codice=(MP-\\d{4}-\\d+)(?=[&#]|$)",
+    "shape": "^MP-\\d{4}-\\d{4}$",
+    "must_agree": true
+   },
+   "family": null,
+   "host": {
+    "language": "it",
+    "settings": []
+   },
+   "rationale": "The site root now shows a welcome page, so I pointed the list request to the linked procurement portal at `/portal/v3/`, and the dry run passed."
+  },
+  "nodes_changed": [
+   "list"
+  ],
+  "score": {
+   "truth": 45,
+   "read": 45,
+   "matched": 45,
+   "problems": [],
+   "fields": {
+    "url": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "title": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "buyer_name": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "publication_date": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "submission_deadline": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "reference_number": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "cpv_codes": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "procedure_type": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "contract_nature": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    }
+   },
+   "documents_right": 45
+  }
+ },
+ {
+  "variant": "docs_page",
+  "what": "repair, face moved",
+  "expect": "serve",
+  "learned": true,
+  "seconds": 19,
+  "model_calls": 6,
+  "requests": 11,
+  "input_tokens": 131964,
+  "cached_share": 0.78,
+  "output_tokens": 982,
+  "cost_usd": 0.078,
+  "reason": "The tender list moved from `/` to `/portal/v3/`, so I updated the list address and tender link patterns; the dry run passed with 24 tenders, including all three previously reported IDs.",
+  "old_recipe_matched_after_change": 0,
+  "steps": [
+   "tool open_page: Opened https://docs-page.variants.example/: status 200, 219 bytes.",
+   "tool open_page: Opened https://docs-page.variants.example/portal/v3/: status 200, 7,937 bytes.",
+   "tool try_locator: Tried css locator 'a.opp-link' on https://docs-page.variants.example/portal/v3/: 5 value(s) in 24 item(s).",
+   "tool open_page: Opened https://docs-page.variants.example/portal/v3/opportunity/MP-2026-0001: status 200, 1,032 bytes.",
+   "tool replace_node: Replaced node 'opportunities'. Dry run of the recipe: 24 record(s) from 24 row(s), 3 tender page(s) read; it passed.",
+   "tool open_page: Opened https://docs-page.variants.example/portal/v3/opportunity/MP-2026-0002: status 200, 969 bytes.",
+   "tool open_page: Opened https://docs-page.variants.example/portal/v3/opportunity/MP-2026-0003: status 200, 995 bytes.",
+   "tool try_locator: Tried css locator \"a.opp-link[href$='MP-2026-0001'], a.opp-link[href$='MP-2026-0002'], a.opp-link[href$='MP-2026-0003']\" on https://docs-page.variants.example/portal/v3/: 3 value(s).",
+   "decision repair_done: The repair left a recipe whose dry run read 24 tender(s) (6 model call(s), 11 request(s), $0.08)."
+  ],
+  "recipe": {
+   "start": "opportunities",
+   "nodes": [
+    {
+     "id": "opportunities",
+     "kind": "html",
+     "role": "list",
+     "request": {
+      "method": "GET",
+      "url": "/portal/v3/",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     },
+     "items": {
+      "kind": "css",
+      "expr": "#opportunities > li.opportunity",
+      "labels": [],
+      "attr": null
+     },
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./@id",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "a.opp-link",
+         "labels": [],
+         "attr": "href"
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": "^(?:opp-|/portal/v3/opportunity/)(MP-\\d{4}-\\d{4})$"
+       }
+      },
+      {
+       "name": "url",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "a.opp-link",
+         "labels": [],
+         "attr": "href"
+        },
+        {
+         "kind": "xpath",
+         "expr": "./a[starts-with(@href,'/portal/v3/opportunity/')]",
+         "labels": [],
+         "attr": "href"
+        }
+       ],
+       "value": {
+        "type": "url",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "a.opp-link",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "./a[starts-with(@href,'/portal/v3/opportunity/')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "span.opp-buyer",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "time.opp-closes[datetime]",
+         "labels": [],
+         "attr": "datetime"
+        },
+        {
+         "kind": "xpath",
+         "expr": "./time[contains(concat(' ',normalize-space(@class),' '),' opp-closes ')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%Y-%m-%dT%H:%M:%S%z",
+         "%d %b %Y, %H:%M"
+        ],
+        "words": [],
+        "pattern": "^(?:closes\\s+)?(.+)$"
+       }
+      }
+     ],
+     "paging": {
+      "kind": "none",
+      "next": null,
+      "param": null,
+      "first": null,
+      "size_param": null,
+      "size": null,
+      "form": null,
+      "max_pages": null
+     },
+     "facts": {
+      "total": null,
+      "total_counts_closed": null,
+      "empty_marker": null,
+      "newest_first": true,
+      "has_all_required": false,
+      "change_mark": null
+     },
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "opportunity",
+     "kind": "html",
+     "role": "detail",
+     "request": null,
+     "items": null,
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Opportunity ID"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "dl.summary dt:contains('Opportunity ID') + dd",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "body > h1",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "head > title",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Buyer"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "dl.summary dt:contains('Buyer') + dd",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Published"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "dl.summary dt:contains('Published') + dd",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%d %B %Y"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Closing"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "dl.summary dt:contains('Closing') + dd",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%d %B %Y, %H:%M"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Reference"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "dl.summary dt:contains('Reference') + dd",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "description",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "div.about",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Procedure"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "dl.summary dt:contains('Procedure') + dd",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "Open procedure",
+          "value": "open"
+         },
+         {
+          "name": "Restricted procedure",
+          "value": "restricted"
+         },
+         {
+          "name": "Negotiated procedure",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negotiated procedure with prior publication",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negotiated procedure without prior publication",
+          "value": "negotiated"
+         },
+         {
+          "name": "Competitive procedure with negotiation",
+          "value": "negotiated"
+         },
+         {
+          "name": "Competitive dialogue",
+          "value": "other"
+         },
+         {
+          "name": "Innovation partnership",
+          "value": "other"
+         },
+         {
+          "name": "Direct award",
+          "value": "other"
+         },
+         {
+          "name": "Other procedure",
+          "value": "other"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Category"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "dl.summary dt:contains('Category') + dd",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "Works",
+          "value": "works"
+         },
+         {
+          "name": "Services",
+          "value": "services"
+         },
+         {
+          "name": "Supplies",
+          "value": "supplies"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "cpv_codes",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "CPV"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "dl.summary dt:contains('CPV') + dd",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "cpv",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "city",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "body > h1",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "head > title",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": ",\\s*([^,()]+?)\\s*\\(lot \\d+\\)$"
+       }
+      }
+     ],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "documents",
+     "kind": "html",
+     "role": "documents",
+     "request": null,
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": {
+      "links": {
+       "kind": "css",
+       "expr": "ul.documents a.doc[href]",
+       "labels": [],
+       "attr": "href"
+      },
+      "url": null,
+      "then": null,
+      "name": {
+       "kind": "xpath",
+       "expr": ".",
+       "labels": [],
+       "attr": null
+      },
+      "size": {
+       "kind": "xpath",
+       "expr": "./following-sibling::span[contains(concat(' ',normalize-space(@class),' '),' sz ')]",
+       "labels": [],
+       "attr": null
+      },
+      "all_in_one_zip": false,
+      "request": null
+     },
+     "steps": [],
+     "family": null
+    }
+   ],
+   "edges": [
+    {
+     "source": "opportunities",
+     "target": "opportunity",
+     "action": "follow_link",
+     "per_item": true,
+     "link": {
+      "kind": "css",
+      "expr": "a.opp-link",
+      "labels": [],
+      "attr": "href"
+     },
+     "request": null
+    },
+    {
+     "source": "opportunity",
+     "target": "documents",
+     "action": "follow_link",
+     "per_item": false,
+     "link": {
+      "kind": "css",
+      "expr": "a.documents-link[href$='/documents']",
+      "labels": [],
+      "attr": "href"
+     },
+     "request": null
+    }
+   ],
+   "identity": {
+    "from_url": "/opportunity/(MP-\\d{4}-\\d{4})/?$",
+    "shape": "^MP-\\d{4}-\\d{4}$",
+    "must_agree": true
+   },
+   "family": null,
+   "host": {
+    "language": "en",
+    "settings": []
+   },
+   "rationale": "The tender list moved from `/` to `/portal/v3/`, so I updated the list address and tender link patterns; the dry run passed with 24 tenders, including all three previously reported IDs."
+  },
+  "nodes_changed": [
+   "opportunities"
+  ],
+  "score": {
+   "truth": 24,
+   "read": 24,
+   "matched": 24,
+   "problems": [],
+   "fields": {
+    "url": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    },
+    "title": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    },
+    "buyer_name": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    },
+    "publication_date": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    },
+    "submission_deadline": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    },
+    "reference_number": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    },
+    "cpv_codes": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    },
+    "procedure_type": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    },
+    "contract_nature": {
+     "right": 24,
+     "wrong": 0,
+     "missing": 0
+    }
+   },
+   "documents_right": 24
+  }
+ },
+ {
+  "variant": "json_api",
+  "what": "repair, face moved",
+  "expect": "serve",
+  "learned": true,
+  "seconds": 39,
+  "model_calls": 9,
+  "requests": 16,
+  "input_tokens": 200570,
+  "cached_share": 0.83,
+  "output_tokens": 2336,
+  "cost_usd": 0.11,
+  "reason": "The tender list and detail APIs moved under `/portal/v3/api/v2`; I updated both endpoints, and the dry run recovered all 45 tenders without changing their IDs.",
+  "old_recipe_matched_after_change": 0,
+  "steps": [
+   "tool open_page: Opened https://json-api.variants.example/: status 200, 219 bytes.",
+   "tool open_page: Opened https://json-api.variants.example/portal/v3/: status 200, 192 bytes.",
+   "tool page_links: Listed the links of https://json-api.variants.example/portal/v3/.",
+   "tool search_page: Searched https://json-api.variants.example/portal/v3/ for /.{0,100}(?:script|api).{0,120}/: 1 match(es):",
+   "tool open_page: Opened https://json-api.variants.example/portal/v3/static/app.4f2a.js: status 200, 215 bytes.",
+   "tool call_api: Called GET https://json-api.variants.example/portal/v3/api/v2/notices?size=100&page=0: status 200, 12,891 bytes.",
+   "tool try_locator: Tried jsonpath locator '@.noticeId' on https://json-api.variants.example/portal/v3/api/v2/notices?size=100&page=0: 5 value(s) in 45 item(s).",
+   "tool open_page: Opened https://json-api.variants.example/portal/v3/notice/MP-2026-0001: status 200, 192 bytes.",
+   "tool open_page: Opened https://json-api.variants.example/portal/v3/api/v2/notices/MP-2026-0001: status 200, 1,034 bytes.",
+   "tool search_page: Searched https://json-api.variants.example/portal/v3/api/v2/notices?size=100&page=0 for /\"noticeId\"\\s*:\\s*\"MP-2026-000[123]\"[^}]+\\}[^}]+\\}/: 3 match(es):",
+   "tool open_page: Opened https://json-api.variants.example/portal/v3/files/MP-2026-0001/tender-notice.pdf: status 200, 761 bytes.",
+   "tool open_page: Opened https://json-api.variants.example/portal/v3/api/v2/notices/MP-2026-0002: status 200, 1,109 bytes.",
+   "tool open_page: Opened https://json-api.variants.example/portal/v3/api/v2/notices/MP-2026-0003: status 200, 1,016 bytes.",
+   "tool try_locator: Tried jsonpath locator '@.link' on https://json-api.variants.example/portal/v3/api/v2/notices?size=100&page=0: 5 value(s) in 45 item(s).",
+   "tool propose_recipe: Dry run of the recipe: 45 record(s) from 45 row(s), 3 tender page(s) read; it passed.",
+   "decision repair_done: The repair left a recipe whose dry run read 45 tender(s) (9 model call(s), 16 request(s), $0.11)."
+  ],
+  "recipe": {
+   "start": "entry",
+   "nodes": [
+    {
+     "id": "entry",
+     "kind": "html",
+     "role": "entry",
+     "request": {
+      "method": "GET",
+      "url": "/",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     },
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "notices",
+     "kind": "json",
+     "role": "list",
+     "request": null,
+     "items": {
+      "kind": "jsonpath",
+      "expr": "$.content[*]",
+      "labels": [],
+      "attr": null
+     },
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.noticeId",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "url",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.link",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "url",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.title",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.buyer.name",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.publishedOn",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%Y-%m-%d"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.deadline",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%Y-%m-%dT%H:%M:%S%z"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.contractType",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "WORKS",
+          "value": "works"
+         },
+         {
+          "name": "SERVICES",
+          "value": "services"
+         },
+         {
+          "name": "SUPPLIES",
+          "value": "supplies"
+         }
+        ],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": {
+      "kind": "page_param",
+      "next": null,
+      "param": "page",
+      "first": 0,
+      "size_param": "size",
+      "size": 100,
+      "form": null,
+      "max_pages": null
+     },
+     "facts": {
+      "total": {
+       "kind": "jsonpath",
+       "expr": "$.totalElements",
+       "labels": [],
+       "attr": null
+      },
+      "total_counts_closed": null,
+      "empty_marker": {
+       "kind": "regex",
+       "expr": "\"content\"\\s*:\\s*(\\[\\s*\\])",
+       "labels": [],
+       "attr": null
+      },
+      "newest_first": true,
+      "has_all_required": true,
+      "change_mark": null
+     },
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "notice-page",
+     "kind": "html",
+     "role": "detail",
+     "request": null,
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "notice-data",
+     "kind": "json",
+     "role": "documents",
+     "request": null,
+     "items": null,
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "$.noticeId",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "$.reference",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "description",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "$.description",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "$.procedure.code",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "jsonpath",
+         "expr": "$.procedure.label",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "OPEN_PROCEDURE",
+          "value": "open"
+         },
+         {
+          "name": "Open procedure",
+          "value": "open"
+         },
+         {
+          "name": "RESTRICTED_PROCEDURE",
+          "value": "restricted"
+         },
+         {
+          "name": "Restricted procedure",
+          "value": "restricted"
+         },
+         {
+          "name": "NEGOTIATED_PROCEDURE",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negotiated procedure",
+          "value": "negotiated"
+         },
+         {
+          "name": "COMPETITIVE_PROCEDURE_WITH_NEGOTIATION",
+          "value": "negotiated"
+         },
+         {
+          "name": "Competitive procedure with negotiation",
+          "value": "negotiated"
+         },
+         {
+          "name": "NEGOTIATED_PROCEDURE_WITHOUT_PRIOR_PUBLICATION",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negotiated procedure without prior publication",
+          "value": "negotiated"
+         },
+         {
+          "name": "COMPETITIVE_DIALOGUE",
+          "value": "other"
+         },
+         {
+          "name": "Competitive dialogue",
+          "value": "other"
+         },
+         {
+          "name": "INNOVATION_PARTNERSHIP",
+          "value": "other"
+         },
+         {
+          "name": "Innovation partnership",
+          "value": "other"
+         },
+         {
+          "name": "DIRECT_AWARD",
+          "value": "other"
+         },
+         {
+          "name": "Direct award",
+          "value": "other"
+         },
+         {
+          "name": "OTHER",
+          "value": "other"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "cpv_codes",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "$.cpv[*].code",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "cpv",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "postal_code",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "$.place.postalCode",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "postal_code",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "city",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "$.place.city",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": null,
+     "facts": null,
+     "documents": {
+      "links": {
+       "kind": "jsonpath",
+       "expr": "$.documents[*].url",
+       "labels": [],
+       "attr": null
+      },
+      "url": null,
+      "then": null,
+      "name": {
+       "kind": "jsonpath",
+       "expr": "@.fileName",
+       "labels": [],
+       "attr": null
+      },
+      "size": {
+       "kind": "jsonpath",
+       "expr": "@.sizeBytes",
+       "labels": [],
+       "attr": null
+      },
+      "all_in_one_zip": false,
+      "request": null
+     },
+     "steps": [],
+     "family": null
+    }
+   ],
+   "edges": [
+    {
+     "source": "entry",
+     "target": "notices",
+     "action": "call_api",
+     "per_item": false,
+     "link": null,
+     "request": {
+      "method": "GET",
+      "url": "/portal/v3/api/v2/notices",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     }
+    },
+    {
+     "source": "notices",
+     "target": "notice-page",
+     "action": "follow_link",
+     "per_item": true,
+     "link": {
+      "kind": "jsonpath",
+      "expr": "@.link",
+      "labels": [],
+      "attr": null
+     },
+     "request": null
+    },
+    {
+     "source": "notice-page",
+     "target": "notice-data",
+     "action": "call_api",
+     "per_item": false,
+     "link": null,
+     "request": {
+      "method": "GET",
+      "url": "/portal/v3/api/v2/notices/{id}",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     }
+    }
+   ],
+   "identity": {
+    "from_url": "/notice/(MP-\\d{4}-\\d{4})(?:[/?#]|$)",
+    "shape": "^MP-\\d{4}-\\d{4}$",
+    "must_agree": true
+   },
+   "family": null,
+   "host": {
+    "language": "en",
+    "settings": []
+   },
+   "rationale": "The tender list and detail APIs moved under `/portal/v3/api/v2`; I updated both endpoints, and the dry run recovered all 45 tenders without changing their IDs."
+  },
+  "nodes_changed": [],
+  "score": {
+   "truth": 45,
+   "read": 45,
+   "matched": 45,
+   "problems": [],
+   "fields": {
+    "url": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "title": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "buyer_name": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "publication_date": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "submission_deadline": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "reference_number": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "cpv_codes": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "procedure_type": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "contract_nature": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    }
+   },
+   "documents_right": 45
+  }
+ },
+ {
+  "variant": "de_netserver",
+  "what": "repair, face moved",
+  "expect": "serve",
+  "learned": true,
+  "seconds": 51,
+  "model_calls": 10,
+  "requests": 9,
+  "input_tokens": 241991,
+  "cached_share": 0.84,
+  "output_tokens": 3385,
+  "cost_usd": 0.13,
+  "reason": "The tender list and detail pages moved under `/portal/v3/`, so the recipe now follows the homepage\u2019s Procurement portal link and uses the new detail paths; the dry run read all 30 tenders, including the three with their original IDs.",
+  "old_recipe_matched_after_change": 0,
+  "steps": [
+   "tool open_page: Opened https://de-netserver.variants.example/: status 200, 219 bytes.",
+   "tool open_page: Opened https://de-netserver.variants.example/portal/v3/: status 200, 344 bytes.",
+   "tool open_page: Opened https://de-netserver.variants.example/portal/v3/NetServer/PublicationSearchControllerServlet?function=SearchPublications&Category=InvitationToTender: status 200, 10,092 bytes.",
+   "tool open_page: Opened https://de-netserver.variants.example/portal/v3/NetServer/PublicationControllerServlet?function=Detail&TOID=54321-18a25&Category=InvitationToTender: status 200, 1,780 bytes.",
+   "tool try_locator: Tried css locator \"#nav a[href*='function=SearchPublications'][href*='Category=InvitationToTender']\" on https://de-netserver.variants.example/portal/v3/: 1 value(s).",
+   "tool search_page: Searched https://de-netserver.variants.example/portal/v3/NetServer/PublicationSearchControllerServlet?function=SearchPublications&Category=InvitationToTender for /.{0,70}PublicationControllerServlet.{0,140}/: No match.",
+   "tool try_locator: Tried xpath locator \"concat('/portal/v3/NetServer/PublicationControllerServlet?function=Detail&TOID=', @data-oid, '&Category=', @data-category)\" on https://de-netserver.variants.example/portal/v3/NetServer/PublicationSearchControllerServlet?function=SearchPublications&Category=InvitationToTender: 5\u2026",
+   "tool try_locator: Tried xpath locator \"//a[normalize-space(.)='Procurement portal']/@href\" on https://de-netserver.variants.example/: 1 value(s).",
+   "tool propose_recipe: Dry run of the recipe: 30 record(s) from 30 row(s), 3 tender page(s) read; it passed.",
+   "tool search_page: Searched https://de-netserver.variants.example/portal/v3/NetServer/PublicationSearchControllerServlet?function=SearchPublications&Category=InvitationToTender for /<tr[^>]*data-oid=\"54321-(?:18a25|18a4a|18a6f)\"[^>]*>[^\\n]*/: 3 match(es):",
+   "tool open_page: Opened https://de-netserver.variants.example/portal/v3/NetServer/PublicationControllerServlet?function=Detail&TOID=54321-18a4a&Category=InvitationToTender: status 200, 1,849 bytes.",
+   "tool open_page: Opened https://de-netserver.variants.example/portal/v3/NetServer/PublicationControllerServlet?function=Detail&TOID=54321-18a6f&Category=InvitationToTender: status 200, 1,748 bytes.",
+   "decision repair_done: The repair left a recipe whose dry run read 30 tender(s) (10 model call(s), 9 request(s), $0.13)."
+  ],
+  "recipe": {
+   "start": "entry",
+   "nodes": [
+    {
+     "id": "entry",
+     "kind": "html",
+     "role": "entry",
+     "request": {
+      "method": "GET",
+      "url": "/",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     },
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "portal",
+     "kind": "html",
+     "role": "step",
+     "request": null,
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "list",
+     "kind": "html",
+     "role": "list",
+     "request": null,
+     "items": {
+      "kind": "css",
+      "expr": "#publicationList tbody tr.publicationDetail[data-oid][data-category]",
+      "labels": [],
+      "attr": null
+     },
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./@data-oid",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": ":scope",
+         "labels": [],
+         "attr": "data-oid"
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "url",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "concat('/portal/v3/NetServer/PublicationControllerServlet?function=Detail&TOID=', @data-oid, '&Category=', @data-category)",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "url",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "td.tender",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "td.tenderAuthority",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[@class='tender']/preceding-sibling::td[string-length(normalize-space(.))=10 and contains(., '.')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%d.%m.%Y"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[@class='tender']/preceding-sibling::td[contains(normalize-space(.), ' Uhr')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%d.%m.%Y %H:%M Uhr"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": {
+      "kind": "none",
+      "next": null,
+      "param": null,
+      "first": null,
+      "size_param": null,
+      "size": null,
+      "form": null,
+      "max_pages": null
+     },
+     "facts": {
+      "total": {
+       "kind": "css",
+       "expr": "p.hits",
+       "labels": [],
+       "attr": null
+      },
+      "total_counts_closed": false,
+      "empty_marker": null,
+      "newest_first": true,
+      "has_all_required": true,
+      "change_mark": null
+     },
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "detail",
+     "kind": "html",
+     "role": "detail",
+     "request": null,
+     "items": null,
+     "fields": [
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "h1.color-main",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "head > title",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Vergabestelle:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='Vergabestelle:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Ver\u00f6ffentlicht am:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='Ver\u00f6ffentlicht am:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%d.%m.%Y"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Angebotsfrist:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='Angebotsfrist:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%d.%m.%Y %H:%M Uhr"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Vergabenummer:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='Vergabenummer:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "description",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "div.descr",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//h2[normalize-space(.)='Beschreibung']/following-sibling::div[@class='descr']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Verfahrensart:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='Verfahrensart:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "Offenes Verfahren",
+          "value": "open"
+         },
+         {
+          "name": "\u00d6ffentliche Ausschreibung",
+          "value": "open"
+         },
+         {
+          "name": "Offenes Verfahren (EU)",
+          "value": "open"
+         },
+         {
+          "name": "Nichtoffenes Verfahren",
+          "value": "restricted"
+         },
+         {
+          "name": "Nicht offenes Verfahren",
+          "value": "restricted"
+         },
+         {
+          "name": "Beschr\u00e4nkte Ausschreibung",
+          "value": "restricted"
+         },
+         {
+          "name": "Beschr\u00e4nkte Ausschreibung mit Teilnahmewettbewerb",
+          "value": "restricted"
+         },
+         {
+          "name": "Beschr\u00e4nkte Ausschreibung ohne Teilnahmewettbewerb",
+          "value": "restricted"
+         },
+         {
+          "name": "Verhandlungsverfahren",
+          "value": "negotiated"
+         },
+         {
+          "name": "Verhandlungsverfahren mit Teilnahmewettbewerb",
+          "value": "negotiated"
+         },
+         {
+          "name": "Verhandlungsverfahren ohne Teilnahmewettbewerb",
+          "value": "negotiated"
+         },
+         {
+          "name": "Verhandlungsvergabe",
+          "value": "negotiated"
+         },
+         {
+          "name": "Verhandlungsvergabe mit Teilnahmewettbewerb",
+          "value": "negotiated"
+         },
+         {
+          "name": "Verhandlungsvergabe ohne Teilnahmewettbewerb",
+          "value": "negotiated"
+         },
+         {
+          "name": "Freih\u00e4ndige Vergabe",
+          "value": "negotiated"
+         },
+         {
+          "name": "Wettbewerblicher Dialog",
+          "value": "other"
+         },
+         {
+          "name": "Innovationspartnerschaft",
+          "value": "other"
+         },
+         {
+          "name": "Direktauftrag",
+          "value": "other"
+         },
+         {
+          "name": "Direktvergabe",
+          "value": "other"
+         },
+         {
+          "name": "Sonstiges Verfahren",
+          "value": "other"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Leistungsart:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='Leistungsart:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "Bauleistung",
+          "value": "works"
+         },
+         {
+          "name": "Bauleistungen",
+          "value": "works"
+         },
+         {
+          "name": "Bauauftrag",
+          "value": "works"
+         },
+         {
+          "name": "Dienstleistung",
+          "value": "services"
+         },
+         {
+          "name": "Dienstleistungen",
+          "value": "services"
+         },
+         {
+          "name": "Dienstleistungsauftrag",
+          "value": "services"
+         },
+         {
+          "name": "Lieferleistung",
+          "value": "supplies"
+         },
+         {
+          "name": "Lieferleistungen",
+          "value": "supplies"
+         },
+         {
+          "name": "Lieferauftrag",
+          "value": "supplies"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "cpv_codes",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "CPV-Codes:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='CPV-Codes:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "cpv",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "postal_code",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Erf\u00fcllungsort:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='Erf\u00fcllungsort:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "postal_code",
+        "formats": [],
+        "words": [],
+        "pattern": "^(\\d{4}\\s?[A-Z]{2}|\\d{5})\\s+"
+       }
+      },
+      {
+       "name": "city",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Erf\u00fcllungsort:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//div[@class='tenderDetails']//div[@class='label' and normalize-space(.)='Erf\u00fcllungsort:']/following-sibling::div[@class='value']",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": "^(?:\\d{4}\\s?[A-Z]{2}|\\d{5})\\s+(.+)$"
+       }
+      }
+     ],
+     "paging": null,
+     "facts": null,
+     "documents": {
+      "links": {
+       "kind": "css",
+       "expr": "ul.downloads a.doc[href]",
+       "labels": [],
+       "attr": "href"
+      },
+      "url": null,
+      "then": null,
+      "name": {
+       "kind": "xpath",
+       "expr": ".",
+       "labels": [],
+       "attr": null
+      },
+      "size": {
+       "kind": "xpath",
+       "expr": "./following-sibling::span[contains(concat(' ', normalize-space(@class), ' '), ' sz ')]",
+       "labels": [],
+       "attr": null
+      },
+      "all_in_one_zip": false,
+      "request": null
+     },
+     "steps": [],
+     "family": null
+    }
+   ],
+   "edges": [
+    {
+     "source": "entry",
+     "target": "portal",
+     "action": "follow_link",
+     "per_item": false,
+     "link": {
+      "kind": "xpath",
+      "expr": "//a[normalize-space(.)='Procurement portal']/@href",
+      "labels": [],
+      "attr": null
+     },
+     "request": null
+    },
+    {
+     "source": "portal",
+     "target": "list",
+     "action": "follow_link",
+     "per_item": false,
+     "link": {
+      "kind": "css",
+      "expr": "#nav a[href*='function=SearchPublications'][href*='Category=InvitationToTender']",
+      "labels": [],
+      "attr": "href"
+     },
+     "request": null
+    },
+    {
+     "source": "list",
+     "target": "detail",
+     "action": "follow_link",
+     "per_item": true,
+     "link": {
+      "kind": "xpath",
+      "expr": "concat('/portal/v3/NetServer/PublicationControllerServlet?function=Detail&TOID=', @data-oid, '&Category=', @data-category)",
+      "labels": [],
+      "attr": null
+     },
+     "request": null
+    }
+   ],
+   "identity": {
+    "from_url": "[?&]TOID=([^&#]+)",
+    "shape": "^[0-9]+-[0-9a-f]+$",
+    "must_agree": true
+   },
+   "family": "netserver",
+   "host": {
+    "language": "de",
+    "settings": [
+     {
+      "name": "Category",
+      "value": "InvitationToTender"
+     }
+    ]
+   },
+   "rationale": "The tender list and detail pages moved under `/portal/v3/`, so the recipe now follows the homepage\u2019s Procurement portal link and uses the new detail paths; the dry run read all 30 tenders, including the three with their original IDs."
+  },
+  "nodes_changed": [
+   "portal",
+   "list"
+  ],
+  "score": {
+   "truth": 30,
+   "read": 30,
+   "matched": 30,
+   "problems": [],
+   "fields": {
+    "url": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    },
+    "title": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    },
+    "buyer_name": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    },
+    "publication_date": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    },
+    "submission_deadline": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    },
+    "reference_number": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    },
+    "cpv_codes": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    },
+    "procedure_type": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    },
+    "contract_nature": {
+     "right": 30,
+     "wrong": 0,
+     "missing": 0
+    }
+   },
+   "documents_right": 30
+  }
+ },
+ {
+  "variant": "pl_offset",
+  "what": "repair, face moved",
+  "expect": "serve",
+  "learned": true,
+  "seconds": 33,
+  "model_calls": 6,
+  "requests": 10,
+  "input_tokens": 139849,
+  "cached_share": 0.76,
+  "output_tokens": 2315,
+  "cost_usd": 0.1,
+  "reason": "The tender list and detail pages moved under `/portal/v3/`, so I updated the list address and detail link selectors; the dry run passed and the original tender IDs were preserved.",
+  "old_recipe_matched_after_change": 0,
+  "steps": [
+   "tool open_page: Opened https://pl-offset.variants.example/: status 200, 219 bytes.",
+   "tool open_page: Opened https://pl-offset.variants.example/portal/v3/: status 200, 8,249 bytes.",
+   "tool try_locator: Tried css locator \"h2 a[href^='/portal/v3/postepowanie/']\" on https://pl-offset.variants.example/portal/v3/: 5 value(s) in 20 item(s).",
+   "tool open_page: Opened https://pl-offset.variants.example/portal/v3/postepowania?start=20: status 200, 8,250 bytes.",
+   "tool open_page: Opened https://pl-offset.variants.example/portal/v3/postepowanie/700145: status 200, 1,600 bytes.",
+   "tool open_page: Opened https://pl-offset.variants.example/portal/v3/postepowania?start=40: status 200, 2,208 bytes.",
+   "tool open_page: Opened https://pl-offset.variants.example/portal/v3/postepowanie/700101: status 200, 1,489 bytes.",
+   "tool open_page: Opened https://pl-offset.variants.example/portal/v3/postepowanie/700102: status 200, 1,544 bytes.",
+   "tool open_page: Opened https://pl-offset.variants.example/portal/v3/postepowanie/700103: status 200, 1,457 bytes.",
+   "tool propose_recipe: Dry run of the recipe: 40 record(s) from 40 row(s), 3 tender page(s) read; it passed.",
+   "decision repair_done: The repair left a recipe whose dry run read 40 tender(s) (6 model call(s), 10 request(s), $0.10)."
+  ],
+  "recipe": {
+   "start": "list",
+   "nodes": [
+    {
+     "id": "list",
+     "kind": "html",
+     "role": "list",
+     "request": {
+      "method": "GET",
+      "url": "/portal/v3/",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     },
+     "items": {
+      "kind": "css",
+      "expr": "article.postepowanie",
+      "labels": [],
+      "attr": null
+     },
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "p.nr",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "regex",
+         "expr": "Numer:\\s*(\\d+)",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": "\\b(\\d{6})\\b"
+       }
+      },
+      {
+       "name": "url",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "h2 a[href^='/portal/v3/postepowanie/']",
+         "labels": [],
+         "attr": "href"
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//h2/a[contains(@href,'/postepowanie/')]",
+         "labels": [],
+         "attr": "href"
+        }
+       ],
+       "value": {
+        "type": "url",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "h2 a[href^='/portal/v3/postepowanie/']",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//h2[a[contains(@href,'/postepowanie/')]]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".zamawiajacy b",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//p[starts-with(normalize-space(.),'Zamawiaj\u0105cy:')]/b",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".daty .pub",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "regex",
+         "expr": "Data publikacji:\\s*(\\d{4}-\\d{2}-\\d{2})",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%Y-%m-%d"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": ".daty .termin",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//p[contains(normalize-space(.),'Termin sk\u0142adania ofert:')]/span[contains(concat(' ',normalize-space(@class),' '),' termin ')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%Y-%m-%d %H:%M"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": {
+      "kind": "next_link",
+      "next": {
+       "kind": "css",
+       "expr": ".stronicowanie a.nastepna[href]",
+       "labels": [],
+       "attr": "href"
+      },
+      "param": null,
+      "first": null,
+      "size_param": null,
+      "size": null,
+      "form": null,
+      "max_pages": null
+     },
+     "facts": {
+      "total": {
+       "kind": "regex",
+       "expr": "Znaleziono post\u0119powa\u0144:\\s*(\\d+)",
+       "labels": [],
+       "attr": null
+      },
+      "total_counts_closed": null,
+      "empty_marker": null,
+      "newest_first": true,
+      "has_all_required": false,
+      "change_mark": null
+     },
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "detail",
+     "kind": "html",
+     "role": "detail",
+     "request": null,
+     "items": null,
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Numer post\u0119powania"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//table[contains(concat(' ',normalize-space(@class),' '),' szczegoly ')]//th[normalize-space(.)='Numer post\u0119powania']/following-sibling::td",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Znak sprawy"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//th[normalize-space(.)='Znak sprawy']/following-sibling::td",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "description",
+       "locators": [
+        {
+         "kind": "css",
+         "expr": "section.opis > p",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//section[h2[normalize-space(.)='Opis']]/p",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Tryb post\u0119powania"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//th[normalize-space(.)='Tryb post\u0119powania']/following-sibling::td",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "Przetarg nieograniczony",
+          "value": "open"
+         },
+         {
+          "name": "Procedura otwarta",
+          "value": "open"
+         },
+         {
+          "name": "Przetarg ograniczony",
+          "value": "restricted"
+         },
+         {
+          "name": "Procedura ograniczona",
+          "value": "restricted"
+         },
+         {
+          "name": "Negocjacje z og\u0142oszeniem",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negocjacje bez og\u0142oszenia",
+          "value": "negotiated"
+         },
+         {
+          "name": "Procedura negocjacyjna z og\u0142oszeniem",
+          "value": "negotiated"
+         },
+         {
+          "name": "Procedura negocjacyjna bez og\u0142oszenia",
+          "value": "negotiated"
+         },
+         {
+          "name": "Dialog konkurencyjny",
+          "value": "other"
+         },
+         {
+          "name": "Partnerstwo innowacyjne",
+          "value": "other"
+         },
+         {
+          "name": "Zam\u00f3wienie z wolnej r\u0119ki",
+          "value": "other"
+         },
+         {
+          "name": "Tryb podstawowy",
+          "value": "other"
+         },
+         {
+          "name": "Zapytanie o cen\u0119",
+          "value": "other"
+         },
+         {
+          "name": "Licytacja elektroniczna",
+          "value": "other"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Rodzaj zam\u00f3wienia"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//th[normalize-space(.)='Rodzaj zam\u00f3wienia']/following-sibling::td",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "Us\u0142ugi",
+          "value": "services"
+         },
+         {
+          "name": "Dostawy",
+          "value": "supplies"
+         },
+         {
+          "name": "Roboty budowlane",
+          "value": "works"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "cpv_codes",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Kody CPV"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//th[normalize-space(.)='Kody CPV']/following-sibling::td",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "cpv",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "city",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Miejscowo\u015b\u0107"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//th[normalize-space(.)='Miejscowo\u015b\u0107']/following-sibling::td",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "postal_code",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Kod pocztowy"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": ".//th[normalize-space(.)='Kod pocztowy']/following-sibling::td",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "postal_code",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": null,
+     "facts": null,
+     "documents": {
+      "links": {
+       "kind": "css",
+       "expr": "section.zalaczniki a.doc[href]",
+       "labels": [],
+       "attr": "href"
+      },
+      "url": null,
+      "then": null,
+      "name": {
+       "kind": "xpath",
+       "expr": ".",
+       "labels": [],
+       "attr": null
+      },
+      "size": {
+       "kind": "xpath",
+       "expr": "./following-sibling::span[contains(concat(' ',normalize-space(@class),' '),' sz ')]",
+       "labels": [],
+       "attr": null
+      },
+      "all_in_one_zip": false,
+      "request": null
+     },
+     "steps": [],
+     "family": null
+    }
+   ],
+   "edges": [
+    {
+     "source": "list",
+     "target": "detail",
+     "action": "follow_link",
+     "per_item": true,
+     "link": {
+      "kind": "css",
+      "expr": "h2 a[href^='/portal/v3/postepowanie/']",
+      "labels": [],
+      "attr": "href"
+     },
+     "request": null
+    }
+   ],
+   "identity": {
+    "from_url": "/postepowanie/(\\d{6})/?(?:[?#]|$)",
+    "shape": "^\\d{6}$",
+    "must_agree": true
+   },
+   "family": null,
+   "host": {
+    "language": "pl",
+    "settings": []
+   },
+   "rationale": "The tender list and detail pages moved under `/portal/v3/`, so I updated the list address and detail link selectors; the dry run passed and the original tender IDs were preserved."
+  },
+  "nodes_changed": [
+   "list"
+  ],
+  "score": {
+   "truth": 45,
+   "read": 45,
+   "matched": 45,
+   "problems": [],
+   "fields": {
+    "url": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "title": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "buyer_name": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "publication_date": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "submission_deadline": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "reference_number": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "cpv_codes": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "procedure_type": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    },
+    "contract_nature": {
+     "right": 45,
+     "wrong": 0,
+     "missing": 0
+    }
+   },
+   "documents_right": 45
+  }
+ }
+]
