@@ -9,6 +9,8 @@ Every model call goes through `app/agent/runner.py`, and nothing outside this pa
 """
 from __future__ import annotations
 
+import threading
+import time
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -31,6 +33,19 @@ __all__ = ["AgentResult", "AgentSettings", "Agents", "Model", "ModelError", "Mod
 log = logs.get("agent")
 
 
+class _Slot:
+    """`with` form of a semaphore the caller has already acquired: it releases on exit."""
+
+    def __init__(self, semaphore: threading.BoundedSemaphore) -> None:
+        self._semaphore = semaphore
+
+    def __enter__(self) -> "_Slot":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self._semaphore.release()
+
+
 class Agents:
     """The three jobs of the model, on one model client, one network layer and one database.
 
@@ -43,6 +58,8 @@ class Agents:
                  recipes: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> None:
         self.runner = Runner(model, settings)
         self.fetch, self.db = fetch, database
+        # At most this many runs use the model at once; the others wait here, and a portal waiting is `integrating`.
+        self._slots = threading.BoundedSemaphore(settings.max_concurrent_runs)
         self.models = models or ModelSettings.from_env()
         self.settings, self.recipes = settings, recipes
 
@@ -62,12 +79,27 @@ class Agents:
     def _steps(self, run_id: str) -> StepLog:
         return StepLog.on_database(self.db, run_id, self.settings)
 
+    def _slot(self, job: str, portal: Portal):
+        """Wait for a free place among the runs that may use the model now (`max_concurrent_runs`)."""
+        began = time.monotonic()
+        self._slots.acquire()
+        waited = time.monotonic() - began
+        if waited >= 1.0:
+            log.info("portal %s: the %s waited %.0f s for a free place among the model runs", portal.id, job, waited)
+        return _Slot(self._slots)
+
     def learn(self, portal: Portal, run_id: str) -> AgentResult:
-        return learn(portal, fetch=self.fetch, runner=self.runner, steps=self._steps(run_id), models=self.models,
-                     settings=self.settings, recipes=self.recipes)
+        with self._slot("learn", portal):
+            return learn(portal, fetch=self.fetch, runner=self.runner, steps=self._steps(run_id), models=self.models,
+                         settings=self.settings, recipes=self.recipes)
 
     def repair(self, portal: Portal, recipe: AuthoredRecipe, failed: Sequence[CheckResult], run_id: str
                ) -> AgentResult:
+        with self._slot("repair", portal):
+            return self._repair(portal, recipe, failed, run_id)
+
+    def _repair(self, portal: Portal, recipe: AuthoredRecipe, failed: Sequence[CheckResult], run_id: str
+                ) -> AgentResult:
         files: dict[str, int] = {}
         try:
             known = self.db.known_tenders(portal.id)
@@ -82,7 +114,8 @@ class Agents:
 
     def spot_check(self, portal: Portal, records: Sequence[TenderRecord], finding: str, run_id: str
                    ) -> SpotResult | None:
-        steps = self._steps(run_id)
-        pages = pages_for(portal, records, self.fetch, self.settings)
-        return spot_check(pages, runner=self.runner, steps=steps, finding=finding, models=self.models,
-                          settings=self.settings, portal_id=portal.id)
+        with self._slot("spot check", portal):
+            steps = self._steps(run_id)
+            pages = pages_for(portal, records, self.fetch, self.settings)
+            return spot_check(pages, runner=self.runner, steps=steps, finding=finding, models=self.models,
+                              settings=self.settings, portal_id=portal.id)
