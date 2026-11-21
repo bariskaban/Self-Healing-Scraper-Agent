@@ -253,12 +253,12 @@ id = "tenderned"
 name = "TenderNed"
 country = "NL"
 family = "tenderned"
-url = "https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?page=0&size=20"
+url = "https://www.tenderned.nl/aankondigingen/overzicht"
 kind = "json_api"
 expect = "serve"
 priority = 4
 address = "fetched"
-note = "Public JSON API, no key, page size up to 100; one ZIP per tender. The human list is https://www.tenderned.nl/announcements/overview."
+note = "Public JSON API, no key, page size up to 100; one ZIP per tender."
 
 [[portal]]
 id = "eproc-austria"
