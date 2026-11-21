@@ -92,7 +92,7 @@ docker build -t watchtower .          # linux/amd64; base image mcr.microsoft.co
 docker run -p 8080:8080 -e OPENAI_API_KEY=... -v "$PWD/data:/data" watchtower
 ```
 
-The Dockerfile sets `DATA_DIR=/data` and **`FETCH_MODE=live`**, so the container reads real portals. Agents and tests must never run it against a live portal (see `CLAUDE.md`). Only a person decides to do that. `docs/handoff/docker-verify.sh` is a script that checks a built container.
+The Dockerfile sets `DATA_DIR=/data` and **`FETCH_MODE=live`**, so the container reads real portals. Agents and tests must never run it against a live portal (see `CLAUDE.md`). Only a person decides to do that.
 
 ### Rebuild the dashboard
 
@@ -131,7 +131,7 @@ States: `integrating` (being attached), `serving` (delivering correctly), `heali
 | --- | --- | --- |
 | `OPENAI_API_KEY` | not set | Turns on the learner, the repairer and the spot check. Without it, only the mock portal can be attached. Never commit or log it. |
 | `MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK` | `gpt-6.2-sol`, `gpt-6.2-sol`, `gpt-6-luna` | The model for each job (`app/config.py`) |
-| `EUR_PER_USD` | `0.90` (placeholder) | Rate for showing costs in euros. **Set it to the day's ECB rate at hand-in.** A value that is not a number stops the app at start. |
+| `EUR_PER_USD` | `0.9114` | Rate for showing costs in euros. The default is the rate of 21 Nov 2026 (1 USD = 0.9114 EUR). A value that is not a number stops the app at start. |
 | `DATA_DIR` | not set (`/data` in Docker) | Where SQLite and the files live. Not set means in memory, with no read loop. |
 | `FETCH_MODE` | `replay` (`live` in Docker) | `live`, `record` or `replay` |
 | `FETCH_RECORDINGS_DIR` | `tests/fixtures/recordings` | Where recordings are written and read |
@@ -312,7 +312,7 @@ Who builds what and in what order: [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md).
   - [x] No demo data in place of a down API; demo only with `?demo`
   - [ ] The page does not know severity `outage` (sent as `fail`)
 - [x] G4. Hand-in README (`README.md`: how to run it, how it works, env vars, cost per portal). Still to do before hand-in: set `EUR_PER_USD` to the day's ECB rate and recheck the cost table against the last runs.
-  - [ ] Set `EUR_PER_USD` to that day's ECB reference rate
+  - [x] `EUR_PER_USD` defaults to the rate of 21 Nov 2026 (0.9114)
 - [ ] G5. Video, at most 3 minutes, dashboard included (the mock break and repair makes a good demo)
 - [ ] G6. Dedicated OpenAI key with a spending limit for the judges, revoked after judging
 - [ ] G7. Team decision on the Patterno participant declaration
@@ -320,7 +320,7 @@ Who builds what and in what order: [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md).
 - [x] G9. Recipe schema before the agents fan out (`app/recipe/schema.py`, examples in `tests/recipe/examples.py`)
 - [x] G10. `CLAUDE.md` rule: no agent sends requests to a live portal
 - [ ] G11. Development OpenAI key with its own spending cap (the rule is in `CLAUDE.md`; the key itself is still to make)
-- [ ] Before hand-in: delete `docs/HANDOFF.md` and `docs/handoff/`, as `docs/HANDOFF.md` asks
+- [x] `docs/HANDOFF.md` and `docs/handoff/` are deleted
 - [ ] Team decision: `POST /api/settings` can switch robots.txt off and has no authentication
 
 ---

@@ -53,9 +53,9 @@ class ModelSettings:
     learn: str = "gpt-6.2-sol"
     repair: str = "gpt-6.2-sol"
     check: str = "gpt-6-luna"
-    # USD -> EUR for the dashboard and the README. Set EUR_PER_USD to the ECB reference rate of
-    # the hand-in day; the default is only a placeholder.
-    eur_per_usd: float = 0.90
+    # USD -> EUR for the dashboard and the README: the rate of the hand-in day, 21 Nov 2026
+    # (1 USD = 0.9114 EUR). Override with EUR_PER_USD.
+    eur_per_usd: float = 0.9114
 
     def __post_init__(self) -> None:
         for job in ("learn", "repair", "check"):

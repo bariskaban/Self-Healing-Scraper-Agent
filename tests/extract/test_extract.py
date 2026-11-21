@@ -416,7 +416,7 @@ def test_lead_in_rule_leaves_dates_read_by_a_format_alone():
 
 
 @pytest.mark.parametrize("raw, expected", [
-    # Test cases from pull request 32 by Danil: the French dates named in docs/HANDOFF.md (Q2).
+    # Test cases from pull request 32 by Danil: French dates (Q2).
     ("1er décembre 2026 à 10h00", "2026-12-01T10:00:00+01:00"),
     ("Le 1er décembre 2026 à 9 h 30", "2026-12-01T09:30:00+01:00"),
     ("1er avril 2027 à 12 h 00", "2027-04-01T12:00:00+02:00"),      # summer time

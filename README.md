@@ -84,7 +84,7 @@ All settings are environment variables. These are the ones you are likely to nee
 | --- | --- | --- |
 | `OPENAI_API_KEY` | not set | Turns on learning, repair and the spot check. Never commit it or write it to a log. |
 | `MODEL_LEARN`, `MODEL_REPAIR`, `MODEL_CHECK` | `gpt-6.2-sol`, `gpt-6.2-sol`, `gpt-6-luna` | The model for each job |
-| `EUR_PER_USD` | `0.90` | Rate for showing costs in euros. Set it to the day's ECB rate. |
+| `EUR_PER_USD` | `0.9114` | Rate for showing costs in euros. The default is the rate of 21 Nov 2026. |
 | `DATA_DIR` | not set (`/data` in Docker) | Where SQLite and the files live |
 | `FETCH_MODE` | `replay` (`live` in Docker) | `live`, `record` or `replay` |
 | `READ_INTERVAL_SECONDS` | `120` | The shortest gap between two reads of a portal |
