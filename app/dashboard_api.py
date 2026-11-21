@@ -38,7 +38,8 @@ from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt
 from app import logs
 from app.config import ModelSettings
 from app.models import (
-    AgentStep, CheckResult, Portal, Recipe, RecipeStatus, Run, RunKind, Severity, StepKind, TokenUsage, utcnow,
+    AgentStep, CheckResult, Portal, PortalState, Recipe, RecipeStatus, Run, RunKind, Severity, StepKind, TokenUsage,
+    utcnow,
 )
 from app.reader import PUBLISH_STEP
 from app.scheduler import DEFAULT_SETTINGS as DEFAULT_SCHEDULE
@@ -204,7 +205,12 @@ def portal_row(portal: Portal, tender_count: int, history: PortalHistory, *, nex
         "timezone": portal.timezone, "recipeVersion": portal.recipe_version,
         # While a run is going on, the time planned before it is over; the next one is not planned yet.
         "nextReadAt": None if running else time_out(next_read_at or portal.next_read_at),
-        "lastRun": None if last is None else {"id": last.id, "kind": last.kind.value, "result": _value(last.result)},
+        # A repair runs inside the read that confirmed the breakage, so the record says "read". The
+        # page tells a repair by `kind`: a run going on while the portal is healing a breakage is one.
+        "lastRun": None if last is None else {
+            "id": last.id, "result": _value(last.result),
+            "kind": "repair" if running and portal.state is PortalState.healing
+            and portal.cause is not None and portal.cause.value == "breakage" else last.kind.value},
         "recentReads": [_value(run.result) for run in history.recent_reads],
         "deliveryTrend": list(history.delivery_trend),
         "readsLastHour": history.reads_in_window,
@@ -320,6 +326,11 @@ def run_out(run: Run, *, checks: Sequence[CheckResult] | None = None, steps: Seq
     change = recipe_change(run, recipes) if recipes else None
     if change is not None:
         out["recipeChange"] = change
+    # The reader repairs inside a read run. For the page it is a repair when it changed the recipe
+    # or when the repairer worked in it (its steps are there from its first model call on).
+    if change is not None or any(step.name.startswith("repair") or (step.prompt_id or "").startswith("repair/")
+                                 for step in steps or ()):
+        out["kind"] = "repair"
     return out
 
 
