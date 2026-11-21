@@ -6,7 +6,7 @@ Written 21 Nov 2026, about 01:30 UTC, by Goktug's Claude session, from a review 
 
 The deployed page, `https://patterno-watchtower.vercel.app/?demo`, with its demo data: every route, in light and in dark, at 1440×900 and at 390×844. The reviewer looked at still screenshots and read the source under `dashboard/src` where it wanted to name a place.
 
-It did not see: the add-portal flow (the button is disabled in demo), the page on live data, the loading, empty and error states, hover and motion, and the Tenders page beyond its text. Its remarks on other monitoring tools come from what it knows of them; it opened none. Contrast figures are estimates from the colours, not measurements. A separate technical review (build, behaviour against the real backend, code risks) is still running and will come as its own note.
+It did not see: the add-portal flow (the button is disabled in demo), the page on live data, the loading, empty and error states, hover and motion, and the Tenders page beyond its text. Its remarks on other monitoring tools come from what it knows of them; it opened none. Contrast figures are estimates from the colours, not measurements. The technical review (build, behaviour against the real backend, code risks) is in `dashboard-technical-review-2026-11-21.md`.
 
 The lens was the judging line "an operator sees which portals deliver, which broke and what the system did about it", and the fact that judges meet the page in a three-minute screen recording.
 
