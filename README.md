@@ -159,10 +159,16 @@ CHECKME.md      the team's guide and status checklist
 CLAUDE.md, CONVENTIONS.md   the rules the AI agents that wrote this code follow
 ```
 
-## Limits
+## Limits, and why each is there
 
-- Pages that only a script builds cannot be read by the page itself. The learner can use a JSON API the page calls, but there is no live browser yet.
-- A portal that keeps its paging in the server's session (cookies and form state) cannot be learned.
-- A portal with no open tenders today cannot be learned.
-- No real portal has hand-labelled ground truth. "Correct" on a real portal means the same as the recipe's own first read.
-- The API has no authentication, as the track description says. `POST /api/settings` can turn robots.txt off, so do not expose a judging container to people you do not trust.
+Each limit below is a choice we made on purpose, or a boundary the system reports instead of guessing past. In every case the portal's state and reason say what happened.
+
+- **A large portal delivers its first 500 tenders.** Every request to a portal waits one second, as the brief asks, so reading thousands of tenders would leave a portal `integrating` for an hour or more. With the limit, two national portals we tested (TenderNed, e-Zamowienia) delivered 500 tenders with their fields in 17 and 25 minutes; without it one delivered nothing. Portals with fewer than 500 tenders, which is most of them, are read in full. The limit is one setting, on the dashboard and in the environment.
+- **A big first read takes minutes, not seconds.** That is the price of one request a second and of obeying robots.txt. Tenders are delivered as soon as they are validated; documents follow, soonest deadlines first.
+- **Pages that only a script builds are read through the JSON call behind them.** Where a portal has such a call, the learner finds it and uses it (TenderNed and e-Zamowienia are read this way). There is no live browser yet, so a page with no such call is reported as not readable.
+- **A portal that keeps its paging in the server's session is not read.** The reader sends plain, stateless requests, which is what makes regular reads cheap and repeatable. The learner sees this early, stops, and says so.
+- **A portal with no open tenders today is not learned.** A recipe counts only once it has read real tenders: we would rather wait than store a recipe nobody has checked.
+- **"Correct" on a real portal means the same as the recipe's own first read.** We had no hand-labelled truth for real portals. On made-up portals with a known truth, every field of 234 tenders was right. `docs/REPORT.md` gives every result with its interval.
+- **The API has no authentication, as the track description says.** `POST /api/settings` can turn robots.txt off for testing, so do not expose a judging container to people you do not trust.
+
+What reading all of a giant portal would take, and why we did not build it in the last hours, is in `docs/BACKLOG.md`.
