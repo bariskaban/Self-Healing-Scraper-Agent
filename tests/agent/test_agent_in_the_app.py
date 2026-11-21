@@ -217,6 +217,15 @@ def test_a_changed_layout_is_repaired_by_the_model_and_the_portal_serves_again(s
     assert "repair_done" in [step.name for step in mine]
     assert any(step.name == "repair" and "passed a full read" in step.summary for step in mine)
 
+    # The page tells a repair by the run's kind: the read that repaired is shown as one, with its recipe change.
+    timeline = s.client.get(f"/api/portals/{pid}/timeline").json()
+    shown = timeline["runs"] if isinstance(timeline, dict) else timeline
+    repaired = next(run for run in shown if run["id"] == fixed.id)
+    assert repaired["kind"] == "repair" and repaired["recipeChange"]["to"] == 2 and repaired["result"] == "ok"
+    assert [run["kind"] for run in shown if run["id"] != fixed.id and not run.get("recipeChange")
+            and run["modelCalls"] == 0].count("repair") == 0   # plain reads stay reads
+    assert s.client.get(f"/portals/{pid}/runs").json()[0]["kind"] == "read"   # the brief's own route is untouched
+
 
 def test_a_repair_that_finds_nothing_leaves_the_last_good_tenders_and_records_its_cost(site):
     s = site([{"done": False, "what_changed": "The portal shows a different site now."},   # the patch

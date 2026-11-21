@@ -106,3 +106,5 @@ cd dashboard && bun install --frozen-lockfile && bun run build
 ```
 
 Only `bun.lock` is committed, so use bun, not `npm ci`. Then replace `app/dashboard/static/` with the contents of `dashboard/dist/`. The Inter font is bundled from `@fontsource-variable/inter`, so the page still makes no request to a font host or CDN. `/?run=<run id>#/portal/<id>` opens that run's sheet directly, which is handy for the demo video. `GET /` serves `index.html`, and `/assets/*` serves the bundle (`app/main.py`).
+
+- **A run's `kind` on these two routes.** The reader repairs inside the read that confirmed the breakage, so the stored run is a `read`. Here it is sent as `repair` when it changed the recipe (`recipeChange` is set) or when the repairer worked in it (it has a step of the repairer), and a portal's `lastRun` is sent as `repair` while a run is going on and the portal is `healing` a breakage. The brief's own route, `GET /portals/{id}/runs`, sends the stored kind unchanged.
