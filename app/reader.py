@@ -446,8 +446,12 @@ class _Read:
 
         last_good = self.portal.last_success_at
         interval = read_interval(listed.seconds, self.r.schedule)
-        self.add(stale(run_id, state=self.portal.state, last_good_at=last_good, now=now, read_interval=interval,
-                       settings=self.r.checks))
+        row = stale(run_id, state=self.portal.state, last_good_at=last_good, now=now, read_interval=interval,
+                    settings=self.r.checks)
+        # F1 is about reads that do not complete. A read whose list arrived is completing, however old the
+        # last one is (a long document phase, a restart): its age must not turn a good read into an outage.
+        if row.passed or not list_arrived:
+            self.add(row)
         decision = self._decide(records, known_by_id, unlisted, now)
         if decision.spot_check_needed:
             asked = next((row for row in self.results.values() if effect_of(row) is Effect.spot_check), None)

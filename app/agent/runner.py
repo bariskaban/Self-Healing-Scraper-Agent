@@ -220,6 +220,8 @@ class Runner:
                  sleep: Callable[[float], None] = time.sleep,
                  chance: Callable[[], float] = random.random) -> None:
         self.model, self.settings, self._sleep, self._chance = model, settings, sleep, chance
+        # Says whether a portal still exists. Set by `Agents`: a run for a deleted portal stops at its next call.
+        self.alive: Callable[[str], bool] | None = None
 
     def _respond(self, steps: StepLog, job: str, **request: Any) -> ModelReply:
         """One model call. A rate limit is waited out and the call tried again, until the waiting
@@ -299,6 +301,8 @@ class Runner:
             return out
 
         while True:
+            if portal_id and self.alive is not None and not self.alive(portal_id):
+                return stop("the portal was deleted")
             if out.model_calls >= max_turns:
                 return stop(f"its budget of {max_turns} model calls is spent")
             if max_usd is not None and out.usage.cost_usd >= max_usd:

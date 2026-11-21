@@ -92,6 +92,9 @@ All settings are environment variables. These are the ones you are likely to nee
 | `IGNORE_ROBOTS_TXT` | off | For testing only |
 | `LOG_LEVEL` | `info` | `debug` shows every request, check, decision and state change. `LOG_FILE` also writes to a file. The container logs JSON. |
 | `AGENT_LEARN_MAX_USD`, `AGENT_REPAIR_MAX_USD` | `5.0`, `2.5` | Spending cap for one learn and for one repair |
+| `AGENT_MAX_CONCURRENT_RUNS` | `2` | How many learns, repairs and spot checks call the model at once. The others wait their turn. Raise it on a key with a high rate limit. |
+| `AGENT_RATE_LIMIT_WAIT_BUDGET_SECONDS` | `90` | How long one model call waits when OpenAI answers "rate limit" before the run gives up |
+| `READ_THREADS` | `64` | How many portals can be in a read at the same moment |
 
 Many more numbers are settings too, each with a prefix per area: `AGENT_`, `RECIPE_`, `CHECKS_`, `DOCS_`, `FETCH_`, `EXTRACT_`. The defaults are in `app/*/settings.py`. A request to one portal is never sent faster than once a second unless `FETCH_REQUESTS_PER_SECOND` says so; leave it alone for real portals.
 

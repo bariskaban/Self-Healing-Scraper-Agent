@@ -531,7 +531,11 @@ class Database:
                 " UNION SELECT created_by_run_id FROM recipes"
                 " WHERE portal_id = ? AND parent_version IS NOT NULL AND created_by_run_id IS NOT NULL",
                 (portal_id, portal_id)).fetchall()
-        return {row[0] for row in rows}
+            found = {row[0] for row in rows}
+            if found:  # the contract: the first attach is a read, whatever happened in it
+                found -= {row[0] for row in con.execute(
+                    "SELECT id FROM runs WHERE portal_id = ? AND trigger = 'attach'", (portal_id,))}
+        return found
 
     def get_file(self, file_id: str) -> FileRecord | None:
         with self._reading() as con:
