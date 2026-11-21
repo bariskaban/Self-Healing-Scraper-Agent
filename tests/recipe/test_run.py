@@ -196,7 +196,7 @@ def test_a_limit_above_the_list_or_zero_changes_nothing():
 
 def test_the_limit_is_a_setting_from_the_environment_and_cannot_be_negative():
     from app.recipe.settings import RecipeSettings
-    assert RecipeSettings().max_tenders_per_portal == 0
+    assert RecipeSettings().max_tenders_per_portal == 2000
     assert RecipeSettings.from_env({"RECIPE_MAX_TENDERS_PER_PORTAL": "50"}).max_tenders_per_portal == 50
     with pytest.raises(ValueError):
         RecipeSettings(max_tenders_per_portal=-1)
