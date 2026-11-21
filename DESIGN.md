@@ -30,7 +30,7 @@ In 24 hours, as a team of 3 to 4, we build "the Watchtower": an agent that attac
 
 Patterno collects tenders from more than 4,500 procurement portals in 29 European countries. Today each new portal is connected by hand, and when a portal changes, its tenders can stop arriving without anyone noticing. The winning system goes into production.
 
-Source: [hackathon-pdfs/Patterno-Track-Description.pdf](hackathon-pdfs/Patterno-Track-Description.pdf)
+Source: the organisers' track description (not kept in the repository).
 
 ### What is judged
 
@@ -57,7 +57,7 @@ The judges run our container on portals it has never seen: private ones they bui
 - A one-page README: how it works, the environment variables, and the model cost of one portal.
 - A video of at most 3 minutes showing the system at work, dashboard included.
 - The values of the model keys, for the judges to run the container with.
-- A signed participant declaration from each member. It is a condition for the prize and the final, and gives Patterno an exclusive licence on what we build, so the repo carries no open-source licence. Source: [hackathon-pdfs/Patterno_Participant_Declaration_MAIN_2026.pdf](hackathon-pdfs/Patterno_Participant_Declaration_MAIN_2026.pdf)
+- A signed participant declaration from each member. It is a condition for the prize and the final, and gives Patterno an exclusive licence on what we build, so the repo carries no open-source licence. Source: the organisers' participant declaration (not kept in the repository).
 
 Deadline: Saturday 21 November 2026, 10:30.
 
@@ -552,7 +552,7 @@ The biggest risk is reporting `serving` while delivering wrong data; most rules 
 - [x] Which model provider? OpenAI; the models are chosen by benchmark and price (Q9).
 - [x] When is the deadline? Saturday 21 November 2026, 10:30.
 - [ ] Approve the recipe schema before the agents fan out (CHECKME, G9).
-- [ ] How do the judges get into the repo? It is private today, and it holds both of Patterno's PDFs in `hackathon-pdfs/`; the declaration asks us to keep their non-public material confidential. Invite the judges, or take the PDFs out of the history before the repo goes public.
+- [ ] How do the judges get into the repo? It is private today. Patterno's two documents were removed from it on 21 Nov 2026 but are still in its history, and the declaration asks us to keep their non-public material confidential. Invite the judges, or rewrite the history before the repo goes public.
 
 ### For the mentors
 
