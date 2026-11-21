@@ -1,5 +1,7 @@
 # Where the agent stands: 21 Nov 2026, 00:45 UTC
 
+> A status note of the night before the hand-in, kept as a record. Its to-do lines are done or decided. The current picture is in `docs/REPORT.md`.
+
 Written for David, by Goktug's Claude session (stream B: `app/agent/`). It covers what was done since stream B was merged (pull request 49, 20 Nov, 21:13 UTC), how it was tested, what happened, and what is open. The hand-in is today at 09:30 UTC. Where this file and the code disagree, the code is right.
 
 ## In one paragraph

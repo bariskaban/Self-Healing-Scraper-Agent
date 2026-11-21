@@ -52,7 +52,7 @@ export function tenderLimitNote(n: number): { warn: boolean; text: string } {
   const wait = minutes >= 90 ? `about ${Math.round(minutes / 60)} hours` : `about ${minutes} minute${minutes === 1 ? "" : "s"}`;
   return {
     warn: n > 1000,
-    text: `A portal that lists more delivers its first ${n.toLocaleString("en-US")} tenders. Reading that many takes ${wait} at one request a second, before documents.`,
+    text: `A portal that lists more delivers its first ${n.toLocaleString("en-US")} tenders. Reading that many takes at least ${wait} at one request a second, and two or three times that where a tender needs several requests. Documents follow.`,
   };
 }
 
