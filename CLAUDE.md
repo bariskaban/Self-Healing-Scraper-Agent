@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for working in this repository. See README.md for setup and project status.
+Guidance for working in this repository. See README.md for how to run it and CHECKME.md for the team's guide and project status.
 
 ## Source of truth
 
