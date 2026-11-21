@@ -239,6 +239,21 @@ def test_documents_come_back_in_order_and_serve_the_api_answer(db):
     assert db.get_file("nope") is None
 
 
+def test_two_documents_with_the_same_bytes_are_one_file_of_the_tender(db):
+    """TenderNed's ZIPs repeat entries: two documents of one tender hold a file of the same hash. The link key is
+    (portal, tender, file), so a second link to it used to raise IntegrityError and end the whole documents stage."""
+    serving(db)
+    shared, other = blob(1), blob(2)
+    docs = Docs([shared, other], [link("p1", "A", shared, "content", 0), link("p1", "A", other, "notice.pdf", 1),
+                                  link("p1", "A", shared, "content", 2)])
+    db.publish_tenders("p1", [tender("p1", "A")], documents={"A": docs})
+    (record, files), = db.list_tenders("p1")
+    assert [(l.file_name, l.position) for l, _ in files] == [("content", 0), ("notice.pdf", 1)]   # the first link wins
+    db.set_documents("p1", "A", [shared], [link("p1", "A", shared, "content", 0), link("p1", "A", shared, "copy", 1)])
+    (record, files), = db.list_tenders("p1")
+    assert [l.file_name for l, _ in files] == ["content"]
+
+
 def test_a_document_listed_while_loading_is_replaced_when_its_bytes_arrive(db):
     serving(db)
     pending = FileRecord(file_id="p" + "0" * 15, size_bytes=5000, source_url="https://x.example/f/9")

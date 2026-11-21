@@ -102,3 +102,16 @@ def test_a_recipe_stored_after_a_repair_names_the_version_it_replaces_and_the_so
     assert shown["id"] == run.id and shown["modelCalls"] == 3
     assert (shown["recipeChange"]["from"], shown["recipeChange"]["to"]) == (2, 3)
     assert "nodes.list" in shown["recipeChange"]["changedParts"]
+
+
+def test_a_limit_per_portal_keeps_the_first_tenders_and_closes_none_on_a_later_read(site):
+    from app.recipe.settings import RecipeSettings
+    db, read = site
+    learned = Learned(recipe=recipe(), timezone=mock_portal.TIMEZONE)
+    limit = RecipeSettings(max_tenders_per_portal=10)
+    outcome, run = read(RunTrigger.attach, Incident(), learn=lambda portal, run_id: learned, recipes=limit)
+    assert outcome.passed
+    assert db.count_tenders(PID) == 10                       # the mock portal lists more than that
+    # A later full read with the same limit sees the same ten and closes nothing.
+    again, _ = read(RunTrigger.schedule, Incident(), recipes=limit)
+    assert again.passed and db.count_tenders(PID) == 10

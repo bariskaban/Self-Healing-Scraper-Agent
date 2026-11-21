@@ -220,9 +220,12 @@ class ReadLoop:
         portal = self.db.get_portal(portal_id)
         if portal is None:
             return ReadOutcome(None, PortalState.failed, False, gone=True)
-        self.db.save_run(run.model_copy(update={"finished_at": self.now(), "result": RunResult.failed,
-                                                "state_after": portal.state, "reason_after": portal.reason,
-                                                "error": f"{type(error).__name__}: {error}"[:300]}))
+        # The row as the read last saved it, not the copy this task started with: the read saves its calls,
+        # tokens and cost as it goes, and the copy would write them back as zero.
+        saved = self.db.get_run(run.id) or run
+        self.db.save_run(saved.model_copy(update={"finished_at": self.now(), "result": RunResult.failed,
+                                                  "state_after": portal.state, "reason_after": portal.reason,
+                                                  "error": f"{type(error).__name__}: {error}"[:300]}))
         return ReadOutcome(None, portal.state, False)
 
     def _plan_next(self, portal_id: str, incident: Incident, outcome: ReadOutcome, *, scheduled: bool) -> None:

@@ -188,3 +188,27 @@ def test_an_outage_is_retried_on_the_outage_ladder_then_on_the_failed_schedule()
     other = Incident()
     incident.__dict__.update(other.__dict__)
     assert plan(Cause.block) == 6 * 3600                                             # a block is never on the ladder
+
+
+def test_a_crashed_read_keeps_the_usage_it_had_saved(tmp_path):
+    """The read saves its model calls and cost as it goes. When it crashes, the run row is closed from what is
+    stored, not from the copy the loop started with: that one would write the cost back as zero."""
+    from datetime import datetime, timezone
+
+    from app.db import Database
+    from app.loop import ReadLoop, new_run
+    from app.models import Portal, RunResult, RunTrigger, TokenUsage, url_key
+
+    db = Database(tmp_path / "w.db")
+    portal = Portal(id="p1", url="https://a.example/", url_key=url_key("https://a.example/"),
+                    created_at=datetime(2026, 11, 20, tzinfo=timezone.utc))
+    db.add_portal(portal)
+    started = db.start_run(new_run(portal, RunTrigger.attach))
+    db.save_run(started.model_copy(update={"model_calls": 21, "usage": TokenUsage(input_tokens=954_581, cost_usd=0.41)}))
+
+    loop = ReadLoop(db, None, None)
+    loop._crashed("p1", started, ValueError("boom"))     # `started` is the stale copy, as in the loop
+    saved = db.get_run(started.id)
+    assert saved.result is RunResult.failed and "ValueError: boom" in saved.error
+    assert (saved.model_calls, saved.usage.input_tokens, saved.usage.cost_usd) == (21, 954_581, 0.41)
+    db.close()

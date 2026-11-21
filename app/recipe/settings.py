@@ -22,6 +22,10 @@ class RecipeSettings:
     single_witness_vouch_share: float = 0.8
     # How many pages one tender's edges may fetch (detail, documents, a terms page per file).
     max_requests_per_tender: int = 40
+    # The most tenders read from one portal; 0 means no limit. The list is cut at this many tenders
+    # (newest first where the portal lists them so), and only those get a detail page and documents.
+    # A cut list counts as partial: no tender is closed for being absent from it (RECIPE_MAX_TENDERS_PER_PORTAL).
+    max_tenders_per_portal: int = 0
     # How many problems a dry run reports before it only counts them.
     max_problems: int = 50
     # Python's re has no timeout, and a recipe's regular expressions are written by a model. So
@@ -39,6 +43,8 @@ class RecipeSettings:
             raise ValueError("pattern_text_limit, pattern_id_limit and pattern_address_limit must be at least 1")
         if self.max_pages < 1 or self.default_page_size < 1 or self.max_requests_per_tender < 1:
             raise ValueError("max_pages, default_page_size and max_requests_per_tender must be at least 1")
+        if self.max_tenders_per_portal < 0:
+            raise ValueError("max_tenders_per_portal must not be negative (0 means no limit)")
         if not 0 < self.single_witness_vouch_share <= 1:
             raise ValueError("single_witness_vouch_share must be above 0 and at most 1")
 
