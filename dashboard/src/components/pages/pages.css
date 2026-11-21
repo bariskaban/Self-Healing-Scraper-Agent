@@ -40,3 +40,12 @@
   .tx-table tbody td:first-child::before { content: none; }
   .tx-table tbody tr:hover td { background: none; }
 }
+
+/* The health board on the wallboard: the same cards, tightened to fit one screen. */
+.tv-board { --chart-h: clamp(120px, 17vh, 210px); --donut-h: clamp(110px, 15vh, 180px); }
+.tv-board .info-card { padding: 1rem 1.25rem; }
+.tv-board > section:first-child { padding-top: 0; }
+.tv-board > section:first-child .eyebrow, .tv-board > section:first-child > p:last-child { display: none; }
+.tv-board > section:first-child h2 { margin-top: 0; font-size: clamp(1.5rem, 2.4vw, 2.6rem); }
+button.tv-dot { cursor: pointer; border: 0; padding: 0; }
+.tv-dot[data-paused="true"] .tv-dot-fill { animation-play-state: paused; }

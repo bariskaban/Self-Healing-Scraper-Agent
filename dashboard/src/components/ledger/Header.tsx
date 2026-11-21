@@ -1,6 +1,8 @@
 import { Monitor, Moon, Plus, Settings as Gear, Sun, WifiOff } from "lucide-react";
+import type { ReactNode } from "react";
 import type { LedgerState } from "@/types";
-import type { ThemePref } from "./viewState";
+import { useNow } from "@/data/hooks";
+import { useTheme, type ThemePref } from "./viewState";
 import { PAGE_HASH } from "../pages/nav";
 
 /** Our own mark: a small watchtower on an indigo tile. */
@@ -21,23 +23,37 @@ const snapshotTime = (iso: string) =>
 
 const wallClock = (ms: number) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(ms);
 
-/** Portals and Repairs are sections of the overview: go there first, then scroll. */
-function jump(id: string) {
-  const go = () => document.getElementById(id)?.scrollIntoView({ block: "start" });
-  if (/^#\/?$|^$/.test(window.location.hash)) go();
-  else { window.location.hash = "#/"; window.setTimeout(go, 120); }
-}
-
 export const ADD_OFF_REASON = "Adding a portal needs the live API. The API is unreachable, so this page shows the demo snapshot.";
 
-export function Header(props: {
-  state: LedgerState; now: number; theme: ThemePref;
-  onTheme: () => void; onSettings: () => void; onAddPortal: () => void; onAnalytics: (() => void) | null;
+export type Tab = "portals" | "tenders" | "scale";
+const OPEN_KEY = "watchtower.open";
+
+/** A sheet asked for from another page: remembered across the hop to the portal ledger, read once there. */
+export function takeOpenRequest(): "add" | "settings" | null {
+  try {
+    const v = sessionStorage.getItem(OPEN_KEY);
+    sessionStorage.removeItem(OPEN_KEY);
+    return v === "add" || v === "settings" ? v : null;
+  } catch { return null; }
+}
+function openOnPortals(what: "add" | "settings") {
+  try { sessionStorage.setItem(OPEN_KEY, what); } catch { /* private mode */ }
+  window.location.hash = "#/";
+}
+
+/**
+ * The one top bar of every route: logo, tabs with the active one marked, source badge, clock,
+ * theme, Settings and Add portal. Pages without the ledger hand the two sheets over to it.
+ */
+export function TopBar({ current, status, canAdd = true, addOffReason, onSettings, onAddPortal }: {
+  current: Tab | null; status: ReactNode; canAdd?: boolean; addOffReason?: string;
+  onSettings?: () => void; onAddPortal?: () => void;
 }) {
-  const { state, now } = props;
-  const ThemeIcon = props.theme === "system" ? Monitor : props.theme === "light" ? Sun : Moon;
-  const themeLabel = props.theme === "system" ? "System" : props.theme === "light" ? "Light" : "Dark";
-  const canAdd = state.source === "live";
+  const { pref, cycle } = useTheme();
+  const now = useNow(true);
+  const ThemeIcon = pref === "system" ? Monitor : pref === "light" ? Sun : Moon;
+  const themeLabel = pref === "system" ? "System" : pref === "light" ? "Light" : "Dark";
+  const tab = (name: Tab) => (current === name ? "page" as const : undefined);
   return (
     <header className="pointer-events-none sticky top-3 z-40 px-3 lg:px-8">
       <div className="glass pointer-events-auto mx-auto flex max-w-[100rem] flex-wrap items-center gap-x-4 gap-y-2 rounded-[1.6rem] px-3 py-2 shadow-[0_14px_40px_-22px_rgb(60_50_120/0.45)] sm:rounded-full sm:pl-3 sm:pr-2">
@@ -46,31 +62,39 @@ export function Header(props: {
           <span className="text-[1.12rem] font-semibold tracking-tight">Watchtower</span>
         </a>
         <nav aria-label="Sections" className="flex flex-wrap items-center gap-0.5">
-          <a href="#/" className="nav-link" aria-current={state.route.name === "overview" ? "page" : undefined}>Overview</a>
-          <button type="button" className="nav-link" onClick={() => jump("portals")}>Portals</button>
-          <a href={PAGE_HASH.tenders} className="nav-link" title="Every tender from every portal">Tenders</a>
-          <button type="button" className="nav-link" onClick={() => jump("repairs")}>Repairs</button>
-          <a href={PAGE_HASH.scale} className="nav-link" title="Cost per portal and the projection to 4,500 portals">Cost &amp; scale</a>
-          <a href={PAGE_HASH.tv} className="nav-link" title="Full-screen wallboard (shortcut: T)">TV mode</a>
+          <a href="#/" className="nav-link" aria-current={tab("portals")}>Portals</a>
+          <a href={PAGE_HASH.tenders} className="nav-link" aria-current={tab("tenders")} title="Every tender from every portal">Tenders</a>
+          <a href={PAGE_HASH.scale} className="nav-link" aria-current={tab("scale")} title="Cost per portal and software families">Cost &amp; scale</a>
+          <a href={PAGE_HASH.tv} className="nav-link" title="Full-screen wallboard with the fleet health board (shortcut: T)">TV mode</a>
         </nav>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2 text-sm">
-          <SourceStatus state={state} now={now} />
+          {status}
           <time className="tnum hidden px-1 text-[0.95rem] font-semibold text-foreground lg:inline" dateTime={new Date(now).toISOString()}>{wallClock(now)}</time>
-          <button type="button" className="pill-ghost !px-2.5 xl:!px-3.5" onClick={props.onTheme} aria-label={`Theme: ${themeLabel}. Switch theme`} title={`Theme: ${themeLabel}`}>
+          <button type="button" className="pill-ghost !px-2.5 xl:!px-3.5" onClick={cycle} aria-label={`Theme: ${themeLabel}. Switch theme`} title={`Theme: ${themeLabel}`}>
             <ThemeIcon aria-hidden className="size-4" /> <span className="hidden xl:inline">{themeLabel}</span>
           </button>
-          <button type="button" className="pill-ghost !px-2.5 xl:!px-3.5" onClick={props.onSettings} aria-label="Settings" title="Settings">
+          <button type="button" className="pill-ghost !px-2.5 xl:!px-3.5" onClick={onSettings ?? (() => openOnPortals("settings"))} aria-label="Settings" title="Settings">
             <Gear aria-hidden className="size-4" /> <span className="hidden xl:inline">Settings</span>
           </button>
-          <button type="button" className="pill-cta disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:transform-none" onClick={props.onAddPortal}
-            disabled={!canAdd} title={canAdd ? "Add a portal by its address" : ADD_OFF_REASON} aria-describedby={canAdd ? undefined : "add-off"}>
+          <button type="button" className="pill-cta disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:transform-none" onClick={onAddPortal ?? (() => openOnPortals("add"))}
+            disabled={!canAdd} title={canAdd ? "Add a portal by its address" : addOffReason} aria-describedby={canAdd ? undefined : "add-off"}>
             <Plus aria-hidden className="size-4" /> <span className="max-sm:sr-only">Add portal</span>
           </button>
-          {!canAdd && state.source === "demo" && <span id="add-off" className="sr-only">{ADD_OFF_REASON}</span>}
+          {!canAdd && addOffReason && <span id="add-off" className="sr-only">{addOffReason}</span>}
         </div>
       </div>
     </header>
   );
+}
+
+export function Header(props: {
+  state: LedgerState; now: number; theme?: ThemePref;
+  onTheme?: () => void; onSettings: () => void; onAddPortal: () => void; onAnalytics?: (() => void) | null;
+}) {
+  const { state, now } = props;
+  const canAdd = state.source === "live";
+  return <TopBar current="portals" status={<SourceStatus state={state} now={now} />} canAdd={canAdd || state.source === null}
+    addOffReason={ADD_OFF_REASON} onSettings={props.onSettings} onAddPortal={props.onAddPortal} />;
 }
 
 function SourceStatus({ state, now }: { state: LedgerState; now: number }) {

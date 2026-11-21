@@ -30,7 +30,7 @@ describe("TV rotation", () => {
     setReducedMotion(false);
     const { result } = renderHook(() => useTvRotation(3));
     expect(TV_SLIDE_MS).toBe(12_000);
-    expect(result.current).toEqual({ index: 0, stacked: false });
+    expect(result.current).toMatchObject({ index: 0, stacked: false, paused: false });
     act(() => { vi.advanceTimersByTime(TV_SLIDE_MS - 1); });
     expect(result.current.index).toBe(0);
     act(() => { vi.advanceTimersByTime(1); });
@@ -39,12 +39,37 @@ describe("TV rotation", () => {
     expect(result.current.index).toBe(0);
   });
 
+  it("goes to the next, previous and a numbered slide by hand, restarts the countdown, and pauses", () => {
+    setReducedMotion(false);
+    const { result } = renderHook(() => useTvRotation(4));
+    act(() => { vi.advanceTimersByTime(TV_SLIDE_MS - 1); });
+    act(() => { result.current.next(); });
+    expect(result.current.index).toBe(1);
+    act(() => { vi.advanceTimersByTime(TV_SLIDE_MS - 1); });
+    expect(result.current.index).toBe(1); // the countdown started again after the manual change
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(result.current.index).toBe(2);
+    act(() => { result.current.prev(); });
+    expect(result.current.index).toBe(1);
+    act(() => { result.current.go(3); });
+    expect(result.current.index).toBe(3);
+    act(() => { result.current.go(9); }); // no such slide: nothing happens
+    expect(result.current.index).toBe(3);
+    act(() => { result.current.toggle(); });
+    expect(result.current.paused).toBe(true);
+    act(() => { vi.advanceTimersByTime(TV_SLIDE_MS * 5); });
+    expect(result.current.index).toBe(3);
+    act(() => { result.current.toggle(); });
+    act(() => { vi.advanceTimersByTime(TV_SLIDE_MS); });
+    expect(result.current.index).toBe(0);
+  });
+
   it("does not rotate under reduced motion: no timer runs and the slides are stacked", () => {
     setReducedMotion(true);
     const { result } = renderHook(() => useTvRotation(3));
     expect(vi.getTimerCount()).toBe(0);
     act(() => { vi.advanceTimersByTime(TV_SLIDE_MS * 10); });
-    expect(result.current).toEqual({ index: 0, stacked: true });
+    expect(result.current).toMatchObject({ index: 0, stacked: true });
   });
 
   it("clears its timer when the wallboard closes", () => {

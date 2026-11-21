@@ -1,13 +1,13 @@
 // TV mode helpers: the slide rotation and the series the wallboard draws. Every series is derived
 // from the dashboard snapshot or the run timelines; nothing is interpolated or invented.
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { sortPortals } from "@/data/view";
 import { hasActiveRepair, repairRuns } from "@/components/ledger/evidence";
 import { latestRepair } from "@/components/ledger/overview";
 import type { Portal, Run } from "@/types";
 
 export const TV_SLIDE_MS = 12_000;
-export const TV_SLIDES = ["Fleet", "Repair", "Health"] as const;
+export const TV_SLIDES = ["Health board", "Fleet", "Repair", "Health"] as const;
 
 const REDUCED = "(prefers-reduced-motion: reduce)";
 
@@ -27,15 +27,29 @@ export function useReducedMotion(): boolean {
  * The slide on screen. It advances every `ms` and wraps. Under reduced motion there is no rotation at
  * all: `stacked` is true, no timer runs, and the wallboard shows every slide one under the other.
  */
-export function useTvRotation(count: number, ms = TV_SLIDE_MS): { index: number; stacked: boolean } {
+export interface TvRotation {
+  index: number; stacked: boolean; paused: boolean;
+  /** grows on every manual change, so the countdown starts again */
+  epoch: number;
+  go: (i: number) => void; next: () => void; prev: () => void; toggle: () => void;
+}
+
+export function useTvRotation(count: number, ms = TV_SLIDE_MS): TvRotation {
   const stacked = useReducedMotion();
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [epoch, setEpoch] = useState(0);
   useEffect(() => {
-    if (stacked || count < 2) return;
+    if (stacked || paused || count < 2) return;
     const t = setInterval(() => setIndex((i) => (i + 1) % count), ms);
     return () => clearInterval(t);
-  }, [stacked, count, ms]);
-  return { index: stacked ? 0 : index % Math.max(1, count), stacked };
+  }, [stacked, paused, count, ms, epoch]); // epoch: a manual change restarts the countdown
+  const go = useCallback((i: number) => { if (i >= 0 && i < count) { setIndex(i); setEpoch((e) => e + 1); } }, [count]);
+  const step = useCallback((d: number) => { if (count > 0) { setIndex((i) => (i + d + count) % count); setEpoch((e) => e + 1); } }, [count]);
+  const next = useCallback(() => step(1), [step]);
+  const prev = useCallback(() => step(-1), [step]);
+  const toggle = useCallback(() => { setPaused((p) => !p); setEpoch((e) => e + 1); }, []);
+  return { index: stacked ? 0 : index % Math.max(1, count), stacked, paused, epoch, go, next, prev, toggle };
 }
 
 export interface RepairPick { portal: Portal; run: Run; timeline: Run[]; live: boolean }

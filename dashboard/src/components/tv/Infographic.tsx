@@ -3,7 +3,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieCh
 import type { Portal, PortalState } from "@/types";
 import { eur, hostname, tokens } from "@/data/format";
 import { STATE_META, STATE_ORDER, type FleetSummary } from "@/data/view";
-import { costBars, deliverySeries, readSeries } from "./overview";
+import { costBars, deliverySeries, readSeries } from "@/components/ledger/overview";
 
 /** The light infographic cards of the overview: one clear chart per card, drawn from the same data as the ledger. */
 
@@ -87,7 +87,7 @@ export function DeliveryCard({ portals, basic }: { portals: Portal[]; basic: boo
       {data.length < 2
         ? <Calm>{basic ? "Published counts arrive with the /api/dashboard route." : data.length === 1 ? `One read has published so far: ${data[0]!.tenders} tenders. The curve starts with the second read.` : "No read has published tenders yet. The curve starts with the first one."}</Calm>
         : (
-          <div className="h-[260px]" role="img" aria-label={`Tenders published per read over the last ${data.length} reads, from ${data[0]!.tenders} to ${data[data.length - 1]!.tenders}.`}>
+          <div className="h-[var(--chart-h,260px)]" role="img" aria-label={`Tenders published per read over the last ${data.length} reads, from ${data[0]!.tenders} to ${data[data.length - 1]!.tenders}.`}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <defs><linearGradient id="delivery-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={INDIGO} stopOpacity={0.35} /><stop offset="1" stopColor={INDIGO} stopOpacity={0.02} /></linearGradient></defs>
@@ -114,7 +114,7 @@ export function HealthCard({ portals, basic }: { portals: Portal[]; basic: boole
         ? <Calm>{basic ? "Read results arrive with the /api/dashboard route." : "No read has finished yet. The share appears after the first one."}</Calm>
         : (
           <>
-            <div className="relative h-[200px]" role="img" aria-label={`${Math.round(rate * 100)} percent of finished reads passed: ${reads!.totalPassed} passed, ${reads!.totalFailed} failed.`}>
+            <div className="relative h-[var(--donut-h,200px)]" role="img" aria-label={`${Math.round(rate * 100)} percent of finished reads passed: ${reads!.totalPassed} passed, ${reads!.totalFailed} failed.`}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={data} dataKey="value" innerRadius="68%" outerRadius="94%" startAngle={90} endAngle={-270} stroke="none" isAnimationActive={false}>
@@ -140,7 +140,7 @@ export function StatesCard({ summary, total }: { summary: FleetSummary; total: n
     <InfoCard title="Portals by state" note={`${total} in all`}>
       {total === 0 ? <Calm>No portal yet. Add one with the purple button.</Calm> : (
         <>
-          <div className="h-[200px]" role="img" aria-label={`Portals by state: ${data.map((d) => `${d.value} ${d.name.toLowerCase()}`).join(", ")}.`}>
+          <div className="h-[var(--donut-h,200px)]" role="img" aria-label={`Portals by state: ${data.map((d) => `${d.value} ${d.name.toLowerCase()}`).join(", ")}.`}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={data} dataKey="value" outerRadius="94%" stroke="var(--surface)" strokeWidth={3} isAnimationActive={false}>
@@ -192,7 +192,7 @@ export function ReadsCard({ portals, basic }: { portals: Portal[]; basic: boolea
       {rows.length === 0
         ? <Calm>{basic ? "Read results arrive with the /api/dashboard route." : "No read is recorded yet. Bars appear after the first read."}</Calm>
         : (
-          <div className="h-[260px]" role="img" aria-label={`Reads per portal: ${rows.map((r) => `${r.host} ${r.Passed} passed, ${r.Failed} failed`).join("; ")}.`}>
+          <div className="h-[var(--chart-h,260px)]" role="img" aria-label={`Reads per portal: ${rows.map((r) => `${r.host} ${r.Passed} passed, ${r.Failed} failed`).join("; ")}.`}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={rows} margin={{ top: 8, right: 8, left: -12, bottom: 0 }} barGap={4}>
                 <CartesianGrid stroke="var(--grid-line)" vertical={false} />

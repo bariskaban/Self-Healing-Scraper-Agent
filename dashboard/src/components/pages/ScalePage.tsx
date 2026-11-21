@@ -88,91 +88,6 @@ function Bar({ label, value, widest }: { label: string; value: number | null; wi
   );
 }
 
-function Projection({ portals }: { portals: Portal[] }) {
-  const sliderId = useId();
-  const basis = costBasis(portals);
-  const known = observedKnownShare(portals);
-  const observedPct = known.share === null ? null : Math.round(known.share * 100);
-  const [chosen, setChosen] = useState<number | null>(null);
-  const pct = chosen ?? observedPct ?? 0;
-  const cL = basis.learned.averageEur, cR = basis.reused.averageEur;
-  const out = project({ portals: TARGET_PORTALS, knownShare: pct / 100, costPerLearnEur: cL, costPerReuseEur: cR });
-  const widest = Math.max(out.totalEur ?? 0, out.allLearnedEur ?? 0);
-  const missing = [cL === null && out.learns > 0 ? "no portal learned from scratch has recorded usage" : null, cR === null && out.reuses > 0 ? "no portal has reused a recipe with recorded usage" : null].filter(Boolean);
-  return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-      <section aria-label="Assumptions and inputs" className="card p-5 2xl:p-7">
-        <h3 className="eyebrow mb-5">What the projection rests on</h3>
-        <dl>
-          <Row kind="assumption" term="Fleet size">
-            <span className="tnum font-semibold text-foreground">{int(TARGET_PORTALS)} portals.</span> The target fleet, not a measurement.
-          </Row>
-          <Row kind="assumption" term="Share on known software">
-            <label htmlFor={sliderId} className="sr-only">Share of the {int(TARGET_PORTALS)} portals that run software we have already learned, in percent</label>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <input id={sliderId} type="range" min={0} max={100} step={1} value={pct} onChange={(e) => setChosen(Number(e.target.value))}
-                aria-valuetext={`${pct} percent`} className="h-2 min-w-40 flex-1 cursor-pointer accent-[#6366f1]" />
-              <output htmlFor={sliderId} className="tnum w-16 text-right text-[1.35rem] font-semibold text-foreground">{pct}%</output>
-              {chosen !== null && observedPct !== null && chosen !== observedPct && (
-                <button type="button" onClick={() => setChosen(null)} className="pill-ghost !px-3 !py-1.5 !text-xs"><RotateCcw aria-hidden className="size-3.5" /> Back to observed {observedPct}%</button>
-              )}
-            </div>
-            <p className="mt-2">
-              {known.share === null
-                ? "Not recorded: no portal has a software fingerprint yet, so the slider starts at 0%."
-                : <>Starts at the share observed in this fleet: {plural(known.fingerprinted, "fingerprinted portal")} in {plural(known.distinct, "family")}, so {known.fingerprinted - known.distinct} of {known.fingerprinted} ({observedPct}%) run software another portal already uses.</>}
-              {" "}How this share develops across {int(TARGET_PORTALS)} portals is not measured; move the slider to test other values.
-            </p>
-          </Row>
-          <Row kind="data" term="Cost per learn">
-            <span className="tnum font-semibold text-foreground">{cL === null ? NOT_RECORDED : eurFine(cL)}</span>
-            {cL !== null && <> per portal: the average recorded model cost to date of {plural(basis.learned.recorded, "portal")} learned from scratch, repairs so far included.</>}
-            <span className="mt-1 block"><Tag kind="assumption" /> A portal on new software will cost what these cost on average.</span>
-          </Row>
-          <Row kind="data" term="Cost per reuse">
-            <span className="tnum font-semibold text-foreground">{cR === null ? NOT_RECORDED : eurFine(cR)}</span>
-            {cR !== null && <> per portal: the average recorded model cost to date of {plural(basis.reused.recorded, "portal")} running on a reused recipe.</>}
-            <span className="mt-1 block"><Tag kind="assumption" /> A portal on known software will cost what these cost on average.</span>
-          </Row>
-          <Row kind="assumption" term="Left out">
-            Model usage only. Regular reads make no model call by design, so they add nothing here. Future repairs, hosting, storage and download traffic are not projected.
-          </Row>
-        </dl>
-      </section>
-
-      <section aria-label="Projected model cost" aria-live="polite" className="card flex flex-col overflow-hidden p-5 2xl:p-7">
-        <div aria-hidden className="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-[radial-gradient(closest-side,rgb(99_102_241/0.22),transparent)]" />
-        <h3 className="eyebrow">Projected model cost, {int(TARGET_PORTALS)} portals</h3>
-        {out.totalEur === null ? (
-          <>
-            <p className="display mt-5 text-[2.4rem]">{NOT_RECORDED}</p>
-            <p className="mt-3 text-secondary-text">The projection needs a cost that the data does not hold yet: {missing.join(", and ")}. Nothing is estimated in its place.</p>
-          </>
-        ) : (
-          <>
-            <p className="mt-5 flex flex-wrap items-baseline gap-x-3">
-              <span className="silver tnum text-[clamp(3rem,5.4vw,5.5rem)] leading-none font-semibold tracking-[-0.04em]">{eurFine(out.totalEur).replace(" EUR", "")}</span>
-              <span className="text-xl font-medium text-muted-foreground">EUR</span>
-            </p>
-            <p className="mt-2 text-secondary-text">One-off model cost to attach {int(TARGET_PORTALS)} portals with {pct}% of them on known software.</p>
-          </>
-        )}
-        <dl className="tnum mt-6 grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-4 gap-y-2 border-t border-divider pt-5 text-[0.95rem]">
-          <dt className="font-semibold">{int(out.learns)}</dt><dd className="text-secondary-text">learned from scratch × {cL === null ? NOT_RECORDED.toLowerCase() : eurFine(cL)}</dd><dd className="text-right font-semibold">{out.learnCostEur === null ? NOT_RECORDED : eurFine(out.learnCostEur)}</dd>
-          <dt className="font-semibold">{int(out.reuses)}</dt><dd className="text-secondary-text">on a reused recipe × {cR === null ? NOT_RECORDED.toLowerCase() : eurFine(cR)}</dd><dd className="text-right font-semibold">{out.reuseCostEur === null ? NOT_RECORDED : eurFine(out.reuseCostEur)}</dd>
-        </dl>
-        <div className="mt-6 flex flex-col gap-4 border-t border-divider pt-5">
-          <Bar label={`With ${pct}% on known software`} value={out.totalEur} widest={widest} />
-          <Bar label="Every portal learned from scratch" value={out.allLearnedEur} widest={widest} />
-        </div>
-        {out.savingEur !== null && out.allLearnedEur !== null && out.allLearnedEur > 0 && (
-          <p className="mt-5 text-secondary-text">Reuse saves <span className="font-semibold text-foreground">{eurFine(out.savingEur)}</span> ({Math.round((out.savingEur / out.allLearnedEur) * 100)}%) against learning every portal from scratch.</p>
-        )}
-      </section>
-    </div>
-  );
-}
-
 export function ScalePage() {
   const fleet = useFleet(false, false, 10_000);
   const d = fleet.data?.dashboard ?? null;
@@ -194,7 +109,7 @@ export function ScalePage() {
       {!d ? (
         <div className="mt-10 grid gap-4 md:grid-cols-3" aria-busy="true">{[0, 1, 2].map((i) => <Skel key={i} className="min-h-[13rem] rounded-[1.25rem]" />)}</div>
       ) : portals.length === 0 ? (
-        <p className="card mt-10 p-8 text-secondary-text">No portal is attached yet, so there is no cost to show. Add a portal on the <a href="#/" className="text-primary underline-offset-4 hover:underline">overview</a>.</p>
+        <p className="card mt-10 p-8 text-secondary-text">No portal is attached yet, so there is no cost to show. Add a portal on the <a href="#/" className="text-primary underline-offset-4 hover:underline">Portals</a> page.</p>
       ) : (
         <>
           {fleet.data?.basic && (
@@ -233,13 +148,6 @@ export function ScalePage() {
                   costEur={fam.unknown.some((p) => p.usage) ? fam.unknown.reduce((s, p) => s + (p.usage?.costEur ?? 0), 0) : null} />}
               </ul>
             )}
-          </section>
-
-          <section aria-labelledby="proj-h" className="mt-14">
-            <SectionHead id="proj-h" label="Projection" title={<>From {plural(portals.length, "portal")} to <span className="highlight font-normal">{int(TARGET_PORTALS)}</span></>}>
-              <p className="text-sm text-muted-foreground">Inputs are measured; every assumption is marked</p>
-            </SectionHead>
-            <Projection portals={portals} />
           </section>
         </>
       )}

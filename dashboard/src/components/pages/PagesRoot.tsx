@@ -34,7 +34,7 @@ export function PagesRoot({ children }: { children: ReactNode }) {
       window.history.replaceState(null, "", u.pathname + u.search + u.hash);
     }
     setTvQuery(false);
-    if (parsePage(window.location.hash) === "tv") window.location.hash = returnTo.current;
+    if (parsePage(window.location.hash) === "tv") window.location.hash = "#/";
   }, []);
 
   useEffect(() => {

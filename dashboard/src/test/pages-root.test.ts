@@ -27,7 +27,7 @@ describe("page routing and the TV shortcuts", () => {
     expect(screen.getByText("overview app")).toBeInTheDocument();
   });
 
-  it("opens the wallboard on T and leaves it on Escape, back where it came from", async () => {
+  it("opens the wallboard on T and leaves it on Escape, back to Portals", async () => {
     app();
     await go("#/scale");
     await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/portal|recipe/i));
@@ -36,9 +36,9 @@ describe("page routing and the TV shortcuts", () => {
     await go("#/tv");
     expect(screen.getByRole("heading", { name: "Watchtower TV mode" })).toBeInTheDocument();
     expect(screen.queryByText("overview app")).not.toBeInTheDocument();
-    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Exit TV" })).toBeInTheDocument();
     await act(async () => { key("Escape"); });
-    expect(window.location.hash).toBe("#/scale");
+    expect(window.location.hash).toBe("#/");
   });
 
   it("T also leaves the wallboard, to the overview when it was opened directly", async () => {
@@ -84,18 +84,20 @@ describe("page routing and the TV shortcuts", () => {
     expect(screen.getByRole("button", { name: /Download JSON/ })).toBeEnabled();
   });
 
-  it("marks every assumption on the scale page and projects from the demo numbers", async () => {
+  it("shows cost per portal and software families on the scale page, and no projection", async () => {
     window.history.replaceState(null, "", "/?demo"); // the snapshot is shown only when asked for
     app();
     await go("#/scale");
-    await waitFor(() => expect(screen.getByRole("heading", { name: /From 8 portals to 4,500/ })).toBeInTheDocument());
-    expect(screen.getAllByText("Assumption").length).toBeGreaterThanOrEqual(5);
-    expect(screen.getByText("2 portals on vmstart share one recipe.")).toBeInTheDocument();
-    const slider = screen.getByRole("slider");
-    expect(slider).toHaveValue(String(Math.round((1 / 7) * 100)));
-    fireEvent.change(slider, { target: { value: "80" } });
-    expect(screen.getByText(/with 80% of them on known software/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Back to observed 14%/ })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("2 portals on vmstart share one recipe.")).toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: /What one portal costs/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /famil/i })).toBeInTheDocument();
+    expect(screen.queryByText(/4,500/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+    expect(screen.queryByText("Assumption")).not.toBeInTheDocument();
+    // The top bar is the same on every route, with this tab marked.
+    expect(screen.getByRole("link", { name: "Cost & scale" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Portals" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /Add portal/ })).toBeInTheDocument();
     expect(demoDashboard.portals).toHaveLength(8);
   });
 });

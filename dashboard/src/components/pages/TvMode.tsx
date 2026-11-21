@@ -11,6 +11,8 @@ import { repairSlides } from "@/components/ledger/Spotlight";
 import { cn } from "@/lib/utils";
 import type { PortalState } from "@/types";
 import { dataNow, knownTimelines, useFleet, type FleetData } from "./pagesData";
+import { HealthBoard } from "@/components/tv/HealthBoard";
+import { isEditable } from "./nav";
 import { TV_SLIDES, TV_SLIDE_MS, costSeries, deliveredSeries, pickRepair, readBuckets, readHealth, readsHourSeries, useTvRotation, type ReadBuckets } from "./tv";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -279,13 +281,23 @@ function HealthSlide({ data, now }: { data: FleetData; now: number }) {
  */
 export function TvMode({ onLeave }: { onLeave: () => void }) {
   const fleet = useFleet(true, false, 10_000);
-  const { index, stacked } = useTvRotation(TV_SLIDES.length);
+  const { index, stacked, paused, epoch, go, next, prev, toggle } = useTvRotation(TV_SLIDES.length);
   const wall = useNow(true);
-  const [hint, setHint] = useState(true);
   const data = fleet.data;
   const now = dataNow(data, wall);
 
-  useEffect(() => { const t = setTimeout(() => setHint(false), 6000); return () => clearTimeout(t); }, []);
+  // Keys: Right or Space next, Left previous, 1-9 jump, P pause. Escape and T are the router's.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || isEditable(e.target)) return;
+      if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); next(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+      else if (e.key === "p" || e.key === "P") { e.preventDefault(); toggle(); }
+      else if (/^[1-9]$/.test(e.key)) { e.preventDefault(); go(Number(e.key) - 1); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [next, prev, toggle, go]);
 
   // Ask for the browser's full screen; it is allowed only right after a key press or click, so a
   // refusal is normal and ignored. Leaving the browser's full screen leaves TV mode too.
@@ -297,13 +309,13 @@ export function TvMode({ onLeave }: { onLeave: () => void }) {
     return () => document.removeEventListener("fullscreenchange", on);
   }, [onLeave]);
 
-  const slides = data ? [<FleetSlide key="f" data={data} now={now} />, <RepairSlide key="r" data={data} />, <HealthSlide key="h" data={data} now={now} />] : [];
+  const slides = data ? [<HealthBoard key="b" portals={data.dashboard.portals} summary={fleetSummary(data.dashboard)} basic={data.basic} />, <FleetSlide key="f" data={data} now={now} />, <RepairSlide key="r" data={data} />, <HealthSlide key="h" data={data} now={now} />] : [];
   const pad = "px-[clamp(1rem,3.2vw,5rem)]";
   return (
     <div className={cn("relative isolate flex flex-col bg-background", stacked ? "min-h-dvh" : "h-dvh overflow-hidden")}>
       <div className="glow-field" aria-hidden><div className="glow glow-1" /><div className="glow glow-2" /><div className="glow glow-3" /></div>
       <h1 className="sr-only">Watchtower TV mode</h1>
-      <p className="sr-only">Passive wallboard. Press Escape or T to leave.</p>
+      <p className="sr-only">Wallboard. Right arrow or Space: next slide. Left arrow: previous. 1 to 4: jump. P: pause. Escape: back to Portals.</p>
       <main className={cn("flex min-h-0 flex-1 flex-col pt-[clamp(1rem,3.4vh,3rem)]", pad)}>
         {!data ? (
           <Empty label="Watchtower" title="Reading the fleet…" />
@@ -328,20 +340,24 @@ export function TvMode({ onLeave }: { onLeave: () => void }) {
         {data && (data.source === "live"
           ? <span className="chip chip-plain !text-[0.62em] text-secondary-text"><span aria-hidden className="live-dot text-serving" />{data.basic ? "Live · basic" : "Live"}</span>
           : <span className="chip chip-plain !text-[0.62em] font-semibold">Demo data · snapshot {hhmm(Date.parse(data.dashboard.asOf))}</span>)}
-        {hint && <span className="text-[0.62em] text-muted-foreground">Esc or T to leave</span>}
+        <span className="text-[0.55em] text-muted-foreground">{stacked ? "Esc: exit" : `← → Space: slide · 1-${TV_SLIDES.length}: jump · P: ${paused ? "resume" : "pause"} · Esc: exit`}</span>
         {!stacked && data && (
-          <ol aria-hidden className="ml-auto flex items-center gap-2">
+          <ol className="ml-auto flex items-center gap-2">
             {TV_SLIDES.map((name, i) => (
-              <li key={name} className="tv-dot" data-active={i === index}>
-                {i === index && <span className="tv-dot-fill" style={{ ["--slide-ms" as string]: `${TV_SLIDE_MS}ms` }} />}
+              <li key={name} className="flex">
+                <button type="button" className="tv-dot" data-active={i === index} data-paused={paused} onClick={() => go(i)} aria-label={`Slide ${i + 1}: ${name}`} aria-current={i === index ? "true" : undefined} title={name}>
+                  {i === index && <span key={`${index}-${epoch}`} className="tv-dot-fill" style={{ ["--slide-ms" as string]: `${TV_SLIDE_MS}ms` }} />}
+                </button>
               </li>
             ))}
           </ol>
         )}
+        {!stacked && paused && <span className="text-[0.62em] font-semibold text-healing">Paused</span>}
         {!stacked && data && <p className="sr-only">Slide {index + 1} of {TV_SLIDES.length}: {TV_SLIDES[index]}</p>}
         <time dateTime={new Date(wall).toISOString()} className={cn("tnum font-medium tracking-tight", (stacked || !data) && "ml-auto")}>
           {hhmm(wall)}<span className="text-muted-foreground">:{String(new Date(wall).getSeconds()).padStart(2, "0")}</span>
         </time>
+        <button type="button" className="pill-ghost !text-[0.6em]" onClick={onLeave}>Exit TV</button>
       </footer>
     </div>
   );

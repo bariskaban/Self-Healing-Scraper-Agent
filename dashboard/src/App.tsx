@@ -2,9 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useHashRoute, useLedger, useNow } from "@/data/hooks";
 import { fleetSummary, sortPortals, STATE_META } from "@/data/view";
 import { hostname } from "@/data/format";
-import { ADD_OFF_REASON, Header } from "@/components/ledger/Header";
-import { FleetHero } from "@/components/ledger/FleetStrip";
-import { CostCard, DeliveryCard, HealthCard, KpiRow, ReadsCard, StatesCard } from "@/components/ledger/Infographic";
+import { ADD_OFF_REASON, Header, takeOpenRequest } from "@/components/ledger/Header";
 import { EmptyFleet, LedgerSkeleton, PortalLedger } from "@/components/ledger/PortalLedger";
 import { PortalDetail } from "@/components/ledger/PortalDetail";
 import { SettingsSheet } from "@/components/ledger/SettingsSheet";
@@ -56,13 +54,19 @@ export default function App() {
   const now = state.source === "demo" && d ? Date.parse(d.asOf) : tick;
   const summary = useMemo(() => (d && state.source ? fleetSummary(d) : null), [d, state.source]);
   const announce = useAnnouncements(state);
+  // Add portal or Settings pressed on another page: that page sent us here to open the sheet.
+  useEffect(() => {
+    const want = takeOpenRequest();
+    if (want === "add") setAddOpen(true);
+    else if (want === "settings") setSettingsOpen(true);
+  }, []);
   const eurPerUsd = d?.eurPerUsd ?? null;
   const overview = route.name === "overview";
   const timelines = useOverviewTimelines(state, overview);
   const knownIds = useMemo(() => d?.portals.map((p) => p.id) ?? [], [d]);
 
   useEffect(() => {
-    if (route.name === "overview") document.title = "Portal overview · Watchtower";
+    if (route.name === "overview") document.title = "Portals · Watchtower";
     else {
       const p = d?.portals.find((x) => x.id === route.id);
       document.title = `${p ? hostname(p.url) : "Portal"} · Watchtower`;
@@ -93,26 +97,10 @@ export default function App() {
         {overview ? (
           <>
             <div className={SHELL}>
-              <h1 className="sr-only">Portal overview</h1>
-              <FleetHero portals={ready && d ? d.portals : null} summary={summary} />
-              {ready && d && summary && (
-                <>
-                  <div className="mt-8"><KpiRow portals={d.portals} summary={summary} basic={state.basic} /></div>
-                  <div className="mt-5 grid gap-5 xl:grid-cols-4">
-                    <DeliveryCard portals={d.portals} basic={state.basic} />
-                    <HealthCard portals={d.portals} basic={state.basic} />
-                    <StatesCard summary={summary} total={d.portals.length} />
-                  </div>
-                </>
-              )}
-              <div className="mt-5 grid gap-5 xl:grid-cols-3">
-                <div id="repairs" className="min-w-0 scroll-mt-24 [&>*]:h-full">{spotlight()}</div>
-                {ready && d && <CostCard portals={d.portals} basic={state.basic} />}
-                {ready && d && <ReadsCard portals={d.portals} basic={state.basic} />}
-              </div>
+              <h1 className="sr-only">Portals</h1>
             </div>
             <div className="band">
-              <section id="portals" aria-labelledby="ledger-h" className={`${SHELL} scroll-mt-24 py-8 2xl:py-10`}>
+              <section id="portals" aria-labelledby="ledger-h" className={`${SHELL} scroll-mt-24 pt-6 pb-10 2xl:pt-8`}>
                 <SectionHead id="ledger-h" label="Portal ledger" title={ready && d ? <>Every portal, <span className="text-muted-foreground">exceptions first</span></> : "Portals"}>
                   <ReadLegend />
                 </SectionHead>
