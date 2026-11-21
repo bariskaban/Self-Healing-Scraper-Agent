@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any, TypeVar
 from urllib.parse import urlsplit
 
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -45,6 +45,7 @@ from app.loop import ReadLoop
 from app.reader import Learned, Learner, NotLearned, Reader, Repairer, SpotChecked, SpotChecker
 from app.recipe.settings import RecipeSettings
 from app.scheduler import SchedulerSettings
+from app.tenders_answer import TendersAnswers
 from app.models import CreatedId, Portal, PortalCreate, RunAccepted, url_key, utcnow
 
 T = TypeVar("T")
@@ -217,6 +218,10 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
         worker = ReadLoop(opened, reader, fetcher, schedule=schedule)
 
     database = ThreadPoolExecutor(max_workers=1, thread_name_prefix="watchtower-db")
+    # The tenders of a big portal are built here, on a read connection of their own (app/tenders_answer.py), so
+    # that building them never holds up the dashboard's small reads on `database`. Only a Database has it.
+    heavy = ThreadPoolExecutor(max_workers=2, thread_name_prefix="watchtower-tenders")
+    answers = TendersAnswers(store) if isinstance(store, Database) else None
 
     async def on_db(call: Callable[..., T], *args: Any) -> T:
         """Run one call to the store on the database thread."""
@@ -232,6 +237,7 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
         if fetcher is not None:
             fetcher.close()
         database.shutdown(wait=False, cancel_futures=True)
+        heavy.shutdown(wait=False, cancel_futures=True)
         if opened is not None:
             opened.close()
 
@@ -297,7 +303,8 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
         return JSONResponse(RunAccepted(runId=run_id).model_dump(), status_code=202)
 
     @app.get("/portals/{portal_id}/tenders")
-    async def list_tenders(portal_id: str, changedSince: str | None = Query(None)) -> JSONResponse:  # noqa: N803
+    async def list_tenders(request: Request, portal_id: str,
+                           changedSince: str | None = Query(None)) -> Response:  # noqa: N803
         """The tenders held for the portal; with `changedSince`, only those that changed later."""
         await known(portal_id)
         since = None
@@ -309,7 +316,21 @@ def create_app(store: Store | None = None, worker: Worker | None = None,
                     status_code=400,
                     detail="changedSince must be a date and time with offset, such as 2026-12-09T10:00:00+01:00.",
                 ) from None
-        return JSONResponse(await on_db(tender_answers, portal_id, since))
+        if answers is None:  # the in-memory stand-in: small, and built on the database thread as before
+            return JSONResponse(await on_db(tender_answers, portal_id, since))
+        now = utcnow()
+        tag = answers.etag(portal_id, now)
+        if since is None and request.headers.get("if-none-match") == tag:
+            return Response(status_code=304, headers={"ETag": tag, "Cache-Control": "no-cache"})
+        loop = asyncio.get_running_loop()
+        made = await loop.run_in_executor(heavy, answers.answer, portal_id, since, now)
+        body, zipped = made.encoded("gzip" in request.headers.get("accept-encoding", "").lower())
+        headers = {"Vary": "Accept-Encoding", "Cache-Control": "no-cache"}
+        if zipped:
+            headers["Content-Encoding"] = "gzip"
+        if since is None:
+            headers["ETag"] = made.etag
+        return Response(content=body, media_type="application/json", headers=headers)
 
     @app.get("/portals/{portal_id}/runs")
     async def list_runs(portal_id: str) -> JSONResponse:

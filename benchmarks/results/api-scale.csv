@@ -1,0 +1,4 @@
+shape,tenders,files_per_tender,file_links,answer_mb,gzip_mb,old_route_s,new_first_call_s,new_cached_call_s,gzip_once_s,dashboard_wait_old_s,dashboard_wait_new_s,same_answer
+121x26,121,26,3146,0.53,0.15,0.05,0.02,0.0,0.01,0.001,0.009,True
+500x8,500,8,4000,0.76,0.2,0.08,0.04,0.0,0.01,0.045,0.014,True
+4132x60,4132,60,247920,40.44,12.44,5.58,1.18,0.0,0.46,5.596,0.004,True
