@@ -58,6 +58,8 @@ class Agents:
                  recipes: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> None:
         self.runner = Runner(model, settings)
         self.fetch, self.db = fetch, database
+        if database is not None:  # DELETE: the system stops calling the portal within a minute
+            self.runner.alive = lambda portal_id: database.get_portal(portal_id) is not None
         # At most this many runs use the model at once; the others wait here, and a portal waiting is `integrating`.
         self._slots = threading.BoundedSemaphore(settings.max_concurrent_runs)
         self.models = models or ModelSettings.from_env()

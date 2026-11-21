@@ -146,3 +146,20 @@ def test_a_recipe_whose_first_read_met_an_outage_is_kept_and_not_learned_again(s
     assert outcome.passed and len(asked) == 1                              # the learner was asked once in all
     assert db.active_recipe(PID).version == 1 and incident.learned_unread is None
     assert db.get_run(run.id).model_calls == 0 and db.get_portal(PID).state is PortalState.serving
+
+
+def test_a_read_that_passes_long_after_the_last_one_stays_serving(site, monkeypatch):
+    """A long document phase or a restart: the last passing read is old, and this one passes. It is no outage."""
+    from datetime import datetime, timedelta, timezone
+    db, read = site
+    learned = Learned(recipe=recipe(), timezone=mock_portal.TIMEZONE)
+    incident = Incident()
+    outcome, _ = read(RunTrigger.attach, incident, learn=lambda portal, run_id: learned)
+    assert outcome.passed and db.get_portal(PID).state is PortalState.serving
+    later = datetime.now(timezone.utc) + timedelta(hours=3)
+    outcome, run = read(RunTrigger.schedule, incident, now=lambda: later)
+    assert outcome.passed and db.get_portal(PID).state is PortalState.serving and db.get_run(run.id).result.value == "ok"
+    # When the portal does not answer, the age is still reported with the outage.
+    read.mock.outage = True
+    outcome, _ = read(RunTrigger.schedule, incident, now=lambda: later + timedelta(hours=3))
+    assert not outcome.passed and db.get_portal(PID).state is PortalState.failed

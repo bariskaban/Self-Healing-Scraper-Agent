@@ -13,9 +13,11 @@ queues every portal again.
 from __future__ import annotations
 
 import asyncio
+import os
 import logging
 import random
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime
@@ -32,6 +34,8 @@ from app.scheduler import (
 )
 
 log = logs.get("loop")
+# Threads for reads; one read holds one from its start to its last document. Our own choice: READ_THREADS.
+READ_THREADS = int(os.environ.get("READ_THREADS") or 64)
 
 
 def _own_trigger(portal: Portal) -> RunTrigger:
@@ -150,6 +154,10 @@ class ReadLoop:
 
     async def start(self) -> None:
         """After a start: close the runs a stopped process left open, and queue every portal."""
+        # A read holds its thread through the learn, every page and every document. The default pool
+        # (cpus + 4) would leave further portals unread while that many attach at once.
+        asyncio.get_running_loop().set_default_executor(
+            ThreadPoolExecutor(max_workers=READ_THREADS, thread_name_prefix="watchtower-read"))
         cut = await asyncio.to_thread(self.db.fail_open_runs)
         portals = await asyncio.to_thread(self.db.list_portals)
         if cut:

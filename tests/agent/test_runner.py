@@ -236,3 +236,12 @@ def test_another_model_error_is_not_waited_for_and_is_no_rate_limit():
         job="learn", model="gpt-6.2-sol", prompt=PROMPT, task="t", tools=[], answer_type=Answer, max_turns=5,
         max_usd=None, steps=StepLog("run1"))
     assert out.answer is None and not out.rate_limited and waited == []
+
+
+def test_a_run_for_a_portal_that_was_deleted_stops_before_its_next_model_call():
+    model = ScriptedModel([[call("echo", text="a")], [call("echo", text="b")], GOOD])
+    runner = Runner(model, AgentSettings())
+    runner.alive = lambda portal_id: len(model.requests) < 1       # deleted during the first call
+    out = runner.run(job="learn", model="gpt-6.2-sol", prompt=PROMPT, task="t", tools=[echo()], answer_type=Answer,
+                     max_turns=5, max_usd=None, steps=StepLog("run1"), portal_id="p1")
+    assert out.answer is None and out.stopped == "the portal was deleted" and len(model.requests) == 1

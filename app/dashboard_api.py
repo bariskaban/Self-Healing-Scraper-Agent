@@ -194,7 +194,7 @@ def settings_out(attach_time_limit_seconds: float, ignore_robots_txt: bool) -> d
 
 
 def portal_row(portal: Portal, tender_count: int, history: PortalHistory, *, next_read_at: datetime | None,
-               eur_per_usd: float) -> dict[str, Any]:
+               eur_per_usd: float, repaired: bool = False) -> dict[str, Any]:
     """One portal on the overview. `reusedFrom` is left out: no record says where a recipe came from."""
     last = history.last_run
     running = last is not None and last.finished_at is None
@@ -209,8 +209,9 @@ def portal_row(portal: Portal, tender_count: int, history: PortalHistory, *, nex
         # page tells a repair by `kind`: a run going on while the portal is healing a breakage is one.
         "lastRun": None if last is None else {
             "id": last.id, "result": _value(last.result),
-            "kind": "repair" if running and portal.state is PortalState.healing
-            and portal.cause is not None and portal.cause.value == "breakage" else last.kind.value},
+            "kind": "repair" if repaired or (running and portal.state is PortalState.healing
+                                             and portal.cause is not None and portal.cause.value == "breakage")
+            else last.kind.value},
         "recentReads": [_value(run.result) for run in history.recent_reads],
         "deliveryTrend": list(history.delivery_trend),
         "readsLastHour": history.reads_in_window,
@@ -342,10 +343,18 @@ def dashboard_answer(store: Records, settings: DashboardSettings, *, live: Mappi
     now = now or utcnow()
     portals = store.list_portals()
     history = histories(store, portals, now - timedelta(seconds=settings.reads_window_seconds), settings)
+    repairs = getattr(store, "repair_run_ids", None)
+
+    def repaired(portal: Portal) -> bool:
+        """The portal's last run is one in which a repair took place (as `GET /portals/{id}/runs` says it)."""
+        last = history[portal.id].last_run
+        return last is not None and repairs is not None and last.id in repairs(portal.id)
+
     return {
         "asOf": time_out(now), "eurPerUsd": settings.eur_per_usd, "settings": dict(live),
         "portals": [portal_row(portal, store.count_tenders(portal.id), history[portal.id],
-                               next_read_at=(next_reads or {}).get(portal.id), eur_per_usd=settings.eur_per_usd)
+                               next_read_at=(next_reads or {}).get(portal.id), eur_per_usd=settings.eur_per_usd,
+                               repaired=repaired(portal))
                     for portal in portals],
     }
 
