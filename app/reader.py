@@ -88,6 +88,7 @@ class NotLearned:
     reason: str
     model_calls: int = 0
     usage: TokenUsage = field(default_factory=TokenUsage)
+    rate_limited: bool = False  # it ended on the model's rate limit: it does not count as a learn of the day
 
 
 @dataclass(frozen=True)
@@ -313,8 +314,8 @@ class _Read:
         log.info("portal %s: learn returned %s after %.1fs (model calls %d)", self.portal_id,
                  type(learned).__name__ if learned is not None else "None", time.monotonic() - began,
                  learned.model_calls if learned is not None else 0)
-        if learned is not None and learned.model_calls:
-            incident.learns_today += 1
+        if learned is not None and learned.model_calls and not getattr(learned, "rate_limited", False):
+            incident.learns_today += 1  # a learn the model's rate limit ended says nothing about the portal
         if isinstance(learned, NotLearned):
             self.why_not = learned.reason
             return None

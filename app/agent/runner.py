@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -201,6 +202,7 @@ class Outcome:
     usage: TokenUsage = field(default_factory=TokenUsage)
     model_calls: int = 0
     unpriced: bool = False  # the model has no price in the table: `usage.cost_usd` misses its calls
+    rate_limited: bool = False  # the run ended because the API's rate limit did not pass in time
 
 
 @dataclass
@@ -215,25 +217,30 @@ class Runner:
     """Runs agents on one model client. One instance for the process; `run` blocks."""
 
     def __init__(self, model: Model, settings: AgentSettings = DEFAULT_AGENT_SETTINGS,
-                 sleep: Callable[[float], None] = time.sleep) -> None:
-        self.model, self.settings, self._sleep = model, settings, sleep
+                 sleep: Callable[[float], None] = time.sleep,
+                 chance: Callable[[], float] = random.random) -> None:
+        self.model, self.settings, self._sleep, self._chance = model, settings, sleep, chance
 
     def _respond(self, steps: StepLog, job: str, **request: Any) -> ModelReply:
-        """One model call. A rate limit is waited out and tried again, a few times: several portals
-        learning at once share one limit of tokens a minute, and a learn must not die of that."""
-        waits = 0
+        """One model call. A rate limit is waited out and the call tried again, until the waiting
+        for this call has taken `rate_limit_wait_budget_seconds`: several portals learning at once
+        share one limit of tokens a minute, and a learn must not die of that."""
+        settings, waits, waited = self.settings, 0, 0.0
         while True:
             try:
                 return self.model.respond(**request)
             except ModelError as error:
-                if not error.rate_limited or waits >= self.settings.rate_limit_waits:
+                left = settings.rate_limit_wait_budget_seconds - waited
+                if not error.rate_limited or left <= 0:
                     raise
                 waits += 1
-                pause = min(error.retry_after or self.settings.rate_limit_wait_seconds * waits,
-                            self.settings.rate_limit_wait_max_seconds)
+                ours = min(settings.rate_limit_wait_seconds * 2 ** (waits - 1), settings.rate_limit_wait_max_seconds)
+                pause = max(error.retry_after or 0.0, ours)
+                pause = min(pause * (1 + settings.rate_limit_wait_jitter * self._chance()), left)
+                waited += pause
                 steps.add(StepKind.note, f"{job}_rate_limited",
                           f"The model's rate limit was reached; waiting {pause:.0f} s before trying again "
-                          f"(wait {waits} of at most {self.settings.rate_limit_waits}).")
+                          f"({waited:.0f} of at most {settings.rate_limit_wait_budget_seconds:.0f} s of waiting).")
                 self._sleep(pause)
 
     def _size(self, items: Sequence[dict[str, Any]]) -> int:
@@ -303,6 +310,7 @@ class Runner:
                                       input=self._input(task, turns, dropped), tools=tools, answer=answer,
                                       reasoning=reasoning or None, cache_key=cache_key)
             except ModelError as error:
+                out.rate_limited = error.rate_limited
                 return stop(f"the model call failed: {error}")
             took = int((time.monotonic() - began) * 1000)
             out.model_calls += 1
