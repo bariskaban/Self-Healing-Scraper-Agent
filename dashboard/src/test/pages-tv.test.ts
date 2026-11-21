@@ -109,8 +109,8 @@ describe("page routes and shortcuts", () => {
 describe("wallboard series, from the demo snapshot", () => {
   it("counts the share of finished reads that passed and leaves running reads out", () => {
     const h = readHealth(demoDashboard.portals);
-    expect(h).toMatchObject({ passed: 18, failed: 7, running: 1 });
-    expect(h.share).toBeCloseTo(18 / 25);
+    expect(h).toMatchObject({ passed: 20, failed: 7, running: 1 });
+    expect(h.share).toBeCloseTo(20 / 27);
     expect(readHealth([]).share).toBeNull();
   });
 

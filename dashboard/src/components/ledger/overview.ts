@@ -11,20 +11,35 @@ export function fleetSentence(portals: Portal[]): { total: number; parts: Senten
   const of = (state: PortalState) => portals.filter((p) => p.state === state);
   const healing = of("healing");
   const repairing = healing.length > 0 && healing.every((p) => hasActiveRepair(p) || p.cause === "breakage");
-  const failed = of("failed").length;
+  const failedAll = of("failed");
+  const outage = failedAll.filter((p) => p.cause === "outage").length;
+  const failed = failedAll.length - outage;
   const raw: [PortalState, number, string][] = [
     ["serving", of("serving").length, "serving"],
     ["healing", healing.length, repairing ? (healing.length === 1 ? "repairing itself" : "repairing themselves") : "healing"],
     ["integrating", of("integrating").length, "being learned"],
     ["failed", failed, failed === 1 ? "needs attention" : "need attention"],
+    ["failed", outage, "not answering"],
   ];
   const present = raw.filter(([, count]) => count > 0);
   const lit = present.some(([state]) => state === "healing") ? "healing" : "serving";
   return { total: portals.length, parts: present.map(([state, count, text]) => ({ state, count, text, highlight: state === lit })) };
 }
 
+/** A healing portal, or one in an outage, keeps delivering its last correct tenders. */
 export const stillServing = (p: Portal) =>
-  p.state === "healing" && p.tenderCount > 0 ? `still serving ${p.tenderCount} tender${p.tenderCount === 1 ? "" : "s"}` : null;
+  (p.state === "healing" || (p.state === "failed" && p.cause === "outage")) && p.tenderCount > 0
+    ? `still serving ${p.tenderCount} tender${p.tenderCount === 1 ? "" : "s"}` : null;
+
+/** The newest repair that finished and passed its verifying read. */
+export function lastVerifiedRepair(timeline: Run[] | undefined): Run | null {
+  let best: Run | null = null;
+  for (const run of timeline ?? []) {
+    if (run.kind !== "repair" || run.result !== "ok" || run.finishedAt === null) continue;
+    if (!best || Date.parse(run.startedAt) > Date.parse(best.startedAt)) best = run;
+  }
+  return best;
+}
 
 const mean = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null);
 

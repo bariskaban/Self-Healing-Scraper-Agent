@@ -10,8 +10,23 @@ export const STATE_META: Record<PortalState, { label: string; tip: string }> = {
     tip: "Repairing itself: the site changed; the agent is fixing the recipe; the last correct tenders are still served.",
   },
   integrating: { label: "Integrating", tip: "Being learned: the agent is working out how to read this portal; nothing is published yet." },
-  failed: { label: "Failed", tip: "Needs a person: the portal cannot be read correctly (a login, a block or a failed repair); it is still re-checked." },
+  failed: { label: "Failed", tip: "Needs a person: the portal cannot be read correctly (a login, a block or a failed repair), or it is not answering (an outage); it is still re-checked." },
 };
+
+/** The cause in a few words, next to the state. Null when there is no cause or the state already says it. */
+export function causeWord(p: Pick<Portal, "state" | "cause" | "reason">): string | null {
+  if (!p.cause || p.state === "serving" || p.state === "integrating") return null;
+  if (p.cause === "outage") return "Outage";
+  if (p.cause === "breakage") return "Layout changed";
+  if (p.cause === "block") return /log ?in|sign ?in/i.test(p.reason) ? "Login required" : "Blocked";
+  return null;
+}
+
+/** The tooltip of a state badge, told for its cause when that changes what it means. */
+export function stateTip(p: Pick<Portal, "state" | "cause" | "reason">): string {
+  if (p.state === "failed" && p.cause === "outage") return "Outage: the portal is not answering right now. Its last good tenders are still served and it is checked again automatically.";
+  return STATE_META[p.state].tip;
+}
 
 export function sortPortals(ps: Portal[]): Portal[] {
   return [...ps].sort(

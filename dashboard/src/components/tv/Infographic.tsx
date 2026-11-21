@@ -201,7 +201,7 @@ export function ReadsCard({ portals, basic }: { portals: Portal[]; basic: boolea
                 <Tooltip contentStyle={TOOLTIP} cursor={{ fill: "var(--inset)" }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 13, color: "var(--secondary-text)" }} />
                 <Bar dataKey="Passed" fill={GREEN} radius={[6, 6, 0, 0]} maxBarSize={26} isAnimationActive={false} />
-                <Bar dataKey="Failed" fill={INDIGO} radius={[6, 6, 0, 0]} maxBarSize={26} isAnimationActive={false} />
+                <Bar dataKey="Failed" fill="#b91c1c" radius={[6, 6, 0, 0]} maxBarSize={26} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -17,17 +17,19 @@ export const settingsSchema = z.object({
 });
 
 export const portalStateSchema = z.enum(["failed", "healing", "integrating", "serving"]);
+/** A state this page does not know reads as failed instead of taking the whole page offline. */
+const lenientState = portalStateSchema.catch("failed");
 const runKind = z.enum(["read", "repair"]);
 const runResult = z.enum(["ok", "failed"]).nullable();
 
 export const portalSchema = z.object({
   id: z.string().min(1),
   url: z.string(),
-  state: portalStateSchema,
-  reason: z.string(),
+  state: lenientState,
+  reason: z.string().catch(""),
   tenderCount: z.number().int().nonnegative(),
   lastSuccessAt: iso.nullable(),
-  cause: z.string().nullable(),
+  cause: z.string().nullable().catch(null),
   fingerprint: z.string().nullable(),
   timezone: z.string().nullable(),
   recipeVersion: z.number().nullable(),
@@ -144,11 +146,11 @@ export const singleTenderSchema = tenderSchema;
 export const contractPortalSchema = z.object({
   id: z.string().min(1),
   url: z.string(),
-  state: portalStateSchema,
-  reason: z.string(),
+  state: lenientState,
+  reason: z.string().catch(""),
   tenderCount: z.number().int().nonnegative(),
   lastSuccessAt: iso.nullable(),
-  cause: z.string().nullish(),
+  cause: z.string().nullish().catch(null),
 });
 export const contractPortalsSchema = z.array(contractPortalSchema);
 

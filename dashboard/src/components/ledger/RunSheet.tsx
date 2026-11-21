@@ -131,7 +131,8 @@ export function RunSheet({ run, timeline, timeZone, eurPerUsd, now, basic, onClo
                 {evidence.triggering ? <>
                   <p className="mt-1.5 mb-3 leading-relaxed text-secondary-text">{evidence.triggering.summary ?? noSummary}</p>
                   <Checks checks={evidence.triggering.checks} />
-                </> : <p className="mt-1.5 text-secondary-text">Not recorded.</p>}
+                </> : evidence.brokeInRun ? <p className="mt-1.5 leading-relaxed text-secondary-text">At the start of this run: {evidence.broke}</p>
+                  : <p className="mt-1.5 text-secondary-text">Not recorded.</p>}
               </section>
               <section aria-label="Verified repair">
                 <h4 className="flex flex-wrap items-baseline gap-x-3 text-[1.1rem] font-semibold">{run.result === "ok" ? "Verified repair" : run.result === null ? "Verification, still running" : "Verification"}<span className="text-sm font-normal text-muted-foreground">{clock(run.startedAt, timeZone)} · <ResultMark result={run.result} /></span></h4>

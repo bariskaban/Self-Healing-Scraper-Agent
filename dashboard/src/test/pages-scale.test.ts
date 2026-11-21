@@ -9,12 +9,12 @@ const portal = (over: Partial<Portal>): Portal => ({ ...(portals[0] as Portal), 
 describe("cost per portal", () => {
   it("splits recorded cost by learned and reused recipes, leaving out portals without a recipe", () => {
     const b = costBasis(portals);
-    // learned: tn 0.018, nrw 0.036, vm 0.027, mock 0.036; reused: t24 0.0018; es, merc, fr have no recipe
-    expect(b.learned).toMatchObject({ portals: 4, recorded: 4 });
-    expect(b.learned.averageEur).toBeCloseTo(0.02925);
+    // learned: tn 0.018, nrw 0.036, vm 0.027, mock 0.036, fr 0.0315; reused: t24 0.0018; es, merc have no recipe
+    expect(b.learned).toMatchObject({ portals: 5, recorded: 5 });
+    expect(b.learned.averageEur).toBeCloseTo(0.0297);
     expect(b.reused).toMatchObject({ portals: 1, recorded: 1 });
     expect(b.reused.averageEur).toBeCloseTo(0.0018);
-    expect(b.withoutRecipe).toBe(3);
+    expect(b.withoutRecipe).toBe(2);
   });
 
   it("reports a missing average as null, never as zero", () => {
@@ -86,7 +86,7 @@ describe("projection to 4,500 portals", () => {
     const p = project({ portals: TARGET_PORTALS, knownShare: share, costPerLearnEur: b.learned.averageEur, costPerReuseEur: b.reused.averageEur });
     expect(p.reuses).toBe(643);
     expect(p.learns).toBe(3857);
-    expect(p.totalEur).toBeCloseTo(3857 * 0.02925 + 643 * 0.0018);
+    expect(p.totalEur).toBeCloseTo(3857 * 0.0297 + 643 * 0.0018);
   });
 });
 

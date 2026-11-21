@@ -72,11 +72,11 @@ describe("page routing and the TV shortcuts", () => {
     window.history.replaceState(null, "", "/?demo"); // the snapshot is shown only when asked for
     app();
     await go("#/tenders");
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("13 tenders. The export holds all of them."));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("16 tenders. The export holds all of them."));
     expect(screen.getByRole("link", { name: /Wartung von Lüftungsanlagen in Schulen/ })).toHaveAttribute("href", "https://evergabe.nrw.de/notices/NW-7821");
     expect(screen.getAllByRole("link", { name: "tenderned.nl" })[0]).toHaveAttribute("href", "#/portal/tn");
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "stadt" } });
-    expect(screen.getByRole("status")).toHaveTextContent(/^\d+ of 13 tenders match\. The export holds these \d+\.$/);
+    expect(screen.getByRole("status")).toHaveTextContent(/^\d+ of 16 tenders match\. The export holds these \d+\.$/);
     fireEvent.click(screen.getByRole("button", { name: "Withdrawn" }));
     expect(screen.getByText("No tender matches these filters.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Download CSV/ })).toBeDisabled();

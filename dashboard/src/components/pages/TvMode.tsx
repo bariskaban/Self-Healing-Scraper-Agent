@@ -95,7 +95,7 @@ function FleetSlide({ data, now }: { data: FleetData; now: number }) {
         <h2 className="display mt-[1.6vh] text-[clamp(2.1rem,5vw,6.4rem)]">
           <span className="whitespace-nowrap">{plural(total, "portal")}.</span>{" "}
           {parts.map((part, i) => (
-            <span key={part.state}><span className="whitespace-nowrap"><span className={part.highlight ? "highlight font-normal" : undefined}>{part.count} {part.text}</span>{i < parts.length - 1 ? "," : "."}</span>{" "}</span>
+            <span key={`${part.state}-${part.text}`}><span className="whitespace-nowrap"><span className={part.highlight ? "highlight font-normal" : undefined}>{part.count} {part.text}</span>{i < parts.length - 1 ? "," : "."}</span>{" "}</span>
           ))}
         </h2>
         <p className="mt-[2.2vh] max-w-[70vw] text-[clamp(1.05rem,1.7vw,2.3rem)] leading-snug font-light text-secondary-text">{sub}</p>
@@ -147,7 +147,7 @@ function RepairSlide({ data }: { data: FleetData }) {
           <p className={EYEBROW}>{live && <span aria-hidden className="live-dot text-healing" />}{live ? "Live repair" : "Latest repair"}</p>
           <h2 className="display mt-[1.2vh] text-[clamp(2rem,4.4vw,5.6rem)] break-all">{hostname(portal.url)}</h2>
           <p className="mt-[1.2vh] flex flex-wrap items-center gap-x-4 gap-y-2 text-[clamp(0.95rem,1.25vw,1.7rem)] text-secondary-text">
-            <StateBadge state={portal.state} note={stillServing(portal)} className="!text-[1em]" />
+            <StateBadge state={portal.state} portal={portal} note={stillServing(portal)} className="!text-[1em]" />
             <span>{run.finishedAt === null ? `Started ${clock(run.startedAt, portal.timezone)}, not finished` : `${clock(run.startedAt, portal.timezone)} to ${clock(run.finishedAt, portal.timezone)}${span !== null && span >= 0 ? `, ${duration(span)}` : ""}`}</span>
           </p>
         </div>
