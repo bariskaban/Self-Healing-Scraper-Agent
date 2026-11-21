@@ -163,7 +163,7 @@ These runs were worth more than any score, because they found defects that no un
 | `?changedSince=` gave back tenders the caller had seen | Contract audit | Attach | Yes |
 | `DELETE` did not stop a running learn: 20 more model calls and 18 more requests to the deleted portal | Audit script | The brief: "stops calling the portal within a minute" | Yes. 0 and 0 afterwards. |
 | With six to eight portals attaching, no other portal was read | Audit script | Notice on every other portal | Yes. 64 read threads. |
-| A portal with more than 10,000 tenders delivered nothing; one with 4,132 took over an hour | Audit run, live | Attach | Partly: a limit per portal. See section 4.3. |
+| A portal with more than 10,000 tenders delivered nothing; one with 4,132 was still reading after 36 minutes | Audit run, live | Attach | Partly: a limit per portal. Both then delivered 500 tenders, in 17 and 25 minutes. See section 4.3. |
 
 ---
 
@@ -257,9 +257,9 @@ Fifteen questions were researched before the build (`research/q01` to `q15`), th
 
 ### 4.3 The limit of 500 tenders per portal, and what we did not build
 
-**What we met.** In the live run, `ezamowienia.gov.pl` was learned for $0.53. Its list has more than 10,000 tenders, and its API answers HTTP 500 for every page past result 10,000. Every read made 202 requests and ended as an outage; the portal delivered nothing. In the same run TenderNed was learned in under five minutes, and then its 4,132 tender pages had to be read one request at a time: over an hour with nothing delivered.
+**What we met.** In the live run, `ezamowienia.gov.pl` was learned for $0.53. Its list has more than 10,000 tenders, and its API answers HTTP 500 for every page past result 10,000. Every read made 202 requests and ended as an outage; the portal delivered nothing. In the same run TenderNed was learned in under five minutes, and then its 4,132 tender pages had to be read one request at a time: 36 minutes with nothing delivered when we stopped it, and more than an hour to go.
 
-**What we decided.** A read stops at 500 tenders (`RECIPE_MAX_TENDERS_PER_PORTAL`, also a field in the dashboard's settings). The reason says "Stopped at the limit", and no tender is closed for being past it. Measured afterwards, live: e-Zamowienia delivered 500 tenders 17 minutes after its list was read (it needs two requests per tender). A portal with fewer than 500 tenders is not touched by the limit.
+**What we decided.** A read stops at 500 tenders (`RECIPE_MAX_TENDERS_PER_PORTAL`, also a field in the dashboard's settings). The reason says "Stopped at the limit", and no tender is closed for being past it. Measured afterwards, live, with both portals learned again on the new code: e-Zamowienia delivered 500 tenders 17 minutes after its list was read (two requests per tender), and TenderNed 25 minutes after (three). Before the limit the first delivered nothing and the second was still reading after 36 minutes. A portal with fewer than 500 tenders is not touched by the limit.
 
 **The price.** The brief asks for every open tender. Above the limit we deliver the first 500, the newest where the portal lists newest first. We chose a part in minutes over the whole in an hour or never.
 
