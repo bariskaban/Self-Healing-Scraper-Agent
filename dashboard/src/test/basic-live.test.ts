@@ -145,7 +145,7 @@ describe("live without /api/dashboard", () => {
     const summary = fleetSummary({ ...demoDashboard, portals: rows });
     expect(summary.readsLastHour).toBeNull();
     expect(summary.cost.kind).toBe("none");
-    expect(summary.tendersDelivered).toBe(13);
+    expect(summary.tendersDelivered).toBe(16);
     expect(readSeries(rows)).toBeNull();
     expect(deliverySeries(rows)).toBeNull();
     expect(costBars(rows).every((b) => b.eur === null)).toBe(true);
@@ -157,14 +157,14 @@ describe("fleet analytics from the snapshot", () => {
   it("counts passed and failed reads per slot and the share that passed", () => {
     const s = readSeries(portals);
     if (!s) throw new Error("no series");
-    expect([s.totalPassed, s.totalFailed, s.totalRunning]).toEqual([18, 7, 1]);
-    expect(s.passRate).toBeCloseTo(18 / 25, 5);
+    expect([s.totalPassed, s.totalFailed, s.totalRunning]).toEqual([20, 7, 1]);
+    expect(s.passRate).toBeCloseTo(20 / 27, 5);
     expect(s.passed).toHaveLength(6);
     expect(s.passed.at(-1)).toBe(4);
     expect(s.failed.at(-1)).toBe(3);
   });
   it("sums published tenders per read over portals and ranks cost per portal", () => {
-    expect(deliverySeries(portals)).toEqual([7, 9, 9, 10, 11, 13]);
+    expect(deliverySeries(portals)).toEqual([7, 9, 9, 10, 14, 16]);
     const bars = costBars(portals);
     expect(bars[0]?.eur).toBeCloseTo(0.036, 5);
     expect(bars.at(-1)?.eur).toBe(0);

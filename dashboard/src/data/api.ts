@@ -47,7 +47,11 @@ export async function getJson<T>(
       throw new ApiError(`malformed JSON: ${path}`, outer.aborted ? "aborted" : "content");
     }
     const parsed = schema.safeParse(body);
-    if (!parsed.success) throw new ApiError(`invalid payload: ${path}`, "invalid");
+    if (!parsed.success) {
+      // Visible in the console, so an unexpected API value is not mistaken for the API being down.
+      console.warn(`Watchtower: ${path} did not match the expected shape`, parsed.error.issues);
+      throw new ApiError(`invalid payload: ${path}`, "invalid");
+    }
     return parsed.data;
   } finally {
     clearTimeout(timer);

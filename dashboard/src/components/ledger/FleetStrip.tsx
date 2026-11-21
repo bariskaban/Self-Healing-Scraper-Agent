@@ -35,7 +35,7 @@ export function FleetHero({ portals, summary }: { portals: Portal[] | null; summ
       <h2 className={cn("display mt-4 text-[clamp(2rem,3.4vw,3.2rem)]", reveal)} style={idx(1)}>
         <span className="sm:whitespace-nowrap">{plural(total, "portal")}.</span>{" "}
         {parts.map((part, i) => (
-          <span key={part.state}>
+          <span key={`${part.state}-${part.text}`}>
             <span className="sm:whitespace-nowrap"><span className={part.highlight ? "highlight font-normal" : undefined}>{part.count} {part.text}</span>{i < parts.length - 1 ? "," : "."}</span>{" "}
           </span>
         ))}

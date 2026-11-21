@@ -47,7 +47,7 @@ function PortalLine({ p }: { p: Portal }) {
         <span className="block text-xs text-muted-foreground">{how}</span>
       </span>
       <span className="flex items-center gap-3">
-        <StateBadge state={p.state} className="!py-0.5 !text-xs" />
+        <StateBadge state={p.state} portal={p} className="!py-0.5 !text-xs" />
         <span className={cn("tnum w-24 text-right text-sm", p.usage ? "font-semibold" : "text-muted-foreground")}>{p.usage ? eurFine(p.usage.costEur) : NOT_RECORDED}</span>
       </span>
     </li>

@@ -8,6 +8,7 @@ import { PortalDetail } from "@/components/ledger/PortalDetail";
 import { SettingsSheet } from "@/components/ledger/SettingsSheet";
 import { AddPortalSheet } from "@/components/ledger/AddPortalSheet";
 import { Spotlight, SpotlightEmpty } from "@/components/ledger/Spotlight";
+import { FleetHero, StatCards } from "@/components/ledger/FleetStrip";
 import { ReadLegend, SectionHead } from "@/components/ledger/primitives";
 import { hasActiveRepair, repairRuns } from "@/components/ledger/evidence";
 import { latestRepair } from "@/components/ledger/overview";
@@ -98,6 +99,11 @@ export default function App() {
           <>
             <div className={SHELL}>
               <h1 className="sr-only">Portals</h1>
+              <FleetHero portals={ready && d ? d.portals : null} summary={summary} />
+              <div className="mt-8 grid items-start gap-5 pb-8 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+                {spotlight()}
+                <StatCards portals={ready && d ? d.portals : null} summary={summary} eurPerUsd={eurPerUsd} basic={state.basic} />
+              </div>
             </div>
             <div className="band">
               <section id="portals" aria-labelledby="ledger-h" className={`${SHELL} scroll-mt-24 pt-6 pb-10 2xl:pt-8`}>
@@ -106,7 +112,7 @@ export default function App() {
                 </SectionHead>
                 {!ready || !d ? <LedgerSkeleton /> : d.portals.length === 0 ? (
                   live ? <EmptyFleet onAddPortal={() => setAddOpen(true)} /> : <p className="card p-8 text-secondary-text">The demo snapshot contains no portals.</p>
-                ) : <PortalLedger portals={d.portals} now={now} eurPerUsd={eurPerUsd} live={live} />}
+                ) : <PortalLedger portals={d.portals} now={now} eurPerUsd={eurPerUsd} live={live} timelines={timelines} />}
                 {ready && d && (
                   <p className="mt-6 text-sm text-muted-foreground">
                     {state.basic

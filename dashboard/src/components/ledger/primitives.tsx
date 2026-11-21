@@ -1,7 +1,7 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { AlertOctagon, CheckCircle2, Loader2, Sparkles, Wrench, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { STATE_META, readSlots, runResultWord } from "@/data/view";
+import { STATE_META, causeWord, readSlots, runResultWord, stateTip } from "@/data/view";
 import { costText, eur, tokens, type CostSummary } from "@/data/format";
 import type { Portal, PortalState } from "@/types";
 
@@ -20,13 +20,14 @@ export const STATE_INK: Record<PortalState, string> = {
 export const idx = (i: number) => ({ "--i": i }) as CSSProperties;
 
 /** Glass status chip: icon in a tinted dot, the state word, and an optional plain-language note. */
-export function StateBadge({ state, note, float, i = 0, className }: { state: PortalState; note?: string | null; float?: boolean; i?: number; className?: string }) {
+export function StateBadge({ state, note, float, i = 0, className, portal }: { state: PortalState; note?: string | null; float?: boolean; i?: number; className?: string; portal?: Pick<Portal, "state" | "cause" | "reason"> }) {
   const Icon = STATE_ICON[state];
   const m = STATE_META[state];
+  const cause = portal ? causeWord(portal) : null;
   return (
-    <span title={m.tip} style={{ ...idx(i), ["--tint" as string]: `var(--${state}-tint)` }} className={cn("chip chip-state", float && "float", className)}>
+    <span title={portal ? stateTip(portal) : m.tip} style={{ ...idx(i), ["--tint" as string]: `var(--${state}-tint)` }} className={cn("chip chip-state", float && "float", className)}>
       <span className={cn("grid size-[1.4em] shrink-0 place-items-center rounded-full", STATE_CLASS[state])}><Icon aria-hidden className="size-[0.9em]" /></span>
-      <span className={cn("font-semibold", STATE_INK[state])}>{m.label}</span>
+      <span className={cn("font-semibold", STATE_INK[state])}>{m.label}{cause && <span className="font-medium"> · {cause}</span>}</span>
       {note && <span className="border-l border-border-strong pl-2 text-secondary-text">{note}</span>}
     </span>
   );
@@ -88,7 +89,7 @@ export function ReadLegend() {
 export function DeliverySparkline({ values }: { values: number[] | null }) {
   const id = useId();
   if (values === null) return <span className="text-xs whitespace-nowrap text-muted-foreground" title="Published counts per read are not recorded on these routes.">—</span>;
-  if (values.length < 2) return <span className="text-xs whitespace-nowrap text-muted-foreground">No trend yet</span>;
+  if (values.length < 2) return null;
   const w = 72, h = 24;
   const max = Math.max(...values, 1);
   const xy = values.map((v, i) => [(i / (values.length - 1)) * (w - 4) + 2, h - 3 - (v / max) * (h - 8)] as const);

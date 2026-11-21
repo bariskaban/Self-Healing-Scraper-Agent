@@ -18,7 +18,7 @@ export function repairSlides(run: Run, timeline: Run[], timeZone: string | null)
   const ev = repairEvidence(run, timeline);
   const steps = [...(run.steps ?? [])].sort((a, b) => a.seq - b.seq);
   const action = steps.find((s) => s.kind === "llm" || s.kind === "decision") ?? steps[0];
-  const failedChecks = ev.triggering?.checks?.filter((c) => !c.passed).map((c) => c.name) ?? [];
+  const failedChecks = ev.brokeChecks;
   const actionTags = action ? [
     action.kind === "llm" ? "Model call" : action.kind === "tool" ? "Tool, no model" : action.kind,
     ...(action.usage ? [`${tokens(action.usage.inputTokens + action.usage.outputTokens)} tokens`, eur(action.usage.costEur)] : []),
@@ -27,7 +27,7 @@ export function repairSlides(run: Run, timeline: Run[], timeZone: string | null)
   const verdict = run.result === null ? "Verification running" : run.result === "ok" ? "Passed" : "Failed";
   return [
     { label: "Broke", Icon: XCircle, tone: "text-failed bg-failed-tint", text: ev.broke,
-      meta: ev.triggering ? `Read at ${clock(ev.triggering.startedAt, timeZone)} failed its checks` : "Triggering read not recorded", tags: failedChecks },
+      meta: ev.brokeAt ? `Read at ${clock(ev.brokeAt, timeZone)} failed its checks` : "Triggering read not recorded", tags: failedChecks },
     { label: "Agent action", Icon: Wrench, tone: "text-healing bg-healing-tint", text: ev.action,
       meta: action ? `Step ${action.seq}: ${action.name}` : "No agent step recorded", tags: actionTags },
     { label: "Changed", Icon: GitBranch, tone: "text-integrating bg-integrating-tint", text: ev.changed,
@@ -57,7 +57,7 @@ export function SpotlightEmpty({ loading, healing = [], basic }: { loading?: boo
         {loading ? <p className="display mt-4 text-[1.9rem]">Reading the fleet…</p> : first ? <>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             <h3 className="display text-[1.9rem] break-all"><a href={portalHash(first.id)} className="hover:underline">{hostname(first.url)}</a></h3>
-            <StateBadge state={first.state} note={stillServing(first)} float />
+            <StateBadge state={first.state} portal={first} note={stillServing(first)} float />
           </div>
           <p className="mt-4 max-w-[46rem] text-[1.45rem] leading-[1.35] font-light tracking-[-0.01em]">{first.reason}</p>
           <p className="mt-4 max-w-xl text-secondary-text">{basic ? "The step-by-step repair story (what broke, what the agent did, what changed, how it was verified) is not on the contract routes; it arrives with the /api routes." : "No repair run is recorded for this portal yet."}{healing.length > 1 ? ` ${healing.length - 1} more portal${healing.length === 2 ? " is" : "s are"} healing.` : ""}</p>
@@ -98,7 +98,7 @@ export function Spotlight({ portal, run, timeline, earlier, live, eurPerUsd }: {
       <Shell label={name} live={live}>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <h3 className="display text-[1.9rem] break-all"><a href={portalHash(portal.id)} className="hover:underline">{hostname(portal.url)}</a></h3>
-          <StateBadge state={portal.state} note={note} float />
+          <StateBadge state={portal.state} portal={portal} note={note} float />
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {run.finishedAt === null ? `Repair started ${clock(run.startedAt, portal.timezone)}, not finished` : `Repair ${clock(run.startedAt, portal.timezone)} to ${clock(run.finishedAt, portal.timezone)}`}

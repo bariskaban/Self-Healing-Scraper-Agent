@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { ChevronRight, ExternalLink, Plus } from "lucide-react";
+import { ChevronRight, ExternalLink, Plus, Wrench } from "lucide-react";
 import { externalHref } from "@/data/api";
-import { absTime, hostname, portalCost, relTime } from "@/data/format";
+import { absTime, eur, hostname, portalCost, relTime } from "@/data/format";
 import { portalHash } from "@/data/hooks";
 import { sortPortals } from "@/data/view";
 import { cn } from "@/lib/utils";
-import type { Portal, PortalState } from "@/types";
-import { stillServing } from "./overview";
+import type { Portal, PortalState, Run } from "@/types";
+import { clock, lastVerifiedRepair, stillServing } from "./overview";
 import { CostLabel, DeliverySparkline, ReadHistory30, ResultMark, Skel, StateBadge, idx } from "./primitives";
 
 function useFlashes(portals: Portal[], live: boolean) {
@@ -38,7 +38,25 @@ function LastRun({ p }: { p: Portal }) {
 }
 
 /** Only the exceptions float; healthy rows stay still. */
-const Chip = ({ p, i }: { p: Portal; i: number }) => <StateBadge state={p.state} float={p.state !== "serving"} i={i} />;
+const Chip = ({ p, i }: { p: Portal; i: number }) => <StateBadge state={p.state} portal={p} float={p.state !== "serving"} i={i} />;
+
+/** "Repaired 20:28 · recipe v1 → v2 · verified · 0.01 EUR": the newest finished repair, so it is not missed. */
+export function RepairedLine({ timeline, timeZone, className }: { timeline: Run[] | undefined; timeZone?: string | null; className?: string }) {
+  const run = lastVerifiedRepair(timeline);
+  if (!run) return null;
+  const at = run.finishedAt ?? run.startedAt;
+  const change = run.recipeChange ? `recipe v${run.recipeChange.from} → v${run.recipeChange.to}` : null;
+  const cost = run.usage ? eur(run.usage.costEur) : null;
+  return (
+    <p className={cn("inline-flex flex-wrap items-center gap-x-1.5 text-sm font-medium text-serving", className)} title={absTime(at, timeZone)}>
+      <Wrench aria-hidden className="size-[1em] shrink-0" />
+      <span>Repaired <time dateTime={at}>{clock(at, timeZone)}</time></span>
+      {change && <span className="text-secondary-text">· {change}</span>}
+      <span className="text-secondary-text">· verified</span>
+      {cost && <span className="tnum text-secondary-text">· {cost}</span>}
+    </p>
+  );
+}
 
 /** What a healing portal keeps delivering, as its own floating chip beside the host name. */
 function StillServing({ p, i }: { p: Portal; i: number }) {
@@ -66,7 +84,7 @@ const openRow = (id: string) => (e: MouseEvent<HTMLElement>) => {
   window.location.hash = portalHash(id);
 };
 
-export function PortalLedger({ portals, now, eurPerUsd, live }: { portals: Portal[]; now: number; eurPerUsd: number | null; live: boolean }) {
+export function PortalLedger({ portals, now, eurPerUsd, live, timelines = {} }: { portals: Portal[]; now: number; eurPerUsd: number | null; live: boolean; timelines?: Record<string, Run[]> }) {
   const rows = sortPortals(portals);
   const flash = useFlashes(portals, live);
   const th = "px-3 pb-1 text-left text-[0.7rem] font-semibold tracking-[0.14em] whitespace-nowrap text-muted-foreground uppercase first:pl-5 last:pr-5 2xl:px-5";
@@ -84,7 +102,7 @@ export function PortalLedger({ portals, now, eurPerUsd, live }: { portals: Porta
               <th scope="col" className={th}>Last success</th>
               <th scope="col" className={th}>Last run</th>
               <th scope="col" className={th}>Last 30 reads</th>
-              <th scope="col" className={cn(th, "text-right")}>Model cost</th>
+              <th scope="col" className={cn(th, "text-right")}>Model cost to date</th>
               <th scope="col" className={th}><span className="sr-only">Details</span></th>
             </tr>
           </thead>
@@ -98,6 +116,7 @@ export function PortalLedger({ portals, now, eurPerUsd, live }: { portals: Porta
                     <StillServing p={p} i={i} />
                   </span>
                   <p className="mt-0.5 max-w-[60rem] leading-relaxed text-secondary-text">{p.reason}</p>
+                  <RepairedLine timeline={timelines[p.id]} timeZone={p.timezone} className="mt-1" />
                 </td>
                 <td className={cn(td, "text-right")}>
                   <div className="flex items-center justify-end gap-3"><DeliverySparkline values={p.deliveryTrend} /><span className="min-w-[1.5ch] text-[1.35rem] leading-none font-semibold tracking-tight">{p.tenderCount}</span></div>
@@ -125,12 +144,13 @@ export function PortalLedger({ portals, now, eurPerUsd, live }: { portals: Porta
             </div>
             {stillServing(p) && <p className="mt-2"><StillServing p={p} i={i} /></p>}
             <p className="mt-2 text-sm leading-relaxed text-secondary-text">{p.reason}</p>
+            <RepairedLine timeline={timelines[p.id]} timeZone={p.timezone} className="mt-1" />
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <dt className="text-muted-foreground">Tenders</dt><dd className="font-semibold">{p.tenderCount}</dd>
               <dt className="text-muted-foreground">Last success</dt><dd><LastSuccess p={p} now={now} /></dd>
               <dt className="text-muted-foreground">Last run</dt><dd><LastRun p={p} /></dd>
               <dt className="col-span-2 text-muted-foreground">Last 30 reads</dt><dd className="col-span-2 overflow-hidden"><ReadHistory30 reads={p.recentReads} /></dd>
-              <dt className="col-span-2 text-muted-foreground">Model cost</dt><dd className="col-span-2"><CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} className="whitespace-normal" /></dd>
+              <dt className="col-span-2 text-muted-foreground">Model cost to date</dt><dd className="col-span-2"><CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} className="whitespace-normal" /></dd>
             </dl>
             <a href={portalHash(p.id)} aria-label={`Details of ${hostname(p.url)}`} className="link-arrow mt-4 text-sm">Portal details <ChevronRight aria-hidden className="size-4" /></a>
           </li>

@@ -12,6 +12,7 @@ import { RepairBand } from "./RepairBand";
 import { repairRuns } from "./evidence";
 import { clock, stillServing } from "./overview";
 import { takePendingRun } from "./viewState";
+import { RepairedLine } from "./PortalLedger";
 
 const Back = () => (
   <a href="#/" className="link-arrow text-sm"><ArrowLeft aria-hidden className="size-4" /> Back to portals</a>
@@ -52,18 +53,19 @@ export function PortalDetail({ detail, source, basic, now, eurPerUsd }: { detail
     ["Active recipe", p.recipeVersion != null ? <>v{p.recipeVersion}{p.reusedFrom && <span className="block text-sm font-normal text-muted-foreground">Reused from {p.reusedFrom}</span>}</> : basic ? unknown : <span className={quiet}>None yet</span>],
     ["Next read", p.nextReadAt ? <time dateTime={p.nextReadAt} title={absTime(p.nextReadAt, p.timezone)}>{relTime(p.nextReadAt, now)}</time> : basic ? unknown : <span className={quiet}>Not scheduled</span>],
     ["Last success", p.lastSuccessAt ? <time dateTime={p.lastSuccessAt} title={absTime(p.lastSuccessAt, p.timezone)}>{relTime(p.lastSuccessAt, now)}</time> : <span className={quiet}>Never</span>],
-    ["Model cost", <CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} stacked />],
+    ["Model cost to date", <CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} stacked />],
   ];
   return (
     <div className="flex flex-col gap-10 pt-8 2xl:gap-12 2xl:pt-10">
       <div>
         <Back />
-        <p className="eyebrow mt-7">Portal{p.cause ? ` · cause: ${p.cause}` : ""}</p>
+        <p className="eyebrow mt-7">Portal</p>
         <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-3">
           <h1 className="display text-[clamp(2.1rem,4.6vw,4.1rem)] break-all">{hostname(p.url)}</h1>
-          <StateBadge state={p.state} note={stillServing(p)} float className="text-[0.95rem]" />
+          <StateBadge state={p.state} portal={p} note={stillServing(p)} float className="text-[0.95rem]" />
         </div>
         <p className="mt-4 max-w-[62rem] text-[1.2rem] leading-relaxed text-secondary-text">{p.reason}</p>
+        <RepairedLine timeline={timeline} timeZone={p.timezone} className="mt-3 text-base" />
         <p className="mt-3">
           {site
             ? <a href={site} target="_blank" rel="noopener noreferrer" className="group/site inline-flex max-w-full items-center gap-2 font-mono text-sm text-primary underline-offset-4 hover:underline"><span className="break-all">{p.url}</span><ExternalLink aria-hidden className="size-4 shrink-0" /><span className="sr-only"> (opens the portal's website in a new tab)</span></a>
