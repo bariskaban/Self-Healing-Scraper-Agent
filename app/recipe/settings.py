@@ -26,7 +26,7 @@ class RecipeSettings:
     # (newest first where the portal lists them so), and only those get a detail page and documents.
     # A cut list counts as partial: no tender is closed for being absent from it (RECIPE_MAX_TENDERS_PER_PORTAL).
     # 500 by default. Every tender costs at least one request, at one request a second, before anything
-    # is delivered: 500 tenders are there in about ten minutes, TenderNed's 4,132 took over an hour, and
+    # is delivered: 500 tenders are there in about 10 to 30 minutes (e-Zamowienia: 17), TenderNed's 4,132 took over an hour, and
     # e-Zamowienia's API refuses every page past tender 10,000, so it delivered nothing (docs/BACKLOG.md).
     max_tenders_per_portal: int = 500
     # How many problems a dry run reports before it only counts them.

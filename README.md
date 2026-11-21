@@ -4,6 +4,8 @@ Watchtower attaches to a public procurement portal it has never seen, learns onc
 
 One Docker container serves a JSON API and an operator dashboard on port 8080.
 
+How it was tested, the results with their uncertainty, and why each design decision was taken: [`docs/REPORT.md`](docs/REPORT.md).
+
 ## Run it
 
 You need Docker, or Python 3.11 or newer. You need an OpenAI key only to let the system learn real portals.
@@ -95,7 +97,7 @@ All settings are environment variables. These are the ones you are likely to nee
 | `AGENT_MAX_CONCURRENT_RUNS` | `2` | How many learns, repairs and spot checks call the model at once. The others wait their turn. Raise it on a key with a high rate limit. |
 | `AGENT_RATE_LIMIT_WAIT_BUDGET_SECONDS` | `90` | How long one model call waits when OpenAI answers "rate limit" before the run gives up |
 | `READ_THREADS` | `64` | How many portals can be in a read at the same moment |
-| `RECIPE_MAX_TENDERS_PER_PORTAL` | `500` | The most tenders read from one portal; `0` means no limit. A portal that lists more delivers its first 500 (the newest, where it lists newest first), its reason says "Stopped at the limit", and no tender is closed for being past the limit. Why 500: each tender costs at least one request at one request a second, so 500 are delivered in about ten minutes and 4,000 take over an hour. It can also be changed on the dashboard (Settings). More in `docs/BACKLOG.md`. |
+| `RECIPE_MAX_TENDERS_PER_PORTAL` | `500` | The most tenders read from one portal; `0` means no limit. A portal that lists more delivers its first 500 (the newest, where it lists newest first), its reason says "Stopped at the limit", and no tender is closed for being past the limit. Why 500: each tender costs at least one request at one request a second, so 500 are delivered in 10 to 30 minutes (measured: 17 minutes on a portal that needs two requests per tender) and 4,000 take over an hour. It can also be changed on the dashboard (Settings). More in `docs/BACKLOG.md`. |
 
 Many more numbers are settings too, each with a prefix per area: `AGENT_`, `RECIPE_`, `CHECKS_`, `DOCS_`, `FETCH_`, `EXTRACT_`. The defaults are in `app/*/settings.py`. A request to one portal is never sent faster than once a second unless `FETCH_REQUESTS_PER_SECOND` says so; leave it alone for real portals.
 
@@ -152,6 +154,7 @@ bench/          the list of real test portals
 tests/          unit tests, one folder per module, and the contract test
 DESIGN.md       the design, with the research question behind each decision
 research/       the research answers and the measurements they stand on
+docs/REPORT.md  how it was tested, the results, and why each decision was taken
 CHECKME.md      the team's guide and status checklist
 CLAUDE.md, CONVENTIONS.md   the rules the AI agents that wrote this code follow
 ```
