@@ -27,7 +27,7 @@ import threading
 import time
 import uuid
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Protocol
 
@@ -132,6 +132,9 @@ class Incident:
     given_up_structures: set[str] = field(default_factory=set)
     learns_today: int = 0  # learns that called the model, counted like repairs: a refresh cannot buy more
     learns_day: str | None = None
+    # A recipe the learner made in an earlier run whose first read met an outage. Nothing was wrong
+    # with the recipe, so the next read uses it and does not pay for a learn again. In memory only.
+    learned_unread: Learned | None = None
     failed_at: datetime | None = None
     failed_checks: int = 0
     last_check_at: datetime | None = None
@@ -297,6 +300,11 @@ class _Read:
         if self.r.learn is None:
             return None
         incident, day = self.incident, self.r.now().date().isoformat()
+        if incident.learned_unread is not None:
+            log.info("portal %s: using the recipe learned in an earlier run that met an outage; no model call", self.portal_id)
+            self.step("learn", "Used the recipe learned in an earlier run, whose first read the portal did not "
+                               "answer. The model was not asked again.")
+            return incident.learned_unread
         if incident.learns_day != day:
             incident.learns_day, incident.learns_today = day, 0
         # A learn that calls the model is paid for. A portal without a recipe is read again on
@@ -681,6 +689,10 @@ class _Read:
     def _apply(self, decision: Decision, records: dict[str, TenderRecord], unlisted: Sequence[str],
                details: dict[str, DetailRead], learned: Learned | None) -> ReadOutcome:
         now, incident = self.r.now(), self.incident
+        if learned is not None:
+            # An outage says nothing about the recipe: keep it for the next read. Anything else, and it is learned again.
+            keep = not decision.read_passed and decision.cause is Cause.outage
+            incident.learned_unread = replace(learned, model_calls=0, usage=TokenUsage()) if keep else None
         if not decision.read_passed:
             if decision.cause is Cause.outage and incident.outage_since is None:
                 incident.outage_since = now
