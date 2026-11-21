@@ -337,8 +337,14 @@ class Database:
         self._writer = self._connect(busy_timeout_seconds)
         self._writer.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         self._reader = self._connect(busy_timeout_seconds)
+        # A second reader for answers that take long (the tenders of a big portal): WAL lets it run beside the
+        # writer and the first reader, so a 40 MB answer never holds up the dashboard's small reads.
+        self._heavy = self._connect(busy_timeout_seconds)
         self._write_lock = threading.Lock()
         self._read_lock = threading.Lock()
+        self._heavy_lock = threading.Lock()
+        self._versions: dict[str, int] = {}  # per portal: moves when what GET /portals/{id}/tenders shows may have
+        self._epoch = 0                      # moves when it may have for every portal
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "Database":
@@ -354,9 +360,20 @@ class Database:
         return con
 
     def close(self) -> None:
-        with self._write_lock, self._read_lock:
+        with self._write_lock, self._read_lock, self._heavy_lock:
             self._reader.close()
+            self._heavy.close()
             self._writer.close()
+
+    def tenders_version(self, portal_id: str) -> tuple[int, int]:
+        """A token that changes whenever the published tenders, their documents or the portal's state may have."""
+        return self._epoch, self._versions.get(portal_id, 0)
+
+    def _bump(self, portal_id: str | None = None) -> None:
+        if portal_id is None:
+            self._epoch += 1
+        else:
+            self._versions[portal_id] = self._versions.get(portal_id, 0) + 1
 
     @contextmanager
     def _reading(self) -> Iterator[sqlite3.Connection]:
@@ -415,7 +432,9 @@ class Database:
         the ones nothing links to any more.
         """
         with self._writing() as con:
-            return con.execute("DELETE FROM portals WHERE id = ?", (portal_id,)).rowcount > 0
+            deleted = con.execute("DELETE FROM portals WHERE id = ?", (portal_id,)).rowcount > 0
+        self._bump(portal_id)
+        return deleted
 
     def count_tenders(self, portal_id: str) -> int:
         """How many tenders `list_tenders` returns: closed and withdrawn ones included."""
@@ -438,6 +457,43 @@ class Database:
             doc_rows = self._document_rows(con, portal_id)
         docs = _group_documents(portal_id, doc_rows)
         return [(t, docs.get(t.tender_id, [])) for t in map(_tender, rows)]
+
+    # One tender's documents as the API shows them, built by SQLite (json_object) instead of one Python object per
+    # file: 248,000 files took 4.5 s as objects and 0.7 s this way, and the work runs without Python's lock.
+    # A file is listed when its bytes are in (`FileRecord.deliverable`) or known and still loading (`pending`);
+    # a skipped file or an archive is not. `links` counts every link, shown or not: "no links" is told apart
+    # from "none shown" by the caller (documents null while pending, [] otherwise).
+    _DOCUMENTS_JSON = """
+        SELECT tender_id, json_group_array(json(doc)) FILTER (WHERE doc IS NOT NULL)
+        FROM (SELECT tf.tender_id AS tender_id,
+                     CASE WHEN f.skipped IS NULL AND f.is_archive = 0 AND f.sha256 IS NOT NULL
+                          THEN json_object('fileName', tf.file_name, 'sizeBytes', COALESCE(f.size_bytes, 0),
+                                           'sha256', f.sha256, 'path', '/files/' || f.file_id)
+                          WHEN f.skipped IS NULL AND f.sha256 IS NULL
+                          THEN json_object('fileName', tf.file_name, 'sizeBytes', f.size_bytes,
+                                           'sha256', NULL, 'path', NULL)
+                     END AS doc
+              FROM tender_files tf JOIN files f ON f.file_id = tf.file_id
+              WHERE tf.portal_id = ?
+              ORDER BY tf.tender_id, tf.position, tf.file_name)
+        GROUP BY tender_id"""
+
+    def tenders_for_answer(self, portal_id: str) -> tuple[list[TenderRecord], dict[str, str]]:
+        """What GET /portals/{id}/tenders needs, without a Python object per file: the tenders by id, and for each
+        tender that has any link its documents as a JSON array text. Same rule as `list_tenders` for what is
+        delivered (nothing while the portal is `integrating`). Runs on its own connection, beside every other read."""
+        with self._heavy_lock:
+            con = self._heavy
+            con.execute("BEGIN")
+            try:
+                if not self._published(con, portal_id):
+                    return [], {}
+                rows = con.execute("SELECT * FROM tenders WHERE portal_id = ? ORDER BY tender_id",
+                                   (portal_id,)).fetchall()
+                documents = {row[0]: row[1] for row in con.execute(self._DOCUMENTS_JSON, (portal_id,))}
+            finally:
+                con.execute("COMMIT")
+        return [_tender(row) for row in rows], documents
 
     def list_runs(self, portal_id: str) -> list[Run]:
         """Every read and repair of a portal, oldest first."""
@@ -482,7 +538,9 @@ class Database:
         with self._writing() as con:
             cur = con.execute(f"UPDATE portals SET {', '.join(f'{c} = ?' for c in sets)} WHERE id = ?",
                               [values[c] for c in sets] + [portal.id])
-            return cur.rowcount > 0
+            changed = cur.rowcount > 0
+        self._bump(portal.id)  # the state decides whether the tenders are delivered at all
+        return changed
 
     # -- runs --
 
@@ -741,6 +799,7 @@ class Database:
             for tender_id in unlisted:
                 con.execute("UPDATE tenders SET listed = 0, last_changed_at = ? "
                             "WHERE portal_id = ? AND tender_id = ? AND listed = 1", (at_text, portal_id, tender_id))
+        self._bump(portal_id)
         return written
 
     def set_documents(self, portal_id: str, tender_id: str, files: Sequence[FileRecord],
@@ -764,6 +823,7 @@ class Database:
             if last_changed_at is not None:
                 con.execute("UPDATE tenders SET last_changed_at = ? WHERE portal_id = ? AND tender_id = ?",
                             (_utc(last_changed_at, "last_changed_at"), portal_id, tender_id))
+        self._bump(portal_id)
 
     @staticmethod
     def _replace_documents(con: sqlite3.Connection, portal_id: str, tender_id: str,
@@ -829,6 +889,8 @@ class Database:
                     "SELECT * FROM files f WHERE NOT EXISTS (SELECT 1 FROM tender_files tf WHERE tf.file_id = f.file_id) "
                     "AND NOT EXISTS (SELECT 1 FROM files c WHERE c.parent_file_id = f.file_id)").fetchall()
                 if not rows:
+                    if removed:
+                        self._bump()
                     return removed
                 con.executemany("DELETE FROM files WHERE file_id = ?", [(r["file_id"],) for r in rows])
                 removed.extend(_file(r) for r in rows)
