@@ -42,6 +42,7 @@ def site(tmp_path):
         run = db.start_run(new_run(db.get_portal(PID), trigger))
         return reader.read(PID, run, incident), run
 
+    read.mock = mock
     yield db, read
     db.close()
 
@@ -115,3 +116,25 @@ def test_a_limit_per_portal_keeps_the_first_tenders_and_closes_none_on_a_later_r
     # A later full read with the same limit sees the same ten and closes nothing.
     again, _ = read(RunTrigger.schedule, Incident(), recipes=limit)
     assert again.passed and db.count_tenders(PID) == 10
+
+
+def test_a_recipe_whose_first_read_met_an_outage_is_kept_and_not_learned_again(site):
+    db, read = site
+    asked = []
+
+    def learner(portal, run_id):
+        asked.append(run_id)
+        return Learned(recipe=recipe(), timezone=mock_portal.TIMEZONE, model_calls=4)
+
+    incident = Incident()
+    read.mock.outage = True
+    outcome, _ = read(RunTrigger.attach, incident, learn=learner)
+    assert not outcome.passed and db.active_recipe(PID) is None and incident.learned_unread is not None
+    outcome, run = read(RunTrigger.recheck, incident, learn=learner)       # still out: still kept, still not asked
+    assert not outcome.passed and len(asked) == 1 and db.get_run(run.id).model_calls == 0
+
+    read.mock.outage = False
+    outcome, run = read(RunTrigger.recheck, incident, learn=learner)
+    assert outcome.passed and len(asked) == 1                              # the learner was asked once in all
+    assert db.active_recipe(PID).version == 1 and incident.learned_unread is None
+    assert db.get_run(run.id).model_calls == 0 and db.get_portal(PID).state is PortalState.serving
