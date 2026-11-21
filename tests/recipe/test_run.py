@@ -177,6 +177,31 @@ def test_the_first_page_alone_does_not_claim_the_end():
     assert (read.pages, len(read.items), read.reached_end) == (1, 3, False)
 
 
+def test_the_list_is_cut_at_the_limit_per_portal_and_then_counts_as_partial():
+    from app.recipe.settings import RecipeSettings
+    read = read_list(html_table_portal(), PageCache(html_pages()), portal(BASE),
+                     settings=RecipeSettings(max_tenders_per_portal=4))
+    assert [item.tender_id for item in read.items] == [f"2026-{n:04d}" for n in range(1, 5)]   # the first four
+    assert (read.capped, read.partial, read.reached_end, read.pages) == (True, True, False, 2)
+    assert not read.first_page_only
+
+
+def test_a_limit_above_the_list_or_zero_changes_nothing():
+    from app.recipe.settings import RecipeSettings
+    for limit in (0, 5, 50):   # exactly as many as the list holds is not a cut
+        read = read_list(html_table_portal(), PageCache(html_pages()), portal(BASE),
+                         settings=RecipeSettings(max_tenders_per_portal=limit))
+        assert len(read.items) == 5 and not read.capped and not read.partial and read.reached_end
+
+
+def test_the_limit_is_a_setting_from_the_environment_and_cannot_be_negative():
+    from app.recipe.settings import RecipeSettings
+    assert RecipeSettings().max_tenders_per_portal == 0
+    assert RecipeSettings.from_env({"RECIPE_MAX_TENDERS_PER_PORTAL": "50"}).max_tenders_per_portal == 50
+    with pytest.raises(ValueError):
+        RecipeSettings(max_tenders_per_portal=-1)
+
+
 def test_a_detail_page_adds_fields_and_documents():
     recipe, source, where = html_table_portal(), PageCache(html_pages()), portal(BASE)
     item = read_list(recipe, source, where).items[0]

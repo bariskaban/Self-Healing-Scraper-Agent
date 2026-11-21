@@ -142,11 +142,20 @@ class ListRead:
     pages: int = 0
     reached_end: bool = False
     first_page_only: bool = False
+    capped: bool = False                 # the list was cut at `max_tenders_per_portal`
     exchanges: list[Exchange] = field(default_factory=list)
     structure_paths: frozenset[str] = frozenset()  # of the first list page
     seconds: float = 0.0
     problems: list[str] = field(default_factory=list)
     robots_forbidden: bool = False
+
+    @property
+    def partial(self) -> bool:
+        """Only a part of the list was read, so absence from it says nothing about a tender.
+
+        A cut list (`capped`) is still the full read of what was asked for: the portal may be served
+        on it. A first page alone is not (the reader keeps the portal `integrating` after one)."""
+        return self.first_page_only or self.capped
 
     @property
     def ids(self) -> list[str]:
@@ -566,6 +575,7 @@ def read_list(recipe: AuthoredRecipe, source: Fetch, portal: Portal, *, first_pa
     size = (paging.size if paging is not None and paging.size else None)
     first_number = paging.first if paging is not None and paging.first is not None else 1
     ceiling = (paging.max_pages if paging is not None and paging.max_pages else None) or settings.max_pages
+    limit = settings.max_tenders_per_portal
 
     def values(page_index: int, offset: int, cursor: str) -> dict[str, str]:
         return {"page": str(first_number + page_index), "offset": str(offset),
@@ -633,6 +643,10 @@ def read_list(recipe: AuthoredRecipe, source: Fetch, portal: Portal, *, first_pa
                 out.printed_total = _number(first_text(facts.total, doc)) if facts.total else None
                 out.empty_marker = bool(find(facts.empty_marker, doc)) if facts.empty_marker else False
             out.api_empty = rows_here == 0 and _api_empty(node, doc)
+        if limit and len(out.items) > limit:
+            del out.items[limit:]  # more than we were asked for: keep the first ones and stop paging
+            out.capped = True
+            break
         if first_page_only:
             break
         if kind is PagingKind.none:
