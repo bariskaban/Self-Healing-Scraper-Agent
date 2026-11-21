@@ -17,6 +17,9 @@ What one portal's run does:
      data-* hooks renamed; JSON keys renamed), as `variants/portals.py` alters its own:
        list     only the list pages change
        detail   only the tenders' own pages change
+       lost     nothing on the portal changes, but all we know of its addresses is the domain: the
+                stored address and the recipe's start address are replaced by one that answers 404,
+                and the repairer has to find the list again from the real domain root
      The old recipe is run on it. If it still reads the baseline, the portal's recipe does not
      depend on what changed, and that is the result. If not, one repair runs, and its recipe
      must give the baseline records again; the nodes it changed are compared with the node broken.
@@ -224,6 +227,11 @@ def run_portal(spec, runner: Runner, settings: AgentSettings, models: ModelSetti
                  for r in base_read.records[:TENDERS]]
         out["scenarios"] = {}
         for scenario in scenarios:
+            if scenario == "lost":
+                out["scenarios"]["lost"] = lost_address(recipe, portal, clone, live, baseline, known, runner,
+                                                        settings, models)
+                continue
+
             def altered(page: CachedPage, scenario=scenario) -> bool:
                 listed = _address_key(page.method, page.url) in list_urls or is_list_page(recipe, page)
                 return listed if scenario == "list" else not listed
@@ -267,6 +275,50 @@ def run_portal(spec, runner: Runner, settings: AgentSettings, models: ModelSetti
     finally:
         out["pages_cloned"] = len(clone.pages)
         live.close()
+
+
+GONE = "/this-address-is-gone/old-list"
+
+
+def lost_address(recipe: AuthoredRecipe, portal: Portal, clone: Clone, live: Fetcher, baseline: dict, known: list,
+                 runner: Runner, settings: AgentSettings, models: ModelSettings) -> dict:
+    """Only the domain is left of what we knew: the portal's stored address and the address the
+    recipe starts from are replaced by one that does not exist. The portal itself is untouched,
+    so the repairer has to find the list again from the real domain root."""
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(portal.url)
+    where = portal.model_copy(update={"url": f"{parts.scheme}://{parts.netloc}{GONE}"})
+    nodes = [node.model_copy(update={"request": node.request.model_copy(update={"url": GONE, "params": []})})
+             if node.id == recipe.start and node.request is not None else node for node in recipe.nodes]
+    broken = recipe.model_copy(update={"nodes": nodes})
+    fetch = CloneFetch(clone, live)
+    after = sample(broken, where, fetch)
+    result: dict = {"old_recipe_still_reads": values(after) == baseline, "old_recipe_records": len(after.records),
+                    "fields_lost": [], "corrupted_address": where.url}
+    if result["old_recipe_still_reads"]:
+        return result
+    rows = [failed("real", "list_outcome", "The tender list did not arrive: the address answers with an error page. "
+                   "A second look found the same.", cause=Cause.breakage)]
+    steps = StepLog(f"real-{portal.id}-lost-{int(time.time())}")
+    began = time.time()
+    fixed = repair(where, RecipeBody.from_authored(broken), rows, fetch=fetch, known=known, runner=runner,
+                   steps=steps, models=models, settings=settings)
+    result.update({"repaired": fixed.recipe is not None, "seconds": round(time.time() - began),
+                   "reason": fixed.reason, "live_requests": fetch.live_requests, **usage_of(fixed),
+                   "steps": [f"{s.kind.value} {s.name}: {s.summary}" for s in steps.steps if s.kind.value != "llm"]})
+    if fixed.recipe is not None:
+        again = values(sample(fixed.recipe, where, fetch))
+        result["reads_baseline_again"] = again == baseline
+        result["still_wrong"] = sorted({f"{tid}.{name}" for tid, want in baseline.items()
+                                        for name, value in want.items() if again.get(tid, {}).get(name) != value})[:8]
+        old_nodes = {node.id: node for node in broken.nodes}
+        result["nodes_changed"] = [f"{node.id} ({node.role.value})" for node in fixed.recipe.nodes
+                                   if old_nodes.get(node.id) != node]
+        start = next((n for n in fixed.recipe.nodes if n.id == fixed.recipe.start), None)
+        result["new_start"] = start.request.url if start is not None and start.request is not None else None
+        result["recipe"] = fixed.recipe.model_dump(mode="json")
+    return result
 
 
 def line(out: dict) -> str:
