@@ -160,8 +160,8 @@ def test_settings_come_from_the_environment_and_refuse_nonsense():
                                          "DASHBOARD_ATTACH_TIME_LIMIT_MAX_MINUTES": "60"})
     assert (custom.eur_per_usd, custom.recent_reads, custom.attach_time_limit_max_minutes) == (0.9, 5, 60)
     # One euro rate for the dashboard and the README: EUR_PER_USD, with config's default; no dashboard copy.
-    assert DashboardSettings().eur_per_usd == ModelSettings().eur_per_usd == 0.90
-    assert DashboardSettings.from_env({"DASHBOARD_EUR_PER_USD": "0.5"}).eur_per_usd == 0.90
+    assert DashboardSettings().eur_per_usd == ModelSettings().eur_per_usd == 0.9114
+    assert DashboardSettings.from_env({"DASHBOARD_EUR_PER_USD": "0.5"}).eur_per_usd == 0.9114
     for bad in ({"eur_per_usd": 0}, {"recent_reads": 0}, {"timeline_runs": 0}, {"reads_window_seconds": 0},
                 {"attach_time_limit_min_minutes": 10, "attach_time_limit_max_minutes": 5}):
         with pytest.raises(ValueError):
