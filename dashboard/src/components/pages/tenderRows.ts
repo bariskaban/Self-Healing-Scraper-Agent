@@ -1,11 +1,14 @@
 // Tender explorer: pure helpers for the rows, the filters and the two exports.
-import type { Portal, Tender } from "@/types";
+import { TENDER_CAP } from "@/data/tenderPaging";
+import type { Portal, TenderItem } from "@/types";
+
+type Tender = TenderItem;
 
 export interface TenderRow { tender: Tender; portalId: string; portalUrl: string; timeZone: string | null }
 
-/** Every tender of every portal whose tenders were read; portal order is the dashboard's. */
+/** The first page of every portal whose tenders were read, at most TENDER_CAP rows; portal order is the dashboard's. */
 export function flattenTenders(portals: Portal[], tenders: Record<string, Tender[] | null>): TenderRow[] {
-  return portals.flatMap((p) => (tenders[p.id] ?? []).map((tender) => ({ tender, portalId: p.id, portalUrl: p.url, timeZone: p.timezone })));
+  return portals.flatMap((p) => (tenders[p.id] ?? []).map((tender) => ({ tender, portalId: p.id, portalUrl: p.url, timeZone: p.timezone }))).slice(0, TENDER_CAP);
 }
 
 export type StatusFilter = "all" | Tender["status"];
@@ -85,12 +88,13 @@ export const CSV_COLUMNS = [
 /** Header plus one line per row, CRLF line ends. Document sizes are summed only over the sizes that are known. */
 export function toCsv(rows: TenderRow[]): string {
   const lines = rows.map(({ tender: t, portalId, portalUrl }) => {
-    const docs = t.documents;
+    const docs = t.documents ?? null;
+    const count = t.documentCount ?? (docs === null ? null : docs.length);
     const sizes = (docs ?? []).map((d) => d.sizeBytes).filter((n): n is number => n !== null);
     return [
       portalId, portalUrl, t.id, t.referenceNumber, t.title, t.buyerName, t.status, t.procedureType,
       t.publicationDate, t.submissionDeadline, t.lastChangedAt, t.url,
-      docs === null ? null : docs.length, sizes.length ? sizes.reduce((s, n) => s + n, 0) : null,
+      count, sizes.length ? sizes.reduce((s, n) => s + n, 0) : null,
       docs === null ? null : docs.map((d) => d.fileName).join("; "),
     ].map(csvCell).join(",");
   });

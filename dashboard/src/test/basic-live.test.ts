@@ -77,7 +77,7 @@ describe("live without /api/dashboard", () => {
     expect(a?.lastRun).toBeNull();
   });
 
-  it("the portal page uses /portals/{id}/runs as a basic timeline plus the public tenders", async () => {
+  it("the portal page poll uses /portals/{id}/runs as a basic timeline and never reads the tenders route", async () => {
     const { fetchImpl, seen } = contractServer();
     const c = new LedgerController(fetchImpl, { name: "portal", id: "b2" }, { now: () => NOW, allowDemo: true });
     await c.cycle();
@@ -86,13 +86,12 @@ describe("live without /api/dashboard", () => {
     expect(c.state.detail?.kind).toBe("ok");
     if (c.state.detail?.kind !== "ok") throw new Error("no detail");
     expect(c.state.detail.timeline.map((r) => r.id)).toEqual(["rb1", "rb2", "rb3"]);
-    expect(c.state.detail.tenders).toEqual([]);
     expect(seen).toContain("/portals/b2/runs");
-    expect(seen).toContain("/portals/b2/tenders");
+    expect(seen).not.toContain("/portals/b2/tenders");
   });
 
-  it("never mixes: basic live with a failing tenders route falls back to demo as a whole", async () => {
-    const { fetchImpl } = contractServer({ "/portals/b2/tenders": () => new Response("x", { status: 500 }) });
+  it("never mixes: basic live with a failing runs route falls back to demo as a whole", async () => {
+    const { fetchImpl } = contractServer({ "/portals/b2/runs": () => new Response("x", { status: 500 }) });
     const c = new LedgerController(fetchImpl, { name: "portal", id: "b2" }, { now: () => NOW, allowDemo: true });
     await c.cycle();
     expect(c.state.source).toBe("demo");

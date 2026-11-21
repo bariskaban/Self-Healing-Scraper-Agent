@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TenderTable } from "@/components/ledger/TenderTable";
-import { portalPath } from "@/data/api";
+import { contractPath, portalPath, tenderPagePath, tenderPath } from "@/data/api";
+import { toTenderItem } from "@/data/demo";
 import { LedgerController } from "@/data/controller";
 import { costText, runCost } from "@/data/format";
 import { runSchema, stepSchema, tenderSchema, tendersSchema, timelineSchema } from "@/data/schema";
@@ -39,10 +40,11 @@ const portal = {
 const dash = { asOf: "2026-11-20T20:00:00Z", eurPerUsd: 0.9, settings: { attachTimeLimitMinutes: 20, ignoreRobotsTxt: false }, portals: [portal] };
 
 describe("request paths", () => {
-  it("reads tenders from the public contract route and the timeline from /api", () => {
-    expect(portalPath("p1", "tenders")).toBe("/portals/p1/tenders");
+  it("pages tenders on the /api route; the public contract route is for basic live only", () => {
+    expect(tenderPagePath("p1", 50, 100)).toBe("/api/portals/p1/tenders?limit=50&offset=100");
+    expect(tenderPath("a/b", "t 1")).toBe("/api/portals/a%2Fb/tenders/t%201");
     expect(portalPath("p1", "timeline")).toBe("/api/portals/p1/timeline");
-    expect(portalPath("a/b c", "tenders")).toBe("/portals/a%2Fb%20c/tenders");
+    expect(contractPath("a/b c", "tenders")).toBe("/portals/a%2Fb%20c/tenders");
   });
 
   it("a detail cycle requests exactly the documented routes and stays live", async () => {
@@ -50,14 +52,13 @@ describe("request paths", () => {
     const routes: Record<string, unknown> = {
       "/api/dashboard": dash,
       "/api/portals/p1/timeline": [run],
-      "/portals/p1/tenders": [bareTender, fullTender],
     };
     const c = new LedgerController(async (u) => {
       seen.push(u);
       return u in routes ? json(routes[u]) : new Response("no", { status: 404 });
     }, { name: "portal", id: "p1" });
     await c.cycle();
-    expect([...seen].sort()).toEqual(["/api/dashboard", "/api/portals/p1/timeline", "/portals/p1/tenders"]);
+    expect([...seen].sort()).toEqual(["/api/dashboard", "/api/portals/p1/timeline"]);
     expect(c.state.source).toBe("live");
     expect(c.state.detail?.kind).toBe("ok");
   });
@@ -80,7 +81,7 @@ describe("tender wire shape (TenderOut)", () => {
     expect(tenderSchema.safeParse({ ...bareTender, lastChangedAt: null }).success).toBe(false);
   });
   it("renders missing values as Not stated instead of failing", () => {
-    render(<TenderTable tenders={tendersSchema.parse([bareTender, fullTender])} timeZone={null} live />);
+    render(<TenderTable tenders={tendersSchema.parse([bareTender, fullTender]).map(toTenderItem)} timeZone={null} live />);
     // title, buyer and deadline, in the phone list and in the table
     expect(screen.getAllByText("Not stated")).toHaveLength(6);
     expect(screen.getAllByText("Road works")).toHaveLength(2);

@@ -98,8 +98,8 @@ describe("ledger source selection", () => {
     expect(c.state.offline).toBe(true);
   });
 
-  it("detail never mixes live dashboard with demo tenders", async () => {
-    const c = new LedgerController(async (u) => (u.includes("tenders") ? new Response("x", { status: 500 }) : u.includes("timeline") ? json([]) : json(dash([portal]))), { name: "portal", id: "p1" });
+  it("detail never mixes live dashboard with a demo timeline", async () => {
+    const c = new LedgerController(async (u) => (u.includes("timeline") ? new Response("x", { status: 500 }) : u.includes("tenders") ? json([]) : json(dash([portal]))), { name: "portal", id: "p1" });
     await c.cycle();
     expect(c.state.source).not.toBe("demo");
     expect(c.state.detail).toBeNull();

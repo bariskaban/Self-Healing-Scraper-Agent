@@ -1,7 +1,7 @@
 import type { z } from "zod";
 import { ApiError, contractPath, getJson, portalPath, type FetchLike } from "./api";
-import { contractPortalsSchema, contractRunsSchema, dashboardSchema, tendersSchema, timelineSchema } from "./schema";
-import { demoDashboard, demoTenders, demoTimeline } from "./demo";
+import { contractPortalsSchema, contractRunsSchema, dashboardSchema, timelineSchema } from "./schema";
+import { demoDashboard, demoTimeline } from "./demo";
 import type { Dashboard, DetailView, LedgerState, Portal, Route, Run } from "@/types";
 
 export const POLL_MS = 5000;
@@ -70,18 +70,17 @@ async function loadFull(fetchImpl: FetchLike, route: Route, signal: AbortSignal,
     }
     return { ...full, dashboard, detail: null };
   }
-  const [d, tl, td] = await Promise.allSettled([
+  // The tender list is not part of the poll: it pages itself (data/tenderPager.ts).
+  const [d, tl] = await Promise.allSettled([
     getJson(fetchImpl, "/api/dashboard", dashboardSchema, signal, timeoutMs),
     getJson(fetchImpl, portalPath(route.id, "timeline"), timelineSchema, signal, timeoutMs),
-    getJson(fetchImpl, portalPath(route.id, "tenders"), tendersSchema, signal, timeoutMs),
   ]);
   if (d.status === "rejected") throw new NoDashboard(d.reason);
   const dashboard: Dashboard = d.value;
   const portal = dashboard.portals.find((p) => p.id === route.id);
   if (!portal) return { ...full, dashboard, detail: { kind: "notFound" } };
   if (tl.status === "rejected") throw tl.reason;
-  if (td.status === "rejected") throw td.reason;
-  return { ...full, dashboard, detail: { kind: "ok", portal, timeline: tl.value, tenders: td.value } };
+  return { ...full, dashboard, detail: { kind: "ok", portal, timeline: tl.value } };
 }
 
 const basicRun = (r: ContractRun): Run => ({ ...r, trigger: null, summary: null, modelCalls: null });
@@ -106,7 +105,7 @@ export function basicRow(p: ContractPortal, runs: ContractRun[] | null, now: num
   };
 }
 
-/** Live from the public contract routes only: GET /portals, and per portal /runs and /tenders. */
+/** Live from the public contract routes only: GET /portals, and per portal /runs. (The tender list reads /tenders once, in the page.) */
 async function loadBasic(
   fetchImpl: FetchLike, route: Route, signal: AbortSignal, timeoutMs: number | undefined, now: () => number,
 ): Promise<Loaded> {
@@ -130,16 +129,12 @@ async function loadBasic(
   if (!row) {
     return { source: "live", basic: true, dashboard: shell(list.map((p) => basicRow(p, null, at))), detail: { kind: "notFound" }, fleetRuns: null };
   }
-  // Both are required for the page: if either fails, the caller falls back to the snapshot as a whole.
-  const [runs, tenders] = await Promise.all([
-    runsOf(route.id),
-    getJson(fetchImpl, contractPath(route.id, "tenders"), tendersSchema, signal, timeoutMs),
-  ]);
+  const runs = await runsOf(route.id);
   const portal = basicRow(row, runs, at);
   return {
     source: "live", basic: true,
     dashboard: shell(list.map((p) => (p.id === route.id ? portal : basicRow(p, null, at)))),
-    detail: { kind: "ok", portal, timeline: runs.map(basicRun), tenders },
+    detail: { kind: "ok", portal, timeline: runs.map(basicRun) },
     fleetRuns: null,
   };
 }
@@ -150,9 +145,8 @@ export function loadDemo(route: Route): Loaded {
   if (route.name === "overview") return { ...demo, dashboard, detail: null };
   const portal = dashboard.portals.find((p) => p.id === route.id);
   const timeline = demoTimeline(route.id);
-  const tenders = demoTenders(route.id);
   if (!portal) return { ...demo, dashboard, detail: { kind: "notInDemo" } };
-  return { ...demo, dashboard, detail: { kind: "ok", portal, timeline: timeline ?? [], tenders: tenders ?? [] } };
+  return { ...demo, dashboard, detail: { kind: "ok", portal, timeline: timeline ?? [] } };
 }
 
 export const routesEqual = (a: Route, b: Route) =>

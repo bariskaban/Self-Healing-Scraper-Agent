@@ -123,6 +123,23 @@ export const tenderSchema = z.object({
 
 export const tendersSchema = z.array(tenderSchema);
 
+/** One row of the paged list: a tender without its files, with only their count. */
+export const tenderItemSchema = tenderSchema.omit({ documents: true }).extend({
+  documentCount: z.number().int().nonnegative().nullable(),
+});
+
+/** GET /api/portals/{id}/tenders?limit&offset. `next` is the offset of the next page, null at the end. */
+export const tenderPageSchema = z.object({
+  total: z.number().int().nonnegative(),
+  offset: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  next: z.number().int().nonnegative().nullable(),
+  items: z.array(tenderItemSchema),
+});
+
+/** GET /api/portals/{id}/tenders/{tenderId}: one full tender (TenderOut) with its files. */
+export const singleTenderSchema = tenderSchema;
+
 /** PortalOut: one entry of the public GET /portals. The contract routes carry nothing else about a portal. */
 export const contractPortalSchema = z.object({
   id: z.string().min(1),
