@@ -1,10 +1,18 @@
 # Dashboard API
 
-The JSON the dashboard at `GET /` reads. `app/dashboard_api.py` serves the three routes from the store (SQLite, `app/db.py`, when `DATA_DIR` is set). When the API does not answer, the page says "API offline, retrying", keeps the last live snapshot it had and polls again; it never swaps in made-up portals. The bundled demo data is shown only when the address has `?demo` (for working on the page without a server), with a "Demo data" badge.
+The JSON the dashboard at `GET /` reads. The Platform fills these routes from SQLite (`app/db.py`). Until they exist, the page runs on the public contract routes alone ("Live · basic", see below); only when the API cannot be reached at all does it show its bundled demo data with a "Demo data" badge.
 
 - `GET /api/dashboard`: every 5 s.
 - `GET /api/portals/{id}/timeline` and `GET /portals/{id}/tenders` (the public contract route, unchanged): only while a portal's page is open.
-- `POST /api/settings`: the only write. It sets the attach time limit and the robots.txt test switch (mentor answers 1b and 7).
+- The overview also reads `GET /api/portals/{id}/timeline`, for at most 16 portals: once per portal, and again only when that portal's `lastRun` changed or is still running. It feeds the "Live repair" card, the run ticker and the "Recent events" feed. Nothing changed, no extra request.
+- `POST /api/settings`: sets the attach time limit and the robots.txt test switch (mentor answers 1b and 7).
+- `POST /portals {"url"}` (the public contract route): the "Add portal" sheet sends one request per address, one after another, then reads the data again at once. The same address gives the same id, which the sheet shows as "Already watched". This and the settings are the page's only writes; it never deletes, refreshes or repairs.
+
+## Live without /api/dashboard ("Live · basic")
+
+Order of sources: 1. the `/api` routes ("Live"). 2. If the server answers but `/api/dashboard` is not there (404, or an answer that is not a dashboard) and `GET /portals` answers a JSON array, the page renders live from the public contract routes ("Live · basic"). 3. The bundled snapshot ("Demo data"), only when the API is unreachable or a request the view needs fails. One view never mixes live and demo data.
+
+In basic mode a row is `PortalOut` (`id`, `url`, `state`, `reason`, `tenderCount`, `lastSuccessAt`, `cause`). The overview also reads `GET /portals/{id}/runs` per portal (the first 24 rows), which gives the last run, the 30-read history and the reads in the last hour. A portal page reads `GET /portals/{id}/runs` as its timeline and `GET /portals/{id}/tenders`. Everything the contract does not carry (software, recipe, next read, published counts, model usage, run summaries, checks, agent steps, the EUR rate, settings) is null and shows as "Not recorded"; nothing is invented. Settings are read-only in this mode.
 
 Field names follow `app/models.py` (`Portal`, `Run`, `RunStats`, `TokenUsage`, `CheckResult`, `AgentStep`, `Recipe.rationale`), in camelCase. These are extra routes; the public Patterno contract is not changed. Written with GPT-6.2 Astra, 20 Nov 2026.
 
@@ -88,13 +96,6 @@ Settings request and success shape: `{"attachTimeLimitMinutes":20,"ignoreRobotsT
 
 `costEur = costUsd × eurPerUsd` throughout, same fixed rate for the snapshot and its timelines. Server aggregates across all runs, not just those loaded on screen. Run usage may be omitted for `modelCalls:0` (known zero); for a paid call with unavailable accounting use `null`. A tool step with no model has no model charge; an LLM step with missing usage has **unknown** cost. Derive the state counts, total delivered, reads and recorded spend from `portals` in one render.
 
-What the server fills today (`app/dashboard_api.py`, with the read loop in `app/loop.py` and `app/reader.py`):
-
-- `publishedCount` and `deliveryTrend` come from each read's `publish` step, whose args hold `delivered`. A run without a publication has no `publishedCount`, and the page says "no publication", never 0. An attach whose documents fit the 10-minute rule keeps its tenders back while the portal is `integrating`: it records a `hold` step, and its `publish` step only at the moment the tenders are delivered, so until then it has no `publishedCount` either.
-- `checks`, `steps` and `recipeChange` come from the SQLite store. The in-memory stand-in has none, so its runs leave them out and the page says "No checks recorded".
-- A check with our own `outage` severity (Q10) is sent as `fail`; its name and message say it was an outage.
-- `eurPerUsd` is `EUR_PER_USD` (`app/config.py`, default 0.90), the same setting the README's costs use; set it at hand-in to that day's ECB reference rate (Q9).
-- `POST /api/settings` accepts 1 to 1440 minutes. The read loop applies the change from its next attach decision and request on. It is kept in memory only: after a restart both values come from the environment again. An app without the read loop reports the defaults and changes nothing.
 
 ## Building the page
 
@@ -104,4 +105,4 @@ The source is in `dashboard/` (React, Vite, TypeScript, Tailwind; designed in Lo
 cd dashboard && bun install --frozen-lockfile && bun run build
 ```
 
-Only `bun.lock` is committed, so use bun, not `npm ci`. Then replace `app/dashboard/static/` with the contents of `dashboard/dist/`. `GET /` serves `index.html`, and `/assets/*` serves the bundle (`app/main.py`).
+Only `bun.lock` is committed, so use bun, not `npm ci`. Then replace `app/dashboard/static/` with the contents of `dashboard/dist/`. The Inter font is bundled from `@fontsource-variable/inter`, so the page still makes no request to a font host or CDN. `/?run=<run id>#/portal/<id>` opens that run's sheet directly, which is handy for the demo video. `GET /` serves `index.html`, and `/assets/*` serves the bundle (`app/main.py`).

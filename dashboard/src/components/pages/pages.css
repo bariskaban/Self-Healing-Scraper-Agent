@@ -1,0 +1,42 @@
+/* Styles of the extra pages (TV mode, tender explorer). Uses the tokens from styles.css and defines none. */
+
+/* TV mode: slide position dots; the active one stretches and fills over one slide's duration. */
+.tv-dot {
+  position: relative; display: block; height: 0.5rem; width: 0.5rem; border-radius: 9999px;
+  background: var(--border-strong); overflow: hidden; transition: width 0.6s var(--ease-spring);
+}
+.tv-dot[data-active="true"] { width: 3.5rem; }
+.tv-dot-fill {
+  position: absolute; inset: 0; border-radius: inherit; transform-origin: left;
+  background: linear-gradient(90deg, var(--hl-to), var(--hl-from));
+  animation: tv-dot-fill var(--slide-ms, 12000ms) linear 1 backwards;
+}
+@keyframes tv-dot-fill { from { transform: scaleX(0); } }
+
+/* Each panel of the slide coming on screen rises in, one after the other. */
+.tv-slide[data-active="true"] .card { animation: rise-in 0.9s var(--ease-spring) backwards; animation-delay: calc(var(--i, 0) * 110ms + 120ms); }
+
+/* Tender explorer: a table whose rows read as rounded cards; below 64rem each row stacks into one card. */
+.tx-table { width: 100%; border-collapse: separate; border-spacing: 0 0.5rem; }
+.tx-table tbody td {
+  padding: 0.875rem 1rem; vertical-align: top; background: var(--row-bg); border-block: 1px solid var(--border);
+  transition: background-color 0.4s var(--ease-spring), border-color 0.4s var(--ease-spring);
+}
+.tx-table tbody td:first-child { border-left: 1px solid var(--border); border-radius: 1rem 0 0 1rem; }
+.tx-table tbody td:last-child { border-right: 1px solid var(--border); border-radius: 0 1rem 1rem 0; }
+.tx-table tbody tr:hover td { background: var(--row-hover); border-color: var(--border-strong); }
+
+@media (max-width: 63.99rem) {
+  .tx-table, .tx-table tbody, .tx-table tr, .tx-table td { display: block; }
+  .tx-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .tx-table tbody tr { margin-bottom: 0.75rem; padding: 0.5rem 0; border: 1px solid var(--border); border-radius: 1.25rem; background: var(--row-bg); }
+  .tx-table tbody td, .tx-table tbody td:first-child, .tx-table tbody td:last-child {
+    display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); column-gap: 0.75rem;
+    padding: 0.4rem 1rem; border: 0; border-radius: 0; background: none;
+  }
+  .tx-table tbody td > * { justify-self: start; }
+  .tx-table tbody td::before { content: attr(data-label); font-size: 0.8rem; color: var(--muted-text); padding-top: 0.15rem; }
+  .tx-table tbody td:first-child { display: block; padding-bottom: 0.6rem; }
+  .tx-table tbody td:first-child::before { content: none; }
+  .tx-table tbody tr:hover td { background: none; }
+}
