@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { demoDashboard, demoTenderPage, demoTenders } from "@/data/demo";
+import { demoDashboard, demoTenderPage, demoTenders, toTenderItem } from "@/data/demo";
 import { demoFleet, loadFleet } from "@/components/pages/pagesData";
 import { CSV_COLUMNS, NO_FILTERS, csvCell, externalHref, filterRows, flattenTenders, toCsv, toJson, type TenderRow } from "@/components/pages/tenderRows";
 import type { Tender } from "@/types";
@@ -9,7 +9,7 @@ const tender = (over: Partial<Tender>): Tender => ({
   id: "t", url: null, title: null, buyerName: null, publicationDate: null, submissionDeadline: null,
   status: "open", documents: null, lastChangedAt: "2026-11-20T10:00:00+01:00", ...over,
 });
-const row = (over: Partial<Tender>, portalId = "p1"): TenderRow => ({ tender: tender(over), portalId, portalUrl: `https://${portalId}.example`, timeZone: "Europe/Berlin" });
+const row = (over: Partial<Tender>, portalId = "p1"): TenderRow => ({ tender: toTenderItem(tender(over)), portalId, portalUrl: `https://${portalId}.example`, timeZone: "Europe/Berlin" });
 
 const rows: TenderRow[] = [
   row({ id: "a", title: "Wartung von Lüftungsanlagen", buyerName: "Stadt Aachen", submissionDeadline: "2026-11-25T10:00:00+01:00" }),
@@ -57,7 +57,7 @@ describe("explorer filtering", () => {
   });
 
   it("flattens every portal's tenders and skips portals that could not be read", () => {
-    const tenders = Object.fromEntries(demoDashboard.portals.map((p) => [p.id, p.id === "nrw" ? null : demoTenders(p.id)]));
+    const tenders = Object.fromEntries(demoDashboard.portals.map((p) => [p.id, p.id === "nrw" ? null : demoTenders(p.id)?.map(toTenderItem) ?? null]));
     const flat = flattenTenders(demoDashboard.portals, tenders);
     expect(flat.some((r) => r.portalId === "nrw")).toBe(false);
     expect(flat.filter((r) => r.portalId === "tn")).toHaveLength(5);

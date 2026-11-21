@@ -62,7 +62,7 @@ _LOST_PLUS = re.compile(r"(\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?) (\d{2}:?\d{2})$")
 # The dashboard is a static page built from dashboard/ (see docs/DASHBOARD_API.md for what it reads).
 DASHBOARD_DIR = Path(__file__).parent / "dashboard" / "static"
 DASHBOARD_PAGE = DASHBOARD_DIR / "index.html"
-DASHBOARD_ROOT_FILES = ("favicon.ico", "robots.txt")
+DASHBOARD_ROOT_FILES = ("favicon.ico", "robots.txt", "llms.txt")
 # A module script is refused by the browser unless it is served as JavaScript; on some hosts
 # (Windows) the system's own table says otherwise for ".js".
 mimetypes.add_type("text/javascript", ".js")

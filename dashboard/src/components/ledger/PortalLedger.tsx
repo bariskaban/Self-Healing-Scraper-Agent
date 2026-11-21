@@ -152,7 +152,7 @@ export function PortalLedger({ portals, now, eurPerUsd, live, timelines = {} }: 
               <dt className="col-span-2 text-muted-foreground">Last 30 reads</dt><dd className="col-span-2 overflow-hidden"><ReadHistory30 reads={p.recentReads} /></dd>
               <dt className="col-span-2 text-muted-foreground">Model cost to date</dt><dd className="col-span-2"><CostLabel cost={portalCost(p)} eurPerUsd={eurPerUsd} className="whitespace-normal" /></dd>
             </dl>
-            <a href={portalHash(p.id)} aria-label={`Details of ${hostname(p.url)}`} className="link-arrow mt-4 text-sm">Portal details <ChevronRight aria-hidden className="size-4" /></a>
+            <a href={portalHash(p.id)} aria-label={`Portal details of ${hostname(p.url)}`} className="link-arrow mt-4 text-sm">Portal details <ChevronRight aria-hidden className="size-4" /></a>
           </li>
         ))}
       </ul>

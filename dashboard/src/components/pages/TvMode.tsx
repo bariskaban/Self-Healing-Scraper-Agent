@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useId, useState, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { costText, duration, eur, hostname, runCost, tokens } from "@/data/format";
 import { useNow } from "@/data/hooks";
@@ -11,9 +11,11 @@ import { repairSlides } from "@/components/ledger/Spotlight";
 import { cn } from "@/lib/utils";
 import type { PortalState } from "@/types";
 import { dataNow, knownTimelines, useFleet, type FleetData } from "./pagesData";
-import { HealthBoard } from "@/components/tv/HealthBoard";
 import { isEditable } from "./nav";
 import { TV_SLIDES, TV_SLIDE_MS, costSeries, deliveredSeries, pickRepair, readBuckets, readHealth, readsHourSeries, useTvRotation, type ReadBuckets } from "./tv";
+
+// The health board is the only user of the chart library: it loads with TV mode, not with the first page.
+const HealthBoard = lazy(() => import("@/components/tv/HealthBoard").then((m) => ({ default: m.HealthBoard })));
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const hhmm = (t: number) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(t));
@@ -309,7 +311,7 @@ export function TvMode({ onLeave }: { onLeave: () => void }) {
     return () => document.removeEventListener("fullscreenchange", on);
   }, [onLeave]);
 
-  const slides = data ? [<HealthBoard key="b" portals={data.dashboard.portals} summary={fleetSummary(data.dashboard)} basic={data.basic} />, <FleetSlide key="f" data={data} now={now} />, <RepairSlide key="r" data={data} />, <HealthSlide key="h" data={data} now={now} />] : [];
+  const slides = data ? [<Suspense key="b" fallback={null}><HealthBoard portals={data.dashboard.portals} summary={fleetSummary(data.dashboard)} basic={data.basic} /></Suspense>, <FleetSlide key="f" data={data} now={now} />, <RepairSlide key="r" data={data} />, <HealthSlide key="h" data={data} now={now} />] : [];
   const pad = "px-[clamp(1rem,3.2vw,5rem)]";
   return (
     <div className={cn("relative isolate flex flex-col bg-background", stacked ? "min-h-dvh" : "h-dvh overflow-hidden")}>
