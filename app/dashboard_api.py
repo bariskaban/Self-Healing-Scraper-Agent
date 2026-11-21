@@ -31,7 +31,7 @@ from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt
 
@@ -386,6 +386,50 @@ def timeline_answer(store: Records, portal_id: str, settings: DashboardSettings)
             for run in runs]
 
 
+# == The tender list the page scrolls through ==
+
+def tender_item(record: Any, documents: int | None, now: datetime) -> dict[str, Any]:
+    """One row of the page's list: the tender as the API shows it, without its files, with how many it has."""
+    item = record.to_api([], now=now)
+    item.pop("documents", None)
+    item["documentCount"] = documents
+    return item
+
+
+def _shown_documents(files: Sequence[Any]) -> int:
+    """Files the API lists: bytes in, or known and still loading (`FileRecord.deliverable` or `pending`)."""
+    return sum(1 for _, f in files if f.deliverable or f.pending)
+
+
+def tenders_page_answer(store: Any, portal_id: str, limit: int, offset: int, now: datetime) -> dict[str, Any] | None:
+    """`GET /api/portals/{id}/tenders?limit&offset`: one page of the delivered tenders, the soonest deadline first
+    (tenders without one last), each with its document count and no document list. None for an unknown portal.
+    The public `GET /portals/{id}/tenders` cannot be paged (it is the contract); this route is the page's own."""
+    if store.get_portal(portal_id) is None:
+        return None
+    if hasattr(store, "tenders_page"):
+        total, page = store.tenders_page(portal_id, limit, offset)
+    else:  # a store that cannot page by itself (the in-memory one): small, so sorted here
+        rows = sorted(store.list_tenders(portal_id), key=lambda row: (
+            row[0].submission_deadline is None,
+            row[0].submission_deadline.timestamp() if row[0].submission_deadline else 0.0, row[0].tender_id))
+        total = len(rows)
+        page = [(record, _shown_documents(files) if files else (None if record.docs_status.value == "pending" else 0))
+                for record, files in rows[offset: offset + limit]]
+    after = offset + limit
+    return {"total": total, "offset": offset, "limit": limit, "next": after if after < total else None,
+            "items": [tender_item(record, documents, now) for record, documents in page]}
+
+
+def tender_answer(store: Any, portal_id: str, tender_id: str, now: datetime) -> dict[str, Any] | None:
+    """`GET /api/portals/{id}/tenders/{tenderId}`: one tender exactly as `TenderOut`, with its files."""
+    if hasattr(store, "published_tender"):
+        found = store.published_tender(portal_id, tender_id)
+    else:
+        found = next((row for row in store.list_tenders(portal_id) if row[0].tender_id == tender_id), None)
+    return None if found is None else found[0].to_api(found[1], now=now)
+
+
 # == The two settings an operator can change ==
 
 class Controls(Protocol):
@@ -440,6 +484,22 @@ def add_dashboard_routes(app: FastAPI, store: Records, on_db: Callable[..., Awai
         current, due = live(), dict(next_reads())  # the worker is read on the event loop
         return JSONResponse(await on_db(lambda: dashboard_answer(store, settings, live=current, next_reads=due)),
                             headers={"Cache-Control": "no-store"})
+
+    @app.get("/api/portals/{portal_id}/tenders", include_in_schema=False)
+    async def tenders_page(portal_id: str, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)) -> JSONResponse:
+        """One page of a portal's tenders for the dashboard's scrolling list (no files, a count of them)."""
+        answer = await on_db(tenders_page_answer, store, portal_id, limit, offset, datetime.now(UTC))
+        if answer is None:
+            raise HTTPException(status_code=404, detail="No portal has this id.")
+        return JSONResponse(answer, headers={"Cache-Control": "no-store"})
+
+    @app.get("/api/portals/{portal_id}/tenders/{tender_id}", include_in_schema=False)
+    async def one_tender(portal_id: str, tender_id: str) -> JSONResponse:
+        """One tender with its files, fetched when its row is opened."""
+        answer = await on_db(tender_answer, store, portal_id, tender_id, datetime.now(UTC))
+        if answer is None:
+            raise HTTPException(status_code=404, detail="No tender of this portal has this id.")
+        return JSONResponse(answer, headers={"Cache-Control": "no-store"})
 
     @app.get("/api/portals/{portal_id}/timeline")
     async def timeline(portal_id: str) -> JSONResponse:
