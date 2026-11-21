@@ -27,7 +27,7 @@ type Cause = "outage" | "block" | "breakage" | null;
 type Kind = "read" | "repair";
 type Result = "ok" | "failed" | null;
 type Trigger = "attach" | "schedule" | "refresh" | "recheck" | "heal";
-type Settings = { attachTimeLimitMinutes: number; ignoreRobotsTxt: boolean };
+type Settings = { attachTimeLimitMinutes: number; ignoreRobotsTxt: boolean; maxTendersPerPortal?: number };  // the most tenders read from one portal, 0 = no limit; optional in the POST body
 
 interface Usage {
   inputTokens: number; outputTokens: number;

@@ -7,6 +7,9 @@ export interface SettingsDraft {
   ignoreRobots: boolean;
   dirtyMinutes: boolean;
   dirtyRobots: boolean;
+  /** "" when the backend does not send the limit: the field is then not shown. */
+  tenders: string;
+  dirtyTenders: boolean;
 }
 
 export const draftFrom = (s: Settings): SettingsDraft => ({
@@ -14,6 +17,8 @@ export const draftFrom = (s: Settings): SettingsDraft => ({
   ignoreRobots: s.ignoreRobotsTxt,
   dirtyMinutes: false,
   dirtyRobots: false,
+  tenders: s.maxTendersPerPortal === undefined ? "" : String(s.maxTendersPerPortal),
+  dirtyTenders: false,
 });
 
 /** Poll arrivals refresh only fields the operator has not touched. */
@@ -22,6 +27,7 @@ export function mergeServerSettings(d: SettingsDraft, s: Settings): SettingsDraf
     ...d,
     minutes: d.dirtyMinutes ? d.minutes : String(s.attachTimeLimitMinutes),
     ignoreRobots: d.dirtyRobots ? d.ignoreRobots : s.ignoreRobotsTxt,
+    tenders: d.dirtyTenders ? d.tenders : s.maxTendersPerPortal === undefined ? "" : String(s.maxTendersPerPortal),
   };
 }
 
@@ -29,6 +35,25 @@ export function parseMinutes(v: string): number | null {
   if (!/^\d+$/.test(v.trim())) return null;
   const n = Number(v.trim());
   return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+/** The tender limit as typed: a whole number from 0 (no limit) to 100,000, else null. */
+export function parseTenderLimit(v: string): number | null {
+  if (!/^\d+$/.test(v.trim())) return null;
+  const n = Number(v.trim());
+  return Number.isSafeInteger(n) && n <= 100_000 ? n : null;
+}
+
+/** What a limit means for the wait: each tender costs at least one request, at one request a second. */
+export function tenderLimitNote(n: number): { warn: boolean; text: string } {
+  if (n === 0)
+    return { warn: true, text: "No limit. A portal with thousands of tenders stays integrating for an hour or more before it delivers anything, and one whose own search stops early delivers nothing." };
+  const minutes = Math.max(1, Math.ceil(n / 60));
+  const wait = minutes >= 90 ? `about ${Math.round(minutes / 60)} hours` : `about ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  return {
+    warn: n > 1000,
+    text: `A portal that lists more delivers its first ${n.toLocaleString("en-US")} tenders. Reading that many takes ${wait} at one request a second, before documents.`,
+  };
 }
 
 export async function saveSettings(fetchImpl: FetchLike, s: Settings): Promise<Settings> {
@@ -42,6 +67,7 @@ export async function saveSettings(fetchImpl: FetchLike, s: Settings): Promise<S
       body: JSON.stringify({
         attachTimeLimitMinutes: s.attachTimeLimitMinutes,
         ignoreRobotsTxt: s.ignoreRobotsTxt,
+        ...(s.maxTendersPerPortal === undefined ? {} : { maxTendersPerPortal: s.maxTendersPerPortal }),
       }),
       signal: ac.signal,
     });
