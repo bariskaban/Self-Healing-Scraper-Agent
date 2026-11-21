@@ -513,6 +513,45 @@ class Database:
                 con.execute("COMMIT")
         return [_tender(row) for row in rows], documents
 
+    def tenders_page(self, portal_id: str, limit: int, offset: int) -> tuple[int, list[tuple[TenderRecord, int | None]]]:
+        """One page of the delivered tenders for the dashboard: the total, and `limit` tenders from `offset`, the
+        soonest deadline first, tenders without a deadline last, then by id. Each comes with how many documents it
+        shows (None while not even the list of its documents is known), and no file objects: a page is 50 rows,
+        however many files each has. Nothing while the portal is `integrating`, as in `list_tenders`."""
+        with self._reading() as con:
+            if not self._published(con, portal_id):
+                return 0, []
+            total = con.execute("SELECT COUNT(*) FROM tenders WHERE portal_id = ?", (portal_id,)).fetchone()[0]
+            rows = con.execute("SELECT * FROM tenders WHERE portal_id = ? ORDER BY submission_deadline IS NULL, "
+                               "julianday(submission_deadline), tender_id LIMIT ? OFFSET ?",
+                               (portal_id, limit, offset)).fetchall()
+            ids = [row["tender_id"] for row in rows]
+            counts: dict[str, tuple[int, int]] = {}
+            if ids:
+                marks = ",".join("?" * len(ids))
+                for tender_id, links, shown in con.execute(
+                        "SELECT tf.tender_id, COUNT(*), SUM(f.skipped IS NULL AND (f.sha256 IS NULL OR f.is_archive = 0)) "
+                        f"FROM tender_files tf JOIN files f ON f.file_id = tf.file_id WHERE tf.portal_id = ? "
+                        f"AND tf.tender_id IN ({marks}) GROUP BY tf.tender_id", (portal_id, *ids)):
+                    counts[tender_id] = (links, shown or 0)
+        page: list[tuple[TenderRecord, int | None]] = []
+        for record in map(_tender, rows):
+            links, shown = counts.get(record.tender_id, (0, 0))
+            page.append((record, shown if links else (None if record.docs_status == DocsStatus.pending else 0)))
+        return total, page
+
+    def published_tender(self, portal_id: str, tender_id: str) -> PublishedTender | None:
+        """One delivered tender with its documents, or None when there is none (or nothing is delivered yet)."""
+        with self._reading() as con:
+            if not self._published(con, portal_id):
+                return None
+            row = con.execute("SELECT * FROM tenders WHERE portal_id = ? AND tender_id = ?",
+                              (portal_id, tender_id)).fetchone()
+            if row is None:
+                return None
+            doc_rows = self._document_rows(con, portal_id, tender_id)
+        return _tender(row), _group_documents(portal_id, doc_rows).get(tender_id, [])
+
     def list_runs(self, portal_id: str) -> list[Run]:
         """Every read and repair of a portal, oldest first."""
         with self._reading() as con:
