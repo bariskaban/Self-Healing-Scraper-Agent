@@ -5,7 +5,7 @@ import { absTime, bytes, hostname, relTime } from "@/data/format";
 import { portalHash } from "@/data/hooks";
 import { Skel } from "@/components/ledger/primitives";
 import { cn } from "@/lib/utils";
-import type { Tender } from "@/types";
+import type { Tender, TenderItem } from "@/types";
 import { PageHero, PagesShell } from "./PagesShell";
 import { dataNow, useFleet } from "./pagesData";
 import { NO_FILTERS, WINDOW_LABEL, downloadText, exportName, externalHref, filterRows, flattenTenders, toCsv, toJson, type DeadlineWindow, type Filters, type StatusFilter, type TenderRow } from "./tenderRows";
@@ -40,8 +40,15 @@ function Docs({ docs, live }: { docs: Tender["documents"]; live: boolean }) {
   );
 }
 
+/** The list rows carry only the number of files; the files are on the portal's page, one tender at a time. */
+function Count({ n }: { n: number | null }) {
+  if (n === null) return <span className="text-muted-foreground">Not collected</span>;
+  if (n === 0) return <span className="text-muted-foreground">None listed</span>;
+  return <span className="text-secondary-text">{n} {n === 1 ? "file" : "files"}</span>;
+}
+
 function Row({ row, now, live }: { row: TenderRow; now: number; live: boolean }) {
-  const t = row.tender;
+  const t: TenderItem = row.tender;
   const page = externalHref(t.url);
   const host = hostname(row.portalUrl);
   return (
@@ -63,7 +70,7 @@ function Row({ row, now, live }: { row: TenderRow; now: number; live: boolean })
         </div>}
       </td>
       <td role="cell" data-label="Status"><span className={cn("inline-block rounded-full px-2.5 py-0.5 text-sm font-medium capitalize", STATUS_CLASS[t.status])}>{t.status}</span></td>
-      <td role="cell" data-label="Documents"><Docs docs={t.documents} live={live} /></td>
+      <td role="cell" data-label="Documents">{t.documents !== undefined ? <Docs docs={t.documents} live={live} /> : <Count n={t.documentCount} />}</td>
     </tr>
   );
 }
@@ -79,6 +86,7 @@ export function TendersPage() {
   const portals = useMemo(() => data?.dashboard.portals ?? [], [data]);
   const all = useMemo(() => (data ? flattenTenders(portals, data.tenders) : []), [data, portals]);
   const rows = useMemo(() => filterRows(all, filters, now), [all, filters, now]);
+  const totalAll = data ? Object.values(data.tenderTotals).reduce((a, b) => a + b, 0) : 0;
   const unread = live && data ? portals.filter((p) => data.tenders[p.id] === null) : [];
   const withTenders = new Set(all.map((r) => r.portalId)).size;
   const filtered = filters.query !== "" || filters.status !== "all" || filters.window !== "any";
@@ -91,7 +99,7 @@ export function TendersPage() {
     <PagesShell page="tenders" fleet={fleet}>
       <PageHero label="Tender explorer"
         title={!data ? "Reading the tenders…" : <><span className="highlight font-normal">{plural(all.length, "tender")}</span> from {plural(withTenders, "portal")}, in one list.</>}>
-        Everything the fleet delivers through the public route, one request per portal. Search, filter, then take the rows with you as CSV or JSON; the export is built in the browser from the rows on screen.
+        The first 50 tenders of each portal, one paged request per portal. Search, filter, then take the rows with you as CSV or JSON; the export is built in the browser from the rows on screen.
       </PageHero>
 
       <section aria-label="Filters and export" className="card mt-10 flex flex-wrap items-center gap-x-3 gap-y-3 p-3 sm:p-4">
@@ -137,6 +145,11 @@ export function TendersPage() {
         </p>
         {filtered && <button type="button" onClick={() => set({ query: "", status: "all", window: "any" })} className="link-arrow text-sm"><X aria-hidden className="size-4" /> Clear filters</button>}
       </div>
+      {data && totalAll > all.length && (
+        <p className="mt-2 px-1 text-sm text-muted-foreground">
+          {all.length >= 500 ? `Showing the first ${all.length} of ${totalAll.toLocaleString("en-US")} tenders. ` : ""}First 50 per portal. Open a portal for more.
+        </p>
+      )}
       {unread.length > 0 && (
         <p className="mt-3 rounded-2xl bg-failed-tint px-4 py-3 text-sm text-failed">
           The tenders of {plural(unread.length, "portal")} could not be read and are missing from this list: {unread.map((p) => hostname(p.url)).join(", ")}. The next refresh tries again.

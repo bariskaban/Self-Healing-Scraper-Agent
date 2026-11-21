@@ -34,12 +34,18 @@ export type Run = Omit<WireRun, "trigger" | "summary" | "modelCalls"> & {
 export type Timeline = Run[];
 export type TenderDocument = z.infer<typeof S.documentSchema>;
 export type Tender = z.infer<typeof S.tenderSchema>;
+/** A list row: no files, only their count. Demo and basic-live rows may still carry the files. */
+export type TenderItem = Omit<z.infer<typeof S.tenderItemSchema>, "documentCount"> & {
+  documentCount: number | null;
+  documents?: Tender["documents"];
+};
+export type TenderPage = z.infer<typeof S.tenderPageSchema>;
 
 export type Route = { name: "overview" } | { name: "portal"; id: string };
 export type Source = "live" | "demo";
 
 export type DetailView =
-  | { kind: "ok"; portal: Portal; timeline: Timeline; tenders: Tender[] }
+  | { kind: "ok"; portal: Portal; timeline: Timeline }
   | { kind: "notFound" } // live dashboard says id does not exist
   | { kind: "notInDemo" }; // fallback snapshot lacks id
 

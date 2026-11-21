@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { demoDashboard, demoTenders } from "@/data/demo";
+import { demoDashboard, demoTenderPage, demoTenders } from "@/data/demo";
 import { demoFleet, loadFleet } from "@/components/pages/pagesData";
 import { CSV_COLUMNS, NO_FILTERS, csvCell, externalHref, filterRows, flattenTenders, toCsv, toJson, type TenderRow } from "@/components/pages/tenderRows";
 import type { Tender } from "@/types";
@@ -125,15 +125,16 @@ describe("fleet loading", () => {
   const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
   const dash = { ...demoDashboard, portals: demoDashboard.portals.filter((p) => p.id === "tn" || p.id === "nrw") };
 
-  it("reads the public tenders route once per portal and never mixes demo rows into live data", async () => {
+  it("reads the first page (50) of each portal from the paged route and never mixes demo rows into live data", async () => {
     const seen: string[] = [];
     const data = await loadFleet(async (u) => {
       seen.push(u);
       if (u === "/api/dashboard") return json(dash);
-      if (u === "/portals/tn/tenders") return json(demoTenders("tn"));
+      if (u === "/api/portals/tn/tenders?limit=50&offset=0") return json(demoTenderPage("tn", 50, 0));
       return new Response("no", { status: 500 });
     }, { timelines: false, tenders: true }, new AbortController().signal);
-    expect([...seen].sort()).toEqual(["/api/dashboard", "/portals/nrw/tenders", "/portals/tn/tenders"]);
+    expect([...seen].sort()).toEqual(["/api/dashboard", "/api/portals/nrw/tenders?limit=50&offset=0", "/api/portals/tn/tenders?limit=50&offset=0"]);
+    expect(seen.some((u) => u.startsWith("/portals/"))).toBe(false);
     expect(data.source).toBe("live");
     expect(data.tenders["tn"]).toHaveLength(5);
     expect(data.tenders["nrw"]).toBeNull();
@@ -152,7 +153,8 @@ describe("fleet loading", () => {
       if (u === "/portals/tn/runs") return json(runs);
       if (u === "/portals/tn/tenders") return json(demoTenders("tn"));
       return new Response("no", { status: 404 });
-    }, { timelines: true, tenders: true }, new AbortController().signal);
+    }, { timelines: true, tenders: true }, new AbortController().signal, undefined, undefined, new Map());
+    expect(seen.filter((u) => u === "/portals/tn/tenders")).toHaveLength(1);
     expect(data).toMatchObject({ source: "live", basic: true });
     expect(seen).not.toContain("/api/portals/tn/timeline");
     expect(data.timelines["tn"]?.map((r) => r.id)).toEqual(["r1", "r2"]);
