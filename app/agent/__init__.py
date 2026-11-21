@@ -62,12 +62,17 @@ class Agents:
 
     def repair(self, portal: Portal, recipe: AuthoredRecipe, failed: Sequence[CheckResult], run_id: str
                ) -> AgentResult:
+        files: dict[str, int] = {}
         try:
             known = self.db.known_tenders(portal.id)
+            # The newest tenders are the ones a dry run reads: how many files each had, to compare.
+            for record in sorted(known, key=lambda r: r.first_seen_at, reverse=True)[: 4 * self.settings.dry_run_details]:
+                files[record.tender_id] = len(self.db.tender_documents(portal.id, record.tender_id))
         except Exception:  # the last good tenders are a help to the model, not a need
             known = []
         return repair(portal, recipe, failed, fetch=self.fetch, runner=self.runner, steps=self._steps(run_id),
-                      known=known, models=self.models, settings=self.settings, recipes=self.recipes)
+                      known=known, known_documents=files, models=self.models, settings=self.settings,
+                      recipes=self.recipes)
 
     def spot_check(self, portal: Portal, records: Sequence[TenderRecord], finding: str, run_id: str
                    ) -> SpotResult | None:

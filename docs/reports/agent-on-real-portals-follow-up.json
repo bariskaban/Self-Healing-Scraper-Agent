@@ -1,0 +1,3098 @@
+[
+ {
+  "portal": "eb2b-gddkia",
+  "url": "https://gddkia.eb2b.com.pl/",
+  "kind": "unknown",
+  "expect": "serve",
+  "learn": {
+   "learned": true,
+   "seconds": 200,
+   "requests": 29,
+   "live_requests": 29,
+   "reason": "Saved an eB2B recipe that passed its dry run: it read 2,000 tenders across two pages and found public preview pages and attachment links for the three sampled tenders. The portal reported 5,300 listings in total, including closed tenders. The dry run did not find CPV codes, and 405 of the 2,000 records had a submission deadline.",
+   "model_calls": 40,
+   "cost_usd": 0.687,
+   "input_tokens": 1341487,
+   "cached_share": 0.81,
+   "output_tokens": 7185,
+   "refused": 0,
+   "steps": [
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/: status 200, 182,339 bytes.",
+    "tool page_links: Listed the links of https://gddkia.eb2b.com.pl/ containing 'auction'.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/open-auctions.html: status 200, 182,150 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-auctions.html for /.{0,160}(auction-panel|contentLoadingIndicator|\\.ajax\\(|fetch\\().{0,200}/: 2 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-auctions.html for /<script[^>]+src=[^>]+>|.{0,120}(?:auction/|auctionIndex|Ext\\.onReady|\\.json|\\.load\\().{0,160}/: 28 match(es), the first 20 shown:",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526: status 200, 2,324,263 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,120}(viewMode==\"open\"|get-open|open-auctions|renderTo:\"auction-panel\"|action:\"[^\"]*list[^\"]*\").{0,180}/: 28 match(es), the first 20 shown:",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,170}(viewMode===\"open\"|viewMode==\"open\"|case\"open\"|get-open|open-auctions|auction-panel|OpenAuction).{0,240}/: 1 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,100}(App\\.controller\\.Auction\"|contentLoadingIndicator|open-list|list-open|OpenPanel|VIEW_MODE_OPEN).{0,270}/: No match.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,140}controller:\"auction\",action:\"(?:[^\\\"]*(?:list|display|public|preview)[^\\\"]*)\".{0,140}/: No match.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,100}(viewMode|controller:\"auction\").{0,130}$|.{0,100}Ext\\.define\\(\"App\\.controller[^,]+/: No match.",
+    "tool view_page: Viewed part 166 of https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526.",
+    "tool view_page: Viewed part 161 of https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526.",
+    "tool view_page: Viewed part 163 of https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /Ext\\.define\\(\"App\\.component\\.auction\\.AuctionPanel\".{0,1550}|showPreview:function\\(\\).{0,760}|(?:mode|controller):\"open\".{0,280}/: 2 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /Ext\\.define\\(\"App\\.component\\.auction\\.AuctionPanel\".{0,1800}|showPreview:function\\(\\).{0,760}|controller:\"open\".{0,280}/: No match.",
+    "tool view_page: Viewed part 162 of https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /App\\.component\\.auction\\.AuctionGrid|showPreview:function/: 1 match(es):",
+    "tool page_links: Listed the links of https://gddkia.eb2b.com.pl/open-auctions.html containing 'auction'.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-auctions.html for /.{0,90}(custom-id|:module|viewMode|standardPageSize).{0,200}/: 1 match(es):",
+    "tool view_page: Viewed part 164 of https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,130}(case\"open\"|auctionOpen|action:\"list\"|auction-preview\\.html).{0,200}/: 5 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-auctions.html for /<script[^>]+src=[^>]+>/: 23 match(es), the first 20 shown:",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/app.js?v=1.2: status 200, 71,240 bytes.",
+    "tool view_page: Viewed part 165 of https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js: status 200, 54,283 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js for /setupGridStore: function[\\s\\S]{0,6200}/: 1 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-auctions.html for /App\\.initController\\([\\s\\S]{0,260}/: 1 match(es):",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/lib/PageSizePlugin.js: status 200, 2,700 bytes.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?page=1&start=0&limit=100: status 200, 227,307 bytes.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/open-preview-auction.html/539318/poprawa-bezpieczenstwa-ruchu-drogowego-na-skrzyzowaniach-na-dk25-w-m-rychwal-witoldow-i-anielin: status 200, 191,906 bytes.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/open-preview-auction.html/539275: status 200, 192,427 bytes.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/open-preview-auction.html/539181/dostawa-fabrycznie-nowych-samochodow-osobowych-z-napedem-4x4-dla-gddkia-oddzial-w-bydgoszczy-z-podzialem-na-3-czesci: status 200, 191,792 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?page=1&start=0&limit=100 for /\"status_name\":\"[^\"]+\"/: 100 match(es), the first 20 shown:",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=100&limit=1: status 200, 2,098 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /App\\.initController\\([\\s\\S]{0,900}/: 1 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,90}renderTo:\"auctionPreview-panel\".{0,400}|.{0,100}action:\"[^\"]*(?:attachment|preview|document)[^\"]*\".{0,130}/: 5 match(es):",
+    "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/auction/auction/list?page=1&start=0&limit=100.",
+    "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/js/app/lib/PageSizePlugin.js.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /.{0,40}\"(?:attachments|attachment_id|description|postal_code|city|cpv_codes|public_order_mode_name|public_order_type_name|zip_url|download_url)\".{0,360}/: 4 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539318/poprawa-bezpieczenstwa-ruchu-drogowego-na-skrzyzowaniach-na-dk25-w-m-rychwal-witoldow-i-anielin for /.{0,40}\"(?:attachments|attachment_id|description|postal_code|city|cpv_codes|public_order_mode_name|public_order_type_name|zip_url\u2026",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js for /.{0,100}(?:open-preview-auction|status_code|sorters).{0,180}/: 1 match(es):",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/controller/compiled/AuctionPreviewOpen.js?_nc=1795094552: status 200, 2,182,860 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/AuctionPreviewOpen.js?_nc=1795094552 for /.{0,125}action:\"[^\"]*(?:attachment|document)[^\"]*\".{0,150}/: 20 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /.{0,90}(?:\"cpv[^\" ]*\"|\"files\"|\"file_name\"|\"original_name\"|\"AdditionalData\"|\"public_order_mode\"|/download/).{0,200}/: 2 match(es):",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=200: status 200, 437,154 bytes.",
+    "tool try_locator: Tried jsonpath locator '$.id' on https://gddkia.eb2b.com.pl/auction/auction/list?page=1&start=0&limit=100: 0 value(s) in 100 item(s).",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/AuctionPreviewOpen.js?_nc=1795094552 for /.{0,110}(?:controller:\"(?:auction|preview|preview-open|auction-preview-open)\",action:\"[^\"]*(?:attachment|download)|attachmentController:\"[^\"]+\"|PUBLIC_ORDER_MODE_[A-Z_]+:\\d+|PUBLIC_ORDER_TYPE_[A\u2026",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js for /setupGridStore: function[\\s\\S]{0,5200}/: 1 match(es):",
+    "tool try_locator: try_locator: the locator was refused (locator: a JSONPath starts with `$` (or `@` inside an item).)",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/AuctionPreviewOpen.js?_nc=1795094552 for /.{0,130}(?:list-attachment|download-attachment|download-all-attachments|Pobierz wszystkie).{0,170}/: 7 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/AuctionPreviewOpen.js?_nc=1795094552 for /.{0,150}(?:AuctionPreviewOpen\"|attachmentController=this.viewMode|ORDER_MODE[^,]+:15|CPV|showAttachments:).{0,240}/: 7 match(es):",
+    "tool try_locator: Tried jsonpath locator '@.id' on https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=200: 5 value(s) in 200 item(s).",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=200 for /\"status_code\":\\d+,\"status_name\":\"(?!Etap Sk)[^\"]+\"/: 136 match(es), the first 20 shown:",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /App\\.initController\\([\\s\\S]{0,680}|<script[^>]*src=\"[^\"]*(?:Preview|auction)[^\"]*\"/: 2 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/AuctionPreviewOpen.js?_nc=1795094552 for /attachmentController\\s*=.{0,220}|.{0,110}(?:download-file|download-pack|get-attachment|attachment/list|public-attachment|open-attachment).{0,130}/: 1 match(es):",
+    "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/js/app/lib/PageSizePlugin.js.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=5299&limit=500: status 200, 1,999 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /.{0,50}(?:attachments|fileSize|attachmentData|attachmentGrid|download|zip|public_order_mode).{0,150}/: 8 match(es):",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/controller/AuctionPreviewOpen.js: status 200, 1,024 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/AuctionPreviewOpen.js?_nc=1795094552 for /.{0,80}(?:api:\\{read:App.url\\(\\{module:\"auction\",controller:this.attachmentController|this.attachmentController[=:]|attachmentsData|auctionPreview-panel).{0,240}/: 2 match(es):",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=500: status 200, 1,026,360 bytes.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/preview/AuctionPreviewOpenPanel.js: status 200, 12,611 bytes.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/attachment/AttachmentsPanel.js: status 200, 82,876 bytes.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list-attachment?id=539318&deleted=0&bidder=0: status 200, 7,069 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/attachment/AttachmentsPanel.js for /.{0,90}(?:action.*(?:download|zip)|downloadAll|App.downloadFile).{0,150}/: 11 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /\"(?:[^\"]*cpv[^\"]*|description|city|postal_code|zip_code|status_name|offer_submission_deadline)\".{0,270}|<link[^>]+canonical[^>]+>/: 4 match(es):",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/preview/SettingsPanel.js: status 200, 66,778 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/app.js?v=1.2 for /(?m)^.{0,50}(?:downloadFile\\s*[:=]|custom-id-slug|route ==).{0,110}/: 2 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js for /.{0,80}(?:sorters|simpleSortMode|status_name|current_stage_end_time|open-preview-auction).{0,130}/: 8 match(es):",
+    "tool try_locator: Tried regex locator 'App\\\\.initController\\\\(\"AuctionPreviewOpen\",\\\\s*\\\\{\"auction\":\\\\{\"id\":(\\\\d+)' on https://gddkia.eb2b.com.pl/open-preview-auction.html/539275: 0 value(s).",
+    "tool try_locator: Tried regex locator '\"description\":\"((?:[^\"\\\\\\\\]|\\\\\\\\.)*)\"' on https://gddkia.eb2b.com.pl/open-preview-auction.html/539275: 0 value(s).",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/model/auction/OrderMode.js: status 200, 5,020 bytes.",
+    "tool try_locator: Tried xpath locator '//script[contains(., \\'App.initController(\"AuctionPreviewOpen\"\\')]/text()' on https://gddkia.eb2b.com.pl/open-preview-auction.html/539275: 1 value(s).",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/app.js?v=1.2 for /urlRoutes\\s*:[\\s\\S]{0,500}|downloadFile : function[\\s\\S]{0,2100}/: 1 match(es):",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/model/auction/Auction.js: status 200, 99,507 bytes.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /.{0,100}(?:og:url|og:title|open-preview-auction\\.html|addr_city|#auctionPreview-panel|969748).{0,150}/: 2 match(es):",
+    "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/auction/auction/list?page=1&start=0&limit=100.",
+    "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/auction/auction/list-attachment?id=539318&deleted=0&bidder=0.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/attachment/AttachmentsPanel.js for /.{0,100}(?:action\\s*:\\s*'[^']*(?:download|zip)|App.downloadFile).{0,180}/: 7 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/model/auction/Auction.js for /^\\s*(?:PUBLIC_ORDER_(?:MODE|TYPE)|STATUS_)[^\\n]{0,120}|(?:getPublicOrder(?:Mode|Type)Text)[\\s\\S]{0,240}/: 34 match(es), the first 20 shown:",
+    "tool try_locator: Tried xpath locator '//script[contains(., \\'App.initController(\"AuctionPreviewOpen\"\\') and contains(., \\'\"description\":\"\\')]/text()' on https://gddkia.eb2b.com.pl/open-preview-auction.html/539275: 1 value(s).",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/model/auction/Auction.js for /(?:PUBLIC_ORDER_[A-Z_]+|[A-Z_]+_STATUS|AUCTION_STATUS_[A-Z_]+)\\s*:\\s*\\d+|(?:SUPPLIES|SERVICES|CONSTRUCTION_WORKS|DELIVERY)\\s*:\\s*\\d+/: 32 match(es), the first 20 shown:",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=500 for /\"status_code\":\\d+,\"status_name\":\"(?!Etap Sk|Zako|Wyb)[^\"]+\"/: 14 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/app.js?v=1.2 for /.{0,60}(?:'module/controller/action|url : function).{0,160}/: 4 match(es):",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000: status 200, 1,991,539 bytes.",
+    "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=5300&limit=500: status 200, 39 bytes.",
+    "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/auction/auction/list-attachment?id=539318&deleted=0&bidder=0.",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/attachment/AttachmentsPanel.js for /App.downloadFile[\\s\\S]{0,660}/: 6 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /App\\.initController\\([\\s\\S]{0,950}|\"(?:description|addr_city|addr_postal_code|cpv|AdditionalData|ZipCode|postal_code|city)\".{0,480}/: 4 match(es):",
+    "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/model/auction/Auction.js for /(?:ORDER_TYPE|STATUS_CODE)[A-Z_]*\\s*:\\s*\\d+/: 3 match(es):",
+    "tool try_locator: Tried jsonpath locator '@.id' on https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000: 5 value(s) in 1000 item(s).",
+    "tool propose_recipe: Dry run of the recipe: 2000 record(s) from 2000 row(s), 3 tender page(s) read; it passed.",
+    "decision learn_done: The learn left a recipe whose dry run read 2000 tender(s) (40 model call(s), 29 request(s), $0.69)."
+   ]
+  },
+  "recipe": {
+   "start": "list",
+   "nodes": [
+    {
+     "id": "list",
+     "kind": "json",
+     "role": "list",
+     "request": {
+      "method": "GET",
+      "url": "/auction/auction/list",
+      "params": [
+       {
+        "name": "start",
+        "value": "0"
+       },
+       {
+        "name": "limit",
+        "value": "1000"
+       }
+      ],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     },
+     "items": {
+      "kind": "jsonpath",
+      "expr": "$.data[*]",
+      "labels": [],
+      "attr": null
+     },
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.id",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.name",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.company_name",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.publication_date",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%Y-%m-%d %H:%M:%S"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.stage.end_date",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%Y-%m-%d %H:%M:%S"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "status",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.status_name",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "status",
+        "formats": [],
+        "words": [
+         {
+          "name": "Etap Sk\u0142adanie ofert",
+          "value": "open"
+         },
+         {
+          "name": "Etap Sk\u0142adanie wniosk\u00f3w",
+          "value": "open"
+         },
+         {
+          "name": "Zako\u0144czono",
+          "value": "closed"
+         },
+         {
+          "name": "Zako\u0144czone",
+          "value": "closed"
+         },
+         {
+          "name": "Wyb\u00f3r oferty",
+          "value": "closed"
+         },
+         {
+          "name": "Wyb\u00f3r ofert",
+          "value": "closed"
+         },
+         {
+          "name": "Uniewa\u017cniono",
+          "value": "withdrawn"
+         },
+         {
+          "name": "Uniewa\u017cnione",
+          "value": "withdrawn"
+         },
+         {
+          "name": "Anulowano",
+          "value": "withdrawn"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.auction_number",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.public_order_mode",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "1",
+          "value": "open"
+         },
+         {
+          "name": "2",
+          "value": "restricted"
+         },
+         {
+          "name": "3",
+          "value": "negotiated"
+         },
+         {
+          "name": "4",
+          "value": "other"
+         },
+         {
+          "name": "5",
+          "value": "negotiated"
+         },
+         {
+          "name": "6",
+          "value": "other"
+         },
+         {
+          "name": "7",
+          "value": "other"
+         },
+         {
+          "name": "8",
+          "value": "other"
+         },
+         {
+          "name": "9",
+          "value": "other"
+         },
+         {
+          "name": "10",
+          "value": "other"
+         },
+         {
+          "name": "11",
+          "value": "other"
+         },
+         {
+          "name": "12",
+          "value": "other"
+         },
+         {
+          "name": "13",
+          "value": "other"
+         },
+         {
+          "name": "14",
+          "value": "other"
+         },
+         {
+          "name": "15",
+          "value": "open"
+         },
+         {
+          "name": "16",
+          "value": "negotiated"
+         },
+         {
+          "name": "17",
+          "value": "negotiated"
+         },
+         {
+          "name": "18",
+          "value": "other"
+         },
+         {
+          "name": "19",
+          "value": "other"
+         },
+         {
+          "name": "20",
+          "value": "other"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "jsonpath",
+         "expr": "@.public_order_type",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "1",
+          "value": "supplies"
+         },
+         {
+          "name": "2",
+          "value": "works"
+         },
+         {
+          "name": "3",
+          "value": "services"
+         }
+        ],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": {
+      "kind": "offset_param",
+      "next": null,
+      "param": "start",
+      "first": 0,
+      "size_param": "limit",
+      "size": 1000,
+      "form": null,
+      "max_pages": null
+     },
+     "facts": {
+      "total": {
+       "kind": "jsonpath",
+       "expr": "$.total",
+       "labels": [],
+       "attr": null
+      },
+      "total_counts_closed": true,
+      "empty_marker": {
+       "kind": "regex",
+       "expr": "\"data\"\\s*:\\s*\\[\\s*\\]",
+       "labels": [],
+       "attr": null
+      },
+      "newest_first": false,
+      "has_all_required": false,
+      "change_mark": {
+       "kind": "jsonpath",
+       "expr": "@.updated_at",
+       "labels": [],
+       "attr": null
+      }
+     },
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "detail",
+     "kind": "html",
+     "role": "detail",
+     "request": null,
+     "items": null,
+     "fields": [
+      {
+       "name": "url",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "concat('/open-preview-auction.html/', substring-before(substring-after(//script[contains(., 'App.initController(\"AuctionPreviewOpen\"')]/text(), '\"auction\":{\"id\":'), ','))",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "url",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "//script[contains(., 'App.initController(\"AuctionPreviewOpen\"')]/text()",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": "\"auction\":\\{\"id\":(\\d+)"
+       }
+      },
+      {
+       "name": "description",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "//script[contains(., 'App.initController(\"AuctionPreviewOpen\"') and contains(., '\"description\":\"')]/text()",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": "\"description\":\"((?:[^\"\\\\]|\\\\.)*)\""
+       }
+      },
+      {
+       "name": "postal_code",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "//script[contains(., 'App.initController(\"AuctionPreviewOpen\"')]/text()",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "postal_code",
+        "formats": [],
+        "words": [],
+        "pattern": "\"postcode\":\"(\\d{2}-\\d{3})\""
+       }
+      },
+      {
+       "name": "city",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "//script[contains(., 'App.initController(\"AuctionPreviewOpen\"')]/text()",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": "\"postcode\":\"\\d{2}-\\d{3}\",\"city\":\"([^\"]+)\""
+       }
+      }
+     ],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "files",
+     "kind": "json",
+     "role": "documents",
+     "request": null,
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": {
+      "links": {
+       "kind": "jsonpath",
+       "expr": "$.data[*].id",
+       "labels": [],
+       "attr": null
+      },
+      "url": "/auction/auction/download-attachment/id/{file}",
+      "then": null,
+      "name": {
+       "kind": "jsonpath",
+       "expr": "@.name",
+       "labels": [],
+       "attr": null
+      },
+      "size": {
+       "kind": "jsonpath",
+       "expr": "@.size",
+       "labels": [],
+       "attr": null
+      },
+      "all_in_one_zip": false,
+      "request": null
+     },
+     "steps": [],
+     "family": null
+    }
+   ],
+   "edges": [
+    {
+     "source": "list",
+     "target": "detail",
+     "action": "call_api",
+     "per_item": true,
+     "link": null,
+     "request": {
+      "method": "GET",
+      "url": "/open-preview-auction.html/{id}",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     }
+    },
+    {
+     "source": "list",
+     "target": "files",
+     "action": "call_api",
+     "per_item": true,
+     "link": null,
+     "request": {
+      "method": "GET",
+      "url": "/auction/auction/list-attachment",
+      "params": [
+       {
+        "name": "id",
+        "value": "{id}"
+       },
+       {
+        "name": "deleted",
+        "value": "0"
+       },
+       {
+        "name": "bidder",
+        "value": "0"
+       }
+      ],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     }
+    }
+   ],
+   "identity": {
+    "from_url": "/open-preview-auction\\.html/(\\d+)(?:[/?#]|$)",
+    "shape": "^\\d+$",
+    "must_agree": true
+   },
+   "family": "eb2b",
+   "host": {
+    "language": "pl",
+    "settings": [
+     {
+      "name": "limit",
+      "value": "1000"
+     }
+    ]
+   },
+   "rationale": "Read the public eB2B listing API by offset using the portal's numeric auction identifiers. Use those identifiers to open the public preview pages and retrieve the organizer's attachment list."
+  },
+  "timezone": "Europe/Warsaw",
+  "baseline": {
+   "records_on_two_pages": 2000,
+   "printed_total": 5300,
+   "problems": [
+    "Paging was stopped at the ceiling of 2 pages."
+   ],
+   "tenders": {
+    "539318": {
+     "url": "https://gddkia.eb2b.com.pl/open-preview-auction.html/539318",
+     "title": "Poprawa bezpiecze\u0144stwa ruchu drogowego na skrzy\u017cowaniach na DK25 w m. Rychwa\u0142, Witold\u00f3w i Anielin",
+     "buyer_name": "GENERALNA DYREKCJA DR\u00d3G KRAJOWYCH I AUTOSTRAD",
+     "publication_date": "2026-11-20",
+     "submission_deadline": "2026-12-08 09:00:00+01:00",
+     "reference_number": "OPO.D-3.2411.31.2026",
+     "documents": 8
+    },
+    "539275": {
+     "url": "https://gddkia.eb2b.com.pl/open-preview-auction.html/539275",
+     "title": "Zakup samochodu typu Pick-Up na potrzeby Generalnej Dyrekcji Dr\u00f3g Krajowych i Autostrad Oddzia\u0142 w Zielonej G\u00f3rze",
+     "buyer_name": "GENERALNA DYREKCJA DR\u00d3G KRAJOWYCH I AUTOSTRAD",
+     "publication_date": "2026-11-20",
+     "submission_deadline": "2026-11-30 09:30:00+01:00",
+     "reference_number": "OZG.D-3.2411.22.2026",
+     "documents": 4
+    },
+    "539181": {
+     "url": "https://gddkia.eb2b.com.pl/open-preview-auction.html/539181",
+     "title": "Dostawa fabrycznie nowych samochod\u00f3w osobowych z nap\u0119dem 4x4 dla GDDKiA Oddzia\u0142 w Bydgoszczy z podzia\u0142em na 3 cz\u0119\u015bci",
+     "buyer_name": "GENERALNA DYREKCJA DR\u00d3G KRAJOWYCH I AUTOSTRAD",
+     "publication_date": "2026-11-20",
+     "submission_deadline": "2026-11-30 09:30:00+01:00",
+     "reference_number": "OBY.D-3.2421.31.2026",
+     "documents": 5
+    },
+    "539163": {
+     "url": "https://gddkia.eb2b.com.pl/open-preview-auction.html/539163",
+     "title": "Opracowanie dokumentacji projektowej dla zadania pn.: \u201eBudowa drogi dla pieszych i rower\u00f3w w ci\u0105gu DK 83 na odc. Char\u0142upia Ma\u0142a - Sieradz wraz z rozbi\u00f3rk\u0105 i budow\u0105 nowego obiektu mostowego na rz. Myja\u201d .",
+     "buyer_name": "GENERALNA DYREKCJA DR\u00d3G KRAJOWYCH I AUTOSTRAD",
+     "publication_date": "2026-11-20",
+     "submission_deadline": "2026-12-29 11:00:00+01:00",
+     "reference_number": "O\u0141O.D-3.2421.68.2026",
+     "documents": 2
+    },
+    "539154": {
+     "url": "https://gddkia.eb2b.com.pl/open-preview-auction.html/539154",
+     "title": "Dostawa fabrycznie nowych, nieu\u017cywanych, wyprodukowanych w 2026 roku 2 sztuk samochod\u00f3w dla GDDKiA Oddzia\u0142 w Kielcach w podziale na 2 cz\u0119\u015bci: cz\u0119\u015b\u0107 1 SUV cz\u0119\u015b\u0107 2 PICKUP",
+     "buyer_name": "GENERALNA DYREKCJA DR\u00d3G KRAJOWYCH I AUTOSTRAD",
+     "publication_date": "2026-11-20",
+     "submission_deadline": "2026-11-30 09:00:00+01:00",
+     "reference_number": "OKI.D-3.2421.22.2026.gk",
+     "documents": 2
+    }
+   },
+   "filled": {
+    "buyer_name": "2000 of 2000",
+    "city": "5 of 2000",
+    "contract_nature": "2000 of 2000",
+    "description": "5 of 2000",
+    "id": "2000 of 2000",
+    "postal_code": "5 of 2000",
+    "procedure_type": "2000 of 2000",
+    "publication_date": "2000 of 2000",
+    "reference_number": "2000 of 2000",
+    "status": "1671 of 2000",
+    "submission_deadline": "405 of 2000",
+    "title": "2000 of 2000",
+    "url": "5 of 2000"
+   }
+  },
+  "scenarios": {
+   "lost": {
+    "old_recipe_still_reads": false,
+    "old_recipe_records": 0,
+    "fields_lost": [],
+    "corrupted_address": "https://gddkia.eb2b.com.pl/this-address-is-gone/old-list",
+    "repaired": true,
+    "seconds": 201,
+    "reason": "Replaced the broken list address with the public eB2B API at `/auction/auction/list`, using offset pagination. The saved recipe passed its dry run on 2,000 tenders, preserved the original auction IDs, and verified preview pages and attachment links on sampled tenders.",
+    "live_requests": 7,
+    "model_calls": 59,
+    "cost_usd": 1.127,
+    "input_tokens": 2211239,
+    "cached_share": 0.8,
+    "output_tokens": 7823,
+    "steps": [
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/: status 200, 182,339 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/open-auctions.html: status 200, 182,150 bytes.",
+     "tool search_page: Searched all 3 opened page(s) for /AuctionIndex|list-open|list-auction|[^\"'\\s]{0,100}\\/auction\\/[^\"'\\s]{2,100}|<script[^>]+src=[^>]+/: 3 with a match.",
+     "tool search_page: Searched all 3 opened page(s) for /old-list|/[^\"'\\s<>]*compiled/[^\"'\\s<>]*(?:Open|Auction)[^\"'\\s<>]*|list-open|/auction/auction/[^\"'\\s<>]+|\\b(?:limit|start)\\s*[:=]/: 3 with a match.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526: status 200, 2,324,263 bytes.",
+     "tool search_page: Searched all 4 opened page(s) for /App\\.initController\\(\"Auction\",[^\\n]{0,350}|action\\s*:\\s*[\"'][\\w-]*(?:list-open|open-list|list-auction|auction-list)[\\w-]*[\"']|viewMode\\s*[:=]\\s*[\"']open[\"']|[\"']/auction/auction/[\\w-]*list[\\w-]*[\"']/: 2 with a match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /action:[\"'][^\"']*(?:open|list)[^\"']*[\"']|Ext\\.define\\(\"App\\.controller\\.Auction\"|viewMode===?\"open\"/: 30 match(es), the first 20 shown:",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /controller:\"auction\",action:\"[^\" ]*(?:list|open)[^\" ]*\"|Ext\\.define\\(\"App\\.controller\\.Auction\"|case\"open\":[^}]{0,220}|auction-panel/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /App\\.controller\\.[^\" ,;]{0,75}|viewMode.{0,16}[\"']open|auction-panel|open-auctions|[\"'][\\w-]*(?:auction|tender)[\\w-]*list[\\w-]*[\"']|.{0,120}totalProperty:\"total\".{0,140}controller:\"auction\"/: 5 match(es):",
+     "tool search_page: Searched all 4 opened page(s) for /action:[\"'][^\"']*(?:auctions|data-open|open-auction)[^\"']*[\"']|auction-panel[^\\n]{0,200}|/api/[^\"'\\s<>]+|(?:total|pageSize|limit).{0,45}(?:1000|startParam)/: 1 with a match.",
+     "tool search_page: Searched all 4 opened page(s) for /App\\.initController\\(\"Auction\"|/[^\"'\\s<>]*auction[^\"'\\s<>]*(?:\\.json|/list[^\"'\\s<>]*|\\.js[^\"'\\s<>]*)|action:[\"'][^\"']*(?:-data|-grid)[^\"']*[\"']|actionMethods:\\{read/: 2 with a match.",
+     "tool portal_hints: Read the portal's robots.txt and sitemap: 0 address(es) in 1 sitemap file(s).",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/app.js?v=1.2: status 200, 71,240 bytes.",
+     "tool view_page: Viewed part 166 of https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526.",
+     "tool search_page: Searched all 7 opened page(s) for /Ext\\.define\\(\"App\\.component\\.auction\\.AuctionPanel\"|module:\"auction\",controller:\"(?:open|public|index|auction-open)\"[^}]{0,160}|viewMode\\s*==\\s*\"open\".{0,180}|this\\.viewMode.{0,120}App\\.url|startParam|limitParam|old-list/: 2 with a match.",
+     "tool search_page: Searched all 7 opened page(s) for /AuctionPanel|controller:\"[^\"]*\",action:\"list\".{0,85}|open-preview-auction/: 1 with a match.",
+     "tool search_page: Searched all 7 opened page(s) for /App\\.component\\.auction\\.AuctionPanel|renderTo:\"auction-panel\"|controller:\"open[^\" ]*\"|App\\.url\\(\\{[^}]{0,220}viewMode[^}]{0,80}\\}\\)|list-attachment|\\b(?:start|limit|pageSize)\\s*[:=]\\s*1000/: 0 with a match.",
+     "tool search_page: Searched all 7 opened page(s) for /[\\s\\S]{2310000}([\\s\\S]{0,14263})$/: 0 with a match.",
+     "tool search_page: Searched all 7 opened page(s) for /controller\\s*:\\s*\"(?:public|open|bidder|auction|organizer)\"\\s*,\\s*action\\s*:\\s*\"[^\" ]*(?:list|index)[^\" ]*\"|AuctionPanel|old-list|startParam|limitParam/: 1 with a match.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionPanel.js: status 200, 99,276 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/controller/Auction.js: status 200, 868 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js: status 200, 54,283 bytes.",
+     "decision repair_failed: No recipe came out of the repair: The old tender-list address returns 403, and I found the public auctions page but did not verify its replacement data endpoint, so I left the recipe unchanged. (20 model call(s), 10 request(s), $0.23).",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/this-address-is-gone/old-list: status 403, 181,444 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/: status 200, 182,339 bytes.",
+     "tool page_links: Listed the links of https://gddkia.eb2b.com.pl/ containing 'open-auctions'.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/open-auctions.html: status 200, 182,150 bytes.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-auctions.html for /App\\.initController[^\\n]{0,1200}|[^\"'\\s<>]*list-auction[^\"'\\s<>]*|<script[^>]+src=[^>]+/: 24 match(es), the first 20 shown:",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526: status 200, 2,324,263 bytes.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /action:\"[^\"]*(?:list-open|open-list|auction-list|list-auction|open-auction)[^\"]*\"|.{0,140}viewMode===\"open\".{0,280}|pageSize:1000/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,110}viewMode.{0,150}|.{0,70}action:\"list[^\\\"]*\".{0,50}/: 59 match(es), the first 20 shown:",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,140}(?:viewMode\\s*==\\s*\"open\"|App\\.controller\\.Auction\"|action:\"[^\"]*(?:public|search|grid|load)[^\"]*\").{0,140}/: 7 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /.{0,100}(?:auction-panel|viewMode:\\s*\"open\"|case\"open\"|controller:\"auction\",action:|open-auctions\\.html).{0,110}/: 5 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /[\\s\\S]{0,90}(?:auction-panel|case\\s*[\"']open[\"']|App\\.controller\\.Auction\\b|list-open|open-auctions|viewMode\\s*={2,3}\\s*[\"']open[\"'])[\\s\\S]{0,110}/: 1 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /\\A[\\s\\S]{500000,}?(auction-panel|App\\.controller\\.Auction\"|list-open|open-auctions|action:\"[^\"]*open[^\"]*\")/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-auctions.html for /.{0,100}(?:api/|\\.json|open-auctions|auction\\/auction|fetch\\(|auction-panel).{0,130}/: 9 match(es):",
+     "tool portal_hints: Read the portal's robots.txt and sitemap: 0 address(es) in 1 sitemap file(s).",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /\\A[\\s\\S]{499900,}$/: 1 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-auctions.html for /<script\\b[^>]+src=[^>]+>|App\\.initController\\([^\\n]{1,220}/: 24 match(es), the first 20 shown:",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /^.{0,220}|.{0,80}(?:App\\.url\\(|getUrl\\(|apiUrl|auctionList|AuctionList|public_order_mode).{0,100}/: 74 match(es), the first 20 shown:",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/controller/compiled/Auction.js?_nc=1795094526 for /module:\"auction\",controller:\"auction\",action:\"[^\"]+\"|alias:\"[^\" ]*[Aa]uction[^\" ]*\"/: 3 match(es):",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/app.js?v=1.2: status 200, 71,240 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/open-preview-auction.html/539318: status 200, 191,714 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/open-preview-auction.html/539275: status 200, 192,427 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/controller/Auction.js: status 200, 868 bytes.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539318 for /App\\.initController\\(\"AuctionPreviewOpen\".{0,180}|\"postcode\":\"[^\"]*\",\"city\":\"[^\"]*\"|.{0,30}\"cpv[^,\"]*\".{0,75}/: 2 match(es):",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list-attachment?id=539318&deleted=0&bidder=0: status 200, 7,069 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionPanel.js: status 200, 99,276 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js: status 200, 54,283 bytes.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js for /setupGridStore: function[\\s\\S]{0,4200}|case 'open':[\\s\\S]{0,460}/: 1 match(es):",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=3: status 200, 6,618 bytes.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539275 for /\"description\":\".{0,120}|.{0,35}(?:\\bCPV\\b|\"cpv[^\"]*\").{0,100}/: 1 match(es):",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/lib/PageSizePlugin.js: status 200, 2,700 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000: status 200, 1,991,539 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=1000&limit=1000: status 200, 1,875,372 bytes.",
+     "tool try_locator: Tried xpath locator 'concat(\\'/open-preview-auction.html/\\', substring-before(substring-after(//script[contains(., \\'App.initController(\"AuctionPreviewOpen\"\\')]/text(), \\'\"auction\":{\"id\":\\'), \\',\\'))' on https://gddkia.eb2b.com.pl/open-preview-auction.html/539318: 1 value(s).",
+     "tool try_locator: Tried jsonpath locator '@.name' on https://gddkia.eb2b.com.pl/auction/auction/list-attachment?id=539318&deleted=0&bidder=0: 0 value(s) in 8 item(s).",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539318 for /.{0,45}(?:\\bCPV\\b|\\b\\d{8}-\\d\\b|download-attachment|\"description\":\").{0,105}/: 1 match(es):",
+     "tool try_locator: Tried jsonpath locator '@.id' on https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=3: 3 value(s) in 3 item(s).",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/open-preview-auction.html/539181: status 200, 191,579 bytes.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_name\"\\s*:\\s*\"(?!Zako\u0144czone|Etap Sk\u0142adanie ofert|Etap Sk\u0142adanie wniosk\u00f3w|Uniewa\u017cnione|Wyb\u00f3r oferty|Wyb\u00f3r ofert)[^\"]+\"/: 231 match(es), the first 20 shown:",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539181 for /App\\.initController\\(\"AuctionPreviewOpen\".{0,80}|\"postcode\":\"[^\"]*\",\"city\":\"[^\"]*\"|\"description\":\".{0,70}|.{0,25}(?:\\bCPV\\b|\\b\\d{8}-\\d\\b).{0,35}/: 3 match(es):",
+     "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=3.",
+     "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/auction/auction/list-attachment?id=539318&deleted=0&bidder=0.",
+     "tool propose_recipe: Dry run of the recipe: 2000 record(s) from 2000 row(s), 3 tender page(s) read; it passed.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_name\"\\s*:\\s*\"(?!Zako|Etap Sk|Etap sk|Uniewa|Wyb.r ofert)[^\"]+\"/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539318 for /(?:component/auction/[^\"?]+|controller/compiled/AuctionPreviewOpen\\.js\\?[^\" ]+|\"[^\"]*(?:cpv|classification)[^\"]*\"\\s*:)/: 2 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_name\":\"Zako.{0,420}\"stage\"\\s*:\\s*(?:null|\\[\\])/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js for /(?:preview|pageSize|store\\.sort|sorters).{0,130}/: 28 match(es), the first 20 shown:",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_name\":(?:null|\"\")|\"stage\":(?:null|\\[\\])|\"offers_access_date\":null/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=1000&limit=1000 for /\"status_name\"\\s*:\\s*\"(?!Zako|Etap Sk|Etap sk|Uniewa|Wyb.r ofert)[^\"]+\"/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js for /setupGridStore\\s*:\\s*function[\\s\\S]{0,2750}/: 1 match(es):",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/controller/AuctionPreviewOpen.js: status 200, 1,024 bytes.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/preview/AuctionPreviewOpenPanel.js: status 200, 12,611 bytes.",
+     "tool check_recipe: Dry run of the recipe: 2000 record(s) from 2000 row(s), 3 tender page(s) read; it passed.",
+     "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=3.",
+     "tool view_page: Viewed part 1 of https://gddkia.eb2b.com.pl/auction/auction/list-attachment?id=539318&deleted=0&bidder=0.",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/js/app/component/auction/preview/SettingsPanel.js: status 200, 66,778 bytes.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/preview/SettingsPanel.js for /.{0,55}(?:\\bCPV\\b|cpv_|\\bStages\\b|end_date).{0,100}/: 6 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539318 for /\"Stages\":.{0,650}|\"[^\" ]*(?:deadline|close_date)\"[^,]{0,40}/: 2 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_name\"\\s*:\\s*\"(?!Zako\u0144czono\"|Zako\u0144czone\"|Etap Sk\u0142adanie ofert\"|Etap Sk\u0142adanie wniosk\u00f3w\"|Uniewa\u017cnione\"|Uniewa\u017cniono\"|Wyb\u00f3r oferty\"|Wyb\u00f3r ofert\"|Anulowano\")[^\"]+\"/: 231 match(es), the first 20 shown:",
+     "tool open_page: Opened https://gddkia.eb2b.com.pl/auction/auction/list?start=5300&limit=1000: status 200, 39 bytes.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_code\":(?!5,|6,)[0-9]+,\"status_name\":\"(?!Zako|Etap [Ss]k|Uniewa|Wyb)[^\"]+\"|\"status_name\":\"Uniewa[^\"]+\"/: 14 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"current_stage_end_time\":(?:null|false|\"\").{0,100}/: 110 match(es), the first 20 shown:",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/open-preview-auction.html/539318 for /\"stage_rfi_end_date\".{0,380}/: 1 match(es):",
+     "tool try_locator: Tried jsonpath locator '@.name' on https://gddkia.eb2b.com.pl/auction/auction/list-attachment?id=539318&deleted=0&bidder=0: 5 value(s) in 8 item(s).",
+     "tool check_recipe: Dry run of the recipe: 2000 record(s) from 2000 row(s), 3 tender page(s) read; it passed.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_name\":\"Zako[^\" ,]+(?: [^\"]+)?\",\"current_stage_begin_time\":[^,]+,\"current_stage_end_time\":[^,]+.{0,280}\"end_date\":.{0,28}/: 110 match(es), the first 20 shown:",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=3 for /\"[^\" ]*(?:url|preview|cpv|deadline|updated_at)[^\" ]*\"\\s*:[^,]{0,70}/: 9 match(es):",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_name\":\"(?!Zako(?:\\\\u0144)czone\"|Etap [Ss]k(?:\\\\u0142)adanie ofert\"|Uniewa(?:\\\\u017c)niono\"|Zako(?:\\\\u0144)czono etap [Ss]k(?:\\\\u0142)adanie ofert\")[^\"]+\"/: 5 match(es):",
+     "tool check_recipe: Dry run of the recipe: 2000 record(s) from 2000 row(s), 3 tender page(s) read; it passed.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=1000&limit=1000 for /\"status_name\":\"(?!Zako(?:\\\\u0144)czone\"|Etap [Ss]k(?:\\\\u0142)adanie ofert\"|Uniewa(?:\\\\u017c)niono\"|Zako(?:\\\\u0144)czono etap [Ss]k(?:\\\\u0142)adanie ofert\")[^\"]+\"/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/auction/auction/list?start=0&limit=1000 for /\"status_name\":\"Zako\\\\u0144czone\".{0,330}\"stage\":.{0,180}/: No match.",
+     "tool search_page: Searched https://gddkia.eb2b.com.pl/js/app/component/auction/AuctionGrid.js for /.{0,125}open-preview-auction.{0,125}|.{0,70}public_order_mode.{0,70}/: 6 match(es):",
+     "decision learn_done: The learn left a recipe whose dry run read 2000 tender(s) (39 model call(s), 15 request(s), $0.89)."
+    ],
+    "reads_baseline_again": true,
+    "still_wrong": [],
+    "nodes_changed": [
+     "list (list)"
+    ],
+    "new_start": "/auction/auction/list",
+    "recipe": {
+     "start": "list",
+     "nodes": [
+      {
+       "id": "list",
+       "kind": "json",
+       "role": "list",
+       "request": {
+        "method": "GET",
+        "url": "/auction/auction/list",
+        "params": [
+         {
+          "name": "start",
+          "value": "0"
+         },
+         {
+          "name": "limit",
+          "value": "1000"
+         }
+        ],
+        "body_kind": "none",
+        "body": [],
+        "body_json": null,
+        "headers": [],
+        "via": "http"
+       },
+       "items": {
+        "kind": "jsonpath",
+        "expr": "$.data[*]",
+        "labels": [],
+        "attr": null
+       },
+       "fields": [
+        {
+         "name": "id",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.id",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "id",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "title",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.name",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "buyer_name",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.company_name",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "publication_date",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.publication_date",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "date",
+          "formats": [
+           "%Y-%m-%d %H:%M:%S"
+          ],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "submission_deadline",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.stage.end_date",
+           "labels": [],
+           "attr": null
+          },
+          {
+           "kind": "jsonpath",
+           "expr": "@.current_stage_end_time",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "datetime",
+          "formats": [
+           "%Y-%m-%d %H:%M:%S"
+          ],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "status",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.status_name",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "status",
+          "formats": [],
+          "words": [
+           {
+            "name": "Etap Sk\u0142adanie ofert",
+            "value": "open"
+           },
+           {
+            "name": "Etap Sk\u0142adanie wniosk\u00f3w",
+            "value": "open"
+           },
+           {
+            "name": "Zako\u0144czono",
+            "value": "closed"
+           },
+           {
+            "name": "Zako\u0144czone",
+            "value": "closed"
+           },
+           {
+            "name": "Wyb\u00f3r oferty",
+            "value": "closed"
+           },
+           {
+            "name": "Wyb\u00f3r ofert",
+            "value": "closed"
+           },
+           {
+            "name": "Uniewa\u017cniono",
+            "value": "withdrawn"
+           },
+           {
+            "name": "Uniewa\u017cnione",
+            "value": "withdrawn"
+           },
+           {
+            "name": "Anulowano",
+            "value": "withdrawn"
+           }
+          ],
+          "pattern": null
+         }
+        },
+        {
+         "name": "reference_number",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.auction_number",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "procedure_type",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.public_order_mode",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "procedure",
+          "formats": [],
+          "words": [
+           {
+            "name": "1",
+            "value": "open"
+           },
+           {
+            "name": "2",
+            "value": "restricted"
+           },
+           {
+            "name": "3",
+            "value": "negotiated"
+           },
+           {
+            "name": "4",
+            "value": "other"
+           },
+           {
+            "name": "5",
+            "value": "negotiated"
+           },
+           {
+            "name": "6",
+            "value": "other"
+           },
+           {
+            "name": "7",
+            "value": "other"
+           },
+           {
+            "name": "8",
+            "value": "other"
+           },
+           {
+            "name": "9",
+            "value": "other"
+           },
+           {
+            "name": "10",
+            "value": "other"
+           },
+           {
+            "name": "11",
+            "value": "other"
+           },
+           {
+            "name": "12",
+            "value": "other"
+           },
+           {
+            "name": "13",
+            "value": "other"
+           },
+           {
+            "name": "14",
+            "value": "other"
+           },
+           {
+            "name": "15",
+            "value": "open"
+           },
+           {
+            "name": "16",
+            "value": "negotiated"
+           },
+           {
+            "name": "17",
+            "value": "negotiated"
+           },
+           {
+            "name": "18",
+            "value": "other"
+           },
+           {
+            "name": "19",
+            "value": "other"
+           },
+           {
+            "name": "20",
+            "value": "other"
+           }
+          ],
+          "pattern": null
+         }
+        },
+        {
+         "name": "contract_nature",
+         "locators": [
+          {
+           "kind": "jsonpath",
+           "expr": "@.public_order_type",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "nature",
+          "formats": [],
+          "words": [
+           {
+            "name": "1",
+            "value": "supplies"
+           },
+           {
+            "name": "2",
+            "value": "works"
+           },
+           {
+            "name": "3",
+            "value": "services"
+           }
+          ],
+          "pattern": null
+         }
+        }
+       ],
+       "paging": {
+        "kind": "offset_param",
+        "next": null,
+        "param": "start",
+        "first": 0,
+        "size_param": "limit",
+        "size": 1000,
+        "form": null,
+        "max_pages": null
+       },
+       "facts": {
+        "total": {
+         "kind": "jsonpath",
+         "expr": "$.total",
+         "labels": [],
+         "attr": null
+        },
+        "total_counts_closed": true,
+        "empty_marker": {
+         "kind": "regex",
+         "expr": "\"data\"\\s*:\\s*\\[\\s*\\]",
+         "labels": [],
+         "attr": null
+        },
+        "newest_first": false,
+        "has_all_required": false,
+        "change_mark": {
+         "kind": "jsonpath",
+         "expr": "@.updated_at",
+         "labels": [],
+         "attr": null
+        }
+       },
+       "documents": null,
+       "steps": [],
+       "family": null
+      },
+      {
+       "id": "detail",
+       "kind": "html",
+       "role": "detail",
+       "request": null,
+       "items": null,
+       "fields": [
+        {
+         "name": "url",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "concat('/open-preview-auction.html/', substring-before(substring-after(//script[contains(., 'App.initController(\"AuctionPreviewOpen\"')]/text(), '\"auction\":{\"id\":'), ','))",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "url",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "id",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "//script[contains(., 'App.initController(\"AuctionPreviewOpen\"')]/text()",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "id",
+          "formats": [],
+          "words": [],
+          "pattern": "\"auction\":\\{\"id\":(\\d+)"
+         }
+        },
+        {
+         "name": "description",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "//script[contains(., 'App.initController(\"AuctionPreviewOpen\"') and contains(., '\"description\":\"')]/text()",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": "\"description\":\"((?:[^\"\\\\]|\\\\.)*)\""
+         }
+        },
+        {
+         "name": "postal_code",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "//script[contains(., 'App.initController(\"AuctionPreviewOpen\"')]/text()",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "postal_code",
+          "formats": [],
+          "words": [],
+          "pattern": "\"postcode\":\"(\\d{2}-\\d{3})\""
+         }
+        },
+        {
+         "name": "city",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "//script[contains(., 'App.initController(\"AuctionPreviewOpen\"')]/text()",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": "\"postcode\":\"\\d{2}-\\d{3}\",\"city\":\"([^\"]+)\""
+         }
+        }
+       ],
+       "paging": null,
+       "facts": null,
+       "documents": null,
+       "steps": [],
+       "family": null
+      },
+      {
+       "id": "files",
+       "kind": "json",
+       "role": "documents",
+       "request": null,
+       "items": null,
+       "fields": [],
+       "paging": null,
+       "facts": null,
+       "documents": {
+        "links": {
+         "kind": "jsonpath",
+         "expr": "$.data[*].id",
+         "labels": [],
+         "attr": null
+        },
+        "url": "/auction/auction/download-attachment/id/{file}",
+        "then": null,
+        "name": {
+         "kind": "jsonpath",
+         "expr": "@.name",
+         "labels": [],
+         "attr": null
+        },
+        "size": {
+         "kind": "jsonpath",
+         "expr": "@.size",
+         "labels": [],
+         "attr": null
+        },
+        "all_in_one_zip": false,
+        "request": null
+       },
+       "steps": [],
+       "family": null
+      }
+     ],
+     "edges": [
+      {
+       "source": "list",
+       "target": "detail",
+       "action": "call_api",
+       "per_item": true,
+       "link": null,
+       "request": {
+        "method": "GET",
+        "url": "/open-preview-auction.html/{id}",
+        "params": [],
+        "body_kind": "none",
+        "body": [],
+        "body_json": null,
+        "headers": [],
+        "via": "http"
+       }
+      },
+      {
+       "source": "list",
+       "target": "files",
+       "action": "call_api",
+       "per_item": true,
+       "link": null,
+       "request": {
+        "method": "GET",
+        "url": "/auction/auction/list-attachment",
+        "params": [
+         {
+          "name": "id",
+          "value": "{id}"
+         },
+         {
+          "name": "deleted",
+          "value": "0"
+         },
+         {
+          "name": "bidder",
+          "value": "0"
+         }
+        ],
+        "body_kind": "none",
+        "body": [],
+        "body_json": null,
+        "headers": [],
+        "via": "http"
+       }
+      }
+     ],
+     "identity": {
+      "from_url": "/open-preview-auction\\.html/(\\d+)(?:[/?#]|$)",
+      "shape": "^\\d+$",
+      "must_agree": true
+     },
+     "family": "eb2b",
+     "host": {
+      "language": "pl",
+      "settings": [
+       {
+        "name": "limit",
+        "value": "1000"
+       }
+      ]
+     },
+     "rationale": "Read the public eB2B listing API by offset using the portal's numeric auction identifiers. Use those identifiers to open the public preview pages and retrieve the organizer's attachment list."
+    }
+   }
+  },
+  "pages_cloned": 41
+ },
+ {
+  "portal": "ezamawiajacy-inneko",
+  "url": "https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list",
+  "kind": "server_html",
+  "expect": "serve",
+  "learn": {
+   "learned": true,
+   "seconds": 243,
+   "requests": 16,
+   "live_requests": 15,
+   "reason": "The saved recipe passed its dry run with no errors. The current-tenders tab was empty, so the recipe followed the portal\u2019s \u201cW toku\u201d tab and read all 39 listed notices. The dry run also verified document links on three tender detail pages.",
+   "model_calls": 31,
+   "cost_usd": 0.636,
+   "input_tokens": 1050190,
+   "cached_share": 0.81,
+   "output_tokens": 15107,
+   "refused": 2,
+   "steps": [
+    "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list: status 200, 134,492 bytes.",
+    "tool page_links: Listed the links of https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list containing '/demand/notice/'.",
+    "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList: status 200, 78,943 bytes.",
+    "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/expired/list?USER_MENU_HOVER=publicpzpExpiredNoticePublicList: status 200, 77,092 bytes.",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList for /.{0,100}(?:239612|publicList.{0,20}|GD_page|notice/[^\"'\\s]*(?:view|details)).{0,160}/: 28 match(es), the first 20 shown:",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList for /.{0,45}(?:noticePublicListContextMenuBuilder|239612).{0,380}/: 10 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList for /(?:.{0,110}(?:contextMenu/|\\.ajax\\(|[\"']details[\"']|ajaxUrl).{0,170})/: 5 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList for /data\\['[^']+'\\].{0,90}|url : \"/app/rest/contextMenu\".{0,400}/: 5 match(es):",
+    "tool call_api: Called POST https://inneko.ezamawiajacy.pl/app/rest/contextMenu: status 200, 270 bytes.",
+    "tool call_api: Called GET https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100: status 200, 90,753 bytes.",
+    "tool call_api: Called POST https://inneko.ezamawiajacy.pl/app/rest/contextMenu: status 200, 270 bytes.",
+    "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details: status 200, 182,225 bytes.",
+    "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/236799/details: status 200, 206,576 bytes.",
+    "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/141698/details: status 200, 137,531 bytes.",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list for /.{0,90}(?:Brak danych|Brak wynik|list-row|showDetails|GD_pagesize|noticePublicListContextMenuBuilder|239612).{0,170}/: 11 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList for /.{0,140}(?:239612|GD_page|Znaleziono|Razem|Zamawiaj\u0105cy|<th).{0,130}/: 22 match(es), the first 20 shown:",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /.{0,80}(?:download[A-Za-z]*|Zamawiaj\u0105cy:|Gorz\u00f3w|CPV|Opis przedmiotu|demandId|INNEKO).{0,100}/: 116 match(es), the first 20 shown:",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100 for /Pozycje.{0,60}|<tr class=\"dataRow\" id=\"239612\">[\\s\\S]{0,950}|<option value=\"(?:[0-9]{2,3})\"[^>]*>\\d+/: 6 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /.{0,100}(?:downloadFile|fileDownload|odselectedFile|mdselectedFile|CPV|Opis przedmiotu|fileDataRow[^<]{0,30}['\"]\\)).{0,160}/: 28 match(es), the first 20 shown:",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/expired/list?USER_MENU_HOVER=publicpzpExpiredNoticePublicList for /Pozycje.{0,50}|<tr class=\"dataRow\"[\\s\\S]{0,360}/: 26 match(es), the first 20 shown:",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /function downloadZipByUrl[\\s\\S]{0,2450}|.{0,50}(?:/register/[^'\" ?]+|/download[^'\" ?]+).{0,90}/: 26 match(es), the first 20 shown:",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list for /<form[^>]+searchform[^>]*>|<div class=\"no_content_info\"[^>]*>[^<]+|<script[^>]+src=\"[^\" ]+\"/: 57 match(es), the first 20 shown:",
+    "tool try_locator: Tried label locator 'Publikacja w strefie publicznej:' on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details: 1 value(s).",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /downloadPostUrl: '/repository/download/1795217896453[^\\n]{0,100}[\\s\\S]{0,450}|.{0,70}(?:CPV|Opis przedmiotu|Gorz[o\u00f3]|Niepodleg|Kod pocztowy).{0,75}/: 1 match(es):",
+    "tool view_page: Viewed part 1 of https://inneko.ezamawiajacy.pl/app/rest/contextMenu.",
+    "tool try_locator: Tried xpath locator \"./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='organization']/preceding-sibling::th)]\" on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100\u2026",
+    "tool call_api: Called GET https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=5&GD_pagestart=5: status 200, 63,266 bytes.",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list for /.{0,100}(?:Brak danych|Brak wynik|no_content_info|<tr class=\"dataRow\"|Pozycje [0-9]|downloadPostUrl).{0,115}/: 1 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /<dt[^>]*>\\s*[^<]{2,100}|<h[123][^>]*>\\s*[^<]{2,100}|.{0,80}action.{0,20}download.{0,85}/: 14 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/236799/details for /<dt[^>]*>\\s*[^<]{2,100}|<h[123][^>]*>\\s*[^<]{2,100}/: 14 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/141698/details for /<dt[^>]*>\\s*[^<]{2,100}|<h[123][^>]*>\\s*[^<]{2,100}/: 11 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /<ul class=\"mp_infolist\">[\\s\\S]{0,1270}|<tr[^>]+_2373648[\\s\\S]{0,2600}|.{0,70}/239612/details.{0,80}/: 7 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100 for /<tr class=\"dataRow\" id=\"239612\">[\\s\\S]{0,900}|Pozycje.{0,50}|<option value=\"100\"[^>]*>100/: 3 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list for /<form[^>]+searchform[^>]*>|.{0,85}(?:current/list|publicList).{0,105}/: 25 match(es), the first 20 shown:",
+    "tool open_page: Opened https://inneko.ezamawiajacy.pl/repository/download/1795217896453lCO167YMjgxMdrWetOH: status 200, 203,025 bytes.",
+    "tool try_locator: Tried xpath locator \"concat('/pn/inneko/demand/notice/public/', @id, '/details')\" on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100: 5 value(s) in 39 item(s).",
+    "tool try_locator: Tried xpath locator \"ancestor::tr[contains(concat(' ',normalize-space(@class),' '),' fileDataRow ')]/td[contains(concat(' ',normalize-space(@class),' '),' long ') and not(preceding-sibling::td[contains(concat(' ',normalize-space(@class),' '),' long ')])]\" on https://inneko.ezamawiajacy.pl/pn/inneko\u2026",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /<h2>Og\u0142oszenie[\\s\\S]{0,2350}|<tr class=\"fileDataRow\"[^>]*>[\\s\\S]{0,135}\\bname=\"[a-z]+\"/: 1 match(es):",
+    "tool call_api: Called GET https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list?USER_MENU_HOVER=publicpzpCurrentNoticePublicList&GD_pagesize=100&GD_pagestart=0: status 200, 56,109 bytes.",
+    "tool try_locator: Tried regex locator 'Pozycje\\\\s+[\\\\d.,]+\\\\s*[-\u2013]\\\\s*[\\\\d.,]+\\\\s+z\\\\s+([\\\\d.,]+)' on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100: 1 value(s).",
+    "tool try_locator: Tried css locator 'tr.fileDataRow input[type=checkbox][value]' on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/236799/details: 5 value(s).",
+    "tool try_locator: Tried label locator 'Data sk\u0142adania ofert/opracowa\u0144 studialnych:, Data sk\u0142adania ofert/wniosk\u00f3w:' on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/141698/details: 1 value(s).",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/141698/details for /<h2>Og\u0142oszenie[\\s\\S]{0,1650}/: 1 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list for /\"publicList\":\\{.{0,780}|.{0,90}GD_pagestart.{0,90}/: 2 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /<ul class=\"mp_infolist\">[\\s\\S]{0,1400}|<tr[^>]+_2373648[\\s\\S]{0,2200}|.{0,80}/239612/details.{0,85}/: 7 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100 for /<tr class=\"dataRow\" id=\"239612\">[\\s\\S]{0,1800}|<th[^>]+data-mpgrid-id[^>]+>|Pozycje.{0,110}/: 10 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/236799/details for /<ul class=\"mp_infolist\">[\\s\\S]{0,1150}|<dt[^>]*>[^<]+|downloadPostUrl: '[^']+/: 23 match(es), the first 20 shown:",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=5&GD_pagestart=5 for /Pozycje.{0,115}|.{0,90}(?:gridPageStart|pageNext|next-page|Nast\u0119pna).{0,155}/: 2 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list for /<div class=\"no_content_info\"[^>]*>[^<]+|.{0,100}(?:details|contextMenuBuilder|publicList tr).{0,110}/: 11 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/141698/details for /<div class=\"box-header\">\\s*<h2[^>]*>[^<]+|.{0,65}(?:buyer|Zamawiaj\u0105cy:|Gorz[o\u00f3]|CPV|Opis przedmiotu).{0,85}|<input type=\"checkbox\" name=\"[a-zA-Z]+\" value=\"[^\" ]+\"/: 21 match(es), the first 20 shown:",
+    "tool try_locator: Tried xpath locator \"./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='publicationDate']/preceding-sibling::th)]\" on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=\u2026",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /<div class=\"box-header\">\\s*<h2[^>]*>[^<]+|<div class=\"mp_box[^>]+>\\s*<div[^>]*>\\s*<div[^>]*>\\s*<h2[^>]*>[^<]+/: 9 match(es):",
+    "tool propose_recipe: Dry run of the recipe: 0 record(s) from 0 row(s), 0 tender page(s) read; 0 problem(s), not accepted.",
+    "tool page_links: Listed the links of https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list containing '/demand/notice/'.",
+    "tool propose_recipe: Dry run of the recipe: 0 record(s) from 0 row(s), 0 tender page(s) read; 0 problem(s), not accepted.",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list for /.{0,90}(?:/during/list|no_content_info|searchform).{0,160}/: 16 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100 for /<tr class=\"dataRow\" id=\"239612\">[\\s\\S]{0,2150}|<th[^>]+data-mpgrid-id[^>]+>|Pozycje.{0,105}/: 10 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /<ul class=\"mp_infolist\">[\\s\\S]{0,1500}|<h2>Og\u0142oszenie[\\s\\S]{0,2400}|<tr[^>]+_2373648[\\s\\S]{0,2100}|.{0,50}/239612/details.{0,75}/: 8 match(es):",
+    "tool try_locator: Tried css locator \"a[href*='/publicpzp/during/list']\" on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list: 1 value(s).",
+    "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/lowcost/current/list?USER_MENU_HOVER=lowcostCurrentNoticePublicList: status 200, 62,516 bytes.",
+    "tool try_locator: Tried regex locator 'Pozycje\\\\s+[\\\\d.,]+\\\\s*[-\u2013]\\\\s*[\\\\d.,]+\\\\s+z\\\\s+([\\\\d.,]+)' on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100: 1 value(s).",
+    "tool propose_recipe: Dry run of the recipe: 39 record(s) from 39 row(s), 3 tender page(s) read; it passed.",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100 for /.{0,65}(?:menu-active|<h2>Lista|jsRequestURI|GD_sortOrder).{0,105}/: 5 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /.{0,65}(?:Pobierz wszyst|downloadZip|zipUrl|Opis zam\u00f3wienia|cpv|Miejscowo\u015b\u0107).{0,155}/: 8 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/236799/details for /.{0,65}(?:Przedmiot zam\u00f3wienia|Kr\u00f3tki opis|CPV|Miejscowo\u015b\u0107|Kod pocztowy).{0,105}/: No match.",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100 for /<th[^>]+data-mpgrid-id[^>]+>|<tr class=\"dataRow\" id=\"239612\">[\\s\\S]{0,2150}|.{0,150}publicpzpCurrentNoticePublicList.{0,135}/: 10 match(es):",
+    "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list for /.{0,100}no_content_info.{0,140}|<input[^>]+name=\"GD_sort[^>]+>/: 3 match(es):",
+    "tool try_locator: Tried xpath locator \"ancestor::body//a[contains(@href,'/demand/notice/publicpzp/') and contains(concat(' ',normalize-space(@class),' '),' menu-active ')]\" on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagesize=100:\u2026",
+    "tool try_locator: Tried xpath locator \"./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='realizationType']/preceding-sibling::th) and ancestor::table[@id='publicList']//th[@data-mpgrid-id='realizationType']]\" on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publi\u2026",
+    "tool replace_node: Replaced node 'notices'. Dry run of the recipe: 39 record(s) from 39 row(s), 3 tender page(s) read; it passed.",
+    "decision learn_done: The learn left a recipe whose dry run read 39 tender(s) (31 model call(s), 16 request(s), $0.64)."
+   ]
+  },
+  "recipe": {
+   "start": "entry",
+   "nodes": [
+    {
+     "id": "entry",
+     "kind": "html",
+     "role": "entry",
+     "request": {
+      "method": "GET",
+      "url": "/pn/inneko/demand/notice/publicpzp/current/list",
+      "params": [],
+      "body_kind": "none",
+      "body": [],
+      "body_json": null,
+      "headers": [],
+      "via": "http"
+     },
+     "items": null,
+     "fields": [],
+     "paging": null,
+     "facts": null,
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "notices",
+     "kind": "html",
+     "role": "list",
+     "request": null,
+     "items": {
+      "kind": "css",
+      "expr": "#publicList tr.dataRow[id]",
+      "labels": [],
+      "attr": null
+     },
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "@id",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": ":scope",
+         "labels": [],
+         "attr": "id"
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "url",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "concat('/pn/inneko/demand/notice/public/', @id, '/details')",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "url",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "title",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='name']/preceding-sibling::th)]",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "td.long",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "buyer_name",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='organization']/preceding-sibling::th)]",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "css",
+         "expr": "td.medium",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='publicationDate']/preceding-sibling::th)]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%Y-%m-%d %H:%M",
+         "%Y-%m-%d"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='stageEndDate']/preceding-sibling::th)]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%Y-%m-%d %H:%M"
+        ],
+        "words": [],
+        "pattern": "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2})"
+       }
+      },
+      {
+       "name": "status",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "ancestor::body//a[contains(@href,'/demand/notice/publicpzp/') and contains(concat(' ',normalize-space(@class),' '),' menu-active ')]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "status",
+        "formats": [],
+        "words": [
+         {
+          "name": "Aktualne",
+          "value": "open"
+         },
+         {
+          "name": "W toku",
+          "value": "closed"
+         },
+         {
+          "name": "Archiwalne",
+          "value": "closed"
+         },
+         {
+          "name": "Zako\u0144czone",
+          "value": "closed"
+         },
+         {
+          "name": "Uniewa\u017cnione",
+          "value": "withdrawn"
+         },
+         {
+          "name": "Uniewa\u017cniono",
+          "value": "withdrawn"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='number']/preceding-sibling::th) and ancestor::table[@id='publicList']//th[@data-mpgrid-id='number']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='type']/preceding-sibling::th) and ancestor::table[@id='publicList']//th[@data-mpgrid-id='type']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "Us\u0142ugi",
+          "value": "services"
+         },
+         {
+          "name": "Dostawy",
+          "value": "supplies"
+         },
+         {
+          "name": "Roboty budowlane",
+          "value": "works"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='realizationType']/preceding-sibling::th) and ancestor::table[@id='publicList']//th[@data-mpgrid-id='realizationType']]",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "Przetarg nieograniczony",
+          "value": "open"
+         },
+         {
+          "name": "Przetarg ograniczony",
+          "value": "restricted"
+         },
+         {
+          "name": "Negocjacje z og\u0142oszeniem",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negocjacje z og\u0142oszeniem (art. 154)",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negocjacje bez og\u0142oszenia",
+          "value": "negotiated"
+         },
+         {
+          "name": "Dialog konkurencyjny",
+          "value": "other"
+         },
+         {
+          "name": "Partnerstwo innowacyjne",
+          "value": "other"
+         },
+         {
+          "name": "Zam\u00f3wienie z wolnej r\u0119ki",
+          "value": "other"
+         },
+         {
+          "name": "Tryb podstawowy",
+          "value": "other"
+         },
+         {
+          "name": "Tryb podstawowy bez negocjacji",
+          "value": "other"
+         },
+         {
+          "name": "Tryb podstawowy z mo\u017cliwo\u015bci\u0105 negocjacji",
+          "value": "other"
+         },
+         {
+          "name": "Tryb podstawowy z negocjacjami",
+          "value": "other"
+         },
+         {
+          "name": "Aukcja elektroniczna",
+          "value": "other"
+         },
+         {
+          "name": "Licytacja elektroniczna",
+          "value": "other"
+         },
+         {
+          "name": "Zapytanie o cen\u0119",
+          "value": "other"
+         },
+         {
+          "name": "Konkurs",
+          "value": "other"
+         },
+         {
+          "name": "Przetarg",
+          "value": "other"
+         },
+         {
+          "name": "Przetarg sektorowy",
+          "value": "other"
+         },
+         {
+          "name": "Negocjacje sektorowe",
+          "value": "negotiated"
+         }
+        ],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": {
+      "kind": "offset_param",
+      "next": null,
+      "param": "GD_pagestart",
+      "first": 0,
+      "size_param": "GD_pagesize",
+      "size": 100,
+      "form": null,
+      "max_pages": null
+     },
+     "facts": {
+      "total": {
+       "kind": "regex",
+       "expr": "Pozycje\\s+[\\d.,]+\\s*[-\u2013]\\s*[\\d.,]+\\s+z\\s+([\\d.,]+)",
+       "labels": [],
+       "attr": null
+      },
+      "total_counts_closed": null,
+      "empty_marker": {
+       "kind": "css",
+       "expr": "#searchform .no_content_info",
+       "labels": [],
+       "attr": null
+      },
+      "newest_first": null,
+      "has_all_required": true,
+      "change_mark": null
+     },
+     "documents": null,
+     "steps": [],
+     "family": null
+    },
+    {
+     "id": "detail",
+     "kind": "html",
+     "role": "detail",
+     "request": null,
+     "items": null,
+     "fields": [
+      {
+       "name": "id",
+       "locators": [
+        {
+         "kind": "regex",
+         "expr": "var jsRequestURI\\s*=\\s*['\"][^'\"]*/public/(\\d+)/details",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "id",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "reference_number",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "//ul[@class='mp_infolist']/li/span[normalize-space()='Numer post\u0119powania']/following-sibling::strong",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Numer post\u0119powania"
+         ],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "text",
+        "formats": [],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "publication_date",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Publikacja w strefie publicznej:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//fieldset/span[normalize-space()='Publikacja w strefie publicznej:']/following-sibling::section",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "date",
+        "formats": [
+         "%Y-%m-%d %H:%M",
+         "%Y-%m-%d"
+        ],
+        "words": [],
+        "pattern": null
+       }
+      },
+      {
+       "name": "submission_deadline",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Data sk\u0142adania ofert/opracowa\u0144 studialnych:",
+          "Data sk\u0142adania ofert/wniosk\u00f3w:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//fieldset/span[starts-with(normalize-space(),'Data sk\u0142adania ofert')]/following-sibling::section",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "datetime",
+        "formats": [
+         "%Y-%m-%d %H:%M"
+        ],
+        "words": [],
+        "pattern": "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2})"
+       }
+      },
+      {
+       "name": "contract_nature",
+       "locators": [
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Rodzaj zam\u00f3wienia:"
+         ],
+         "attr": null
+        },
+        {
+         "kind": "xpath",
+         "expr": "//fieldset/span[normalize-space()='Rodzaj zam\u00f3wienia:']/following-sibling::section",
+         "labels": [],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "nature",
+        "formats": [],
+        "words": [
+         {
+          "name": "Us\u0142ugi",
+          "value": "services"
+         },
+         {
+          "name": "Dostawy",
+          "value": "supplies"
+         },
+         {
+          "name": "Roboty budowlane",
+          "value": "works"
+         }
+        ],
+        "pattern": null
+       }
+      },
+      {
+       "name": "procedure_type",
+       "locators": [
+        {
+         "kind": "xpath",
+         "expr": "//ul[@class='mp_infolist']/li/span[normalize-space()='Tryb udzielania zam\u00f3wienia']/following-sibling::span",
+         "labels": [],
+         "attr": null
+        },
+        {
+         "kind": "label",
+         "expr": null,
+         "labels": [
+          "Tryb udzielania zam\u00f3wienia"
+         ],
+         "attr": null
+        }
+       ],
+       "value": {
+        "type": "procedure",
+        "formats": [],
+        "words": [
+         {
+          "name": "Przetarg nieograniczony",
+          "value": "open"
+         },
+         {
+          "name": "Przetarg ograniczony",
+          "value": "restricted"
+         },
+         {
+          "name": "Negocjacje z og\u0142oszeniem",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negocjacje z og\u0142oszeniem (art. 154)",
+          "value": "negotiated"
+         },
+         {
+          "name": "Negocjacje bez og\u0142oszenia",
+          "value": "negotiated"
+         },
+         {
+          "name": "Dialog konkurencyjny",
+          "value": "other"
+         },
+         {
+          "name": "Partnerstwo innowacyjne",
+          "value": "other"
+         },
+         {
+          "name": "Zam\u00f3wienie z wolnej r\u0119ki",
+          "value": "other"
+         },
+         {
+          "name": "Tryb podstawowy",
+          "value": "other"
+         },
+         {
+          "name": "Aukcja elektroniczna",
+          "value": "other"
+         },
+         {
+          "name": "Licytacja elektroniczna",
+          "value": "other"
+         },
+         {
+          "name": "Zapytanie o cen\u0119",
+          "value": "other"
+         },
+         {
+          "name": "Konkurs",
+          "value": "other"
+         },
+         {
+          "name": "Przetarg",
+          "value": "other"
+         },
+         {
+          "name": "Przetarg sektorowy",
+          "value": "other"
+         },
+         {
+          "name": "Negocjacje sektorowe",
+          "value": "negotiated"
+         }
+        ],
+        "pattern": null
+       }
+      }
+     ],
+     "paging": null,
+     "facts": null,
+     "documents": {
+      "links": {
+       "kind": "css",
+       "expr": "tr.fileDataRow input[type=checkbox][value]",
+       "labels": [],
+       "attr": "value"
+      },
+      "url": "/repository/download/{file}",
+      "then": null,
+      "name": {
+       "kind": "xpath",
+       "expr": "ancestor::tr[contains(concat(' ',normalize-space(@class),' '),' fileDataRow ')]/td[contains(concat(' ',normalize-space(@class),' '),' long ') and not(preceding-sibling::td[contains(concat(' ',normalize-space(@class),' '),' long ')])]",
+       "labels": [],
+       "attr": null
+      },
+      "size": {
+       "kind": "xpath",
+       "expr": "ancestor::tr[contains(concat(' ',normalize-space(@class),' '),' fileDataRow ')]/td[contains(concat(' ',normalize-space(@class),' '),' medium ')]",
+       "labels": [],
+       "attr": null
+      },
+      "all_in_one_zip": false,
+      "request": null
+     },
+     "steps": [],
+     "family": null
+    }
+   ],
+   "edges": [
+    {
+     "source": "entry",
+     "target": "notices",
+     "action": "follow_link",
+     "per_item": false,
+     "link": {
+      "kind": "xpath",
+      "expr": "//a[contains(@href,'/publicpzp/current/list') and normalize-space()='Aktualne' and not(//form[@id='searchform']//div[contains(concat(' ',normalize-space(@class),' '),' no_content_info ')])] | //a[contains(@href,'/publicpzp/during/list') and normalize-space()='W toku' and //form[@id='searchform']//div[contains(concat(' ',normalize-space(@class),' '),' no_content_info ')]]",
+      "labels": [],
+      "attr": "href"
+     },
+     "request": null
+    },
+    {
+     "source": "notices",
+     "target": "detail",
+     "action": "follow_link",
+     "per_item": true,
+     "link": {
+      "kind": "xpath",
+      "expr": "concat('/pn/inneko/demand/notice/public/', @id, '/details')",
+      "labels": [],
+      "attr": null
+     },
+     "request": null
+    }
+   ],
+   "identity": {
+    "from_url": "/demand/notice/public/([0-9]+)/details(?:[?#]|$)",
+    "shape": "^[0-9]+$",
+    "must_agree": true
+   },
+   "family": "marketplanet-ezamawiajacy",
+   "host": {
+    "language": "pl",
+    "settings": [
+     {
+      "name": "tenant",
+      "value": "inneko"
+     },
+     {
+      "name": "GD_pagesize",
+      "value": "100"
+     }
+    ]
+   },
+   "rationale": "Read the Marketplanet Aktualne grid when populated, or follow the W toku link when the portal explicitly reports no current results. Use numeric row IDs to resolve public detail pages and read their individual repository downloads, distinguishing open submissions from procurements already in progress."
+  },
+  "timezone": "Europe/Warsaw",
+  "baseline": {
+   "records_on_two_pages": 39,
+   "printed_total": 39,
+   "problems": [],
+   "tenders": {
+    "239612": {
+     "url": "https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details",
+     "title": "\u201eOdbi\u00f3r i zagospodarowanie odpad\u00f3w o kodzie 19 12 12 - Inne odpady (w tym zmieszane substancje i przedmioty z mechanicznej obr\u00f3bki odpad\u00f3w inne ni\u017c wymienione w 19 12 11) tj. sukcesywny odbi\u00f3r, transport i zagospodarowanie odpad\u00f3w o kodzie 19 12 12.\u201d",
+     "buyer_name": "INNEKO Sp. z o.o. w Gorzowie Wielkopolskim",
+     "publication_date": "2026-10-21",
+     "submission_deadline": "2026-11-20 10:00:00+01:00",
+     "reference_number": "PZP.271/10.2026-PN",
+     "documents": 14
+    },
+    "236799": {
+     "url": "https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/236799/details",
+     "title": "\u201eModernizacja w\u0119z\u0142a separacji optycznej (NIR) w linii sortowniczej odpad\u00f3w\u201d",
+     "buyer_name": "INNEKO Sp. z o.o. w Gorzowie Wielkopolskim",
+     "publication_date": "2026-10-05",
+     "submission_deadline": "2026-11-10 10:00:00+01:00",
+     "reference_number": "PZP.271/13.2026-PN",
+     "documents": 22
+    },
+    "236780": {
+     "url": "https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/236780/details",
+     "title": "Przyj\u0119cie i zagospodarowanie odpad\u00f3w o kodzie 19 12 12 - Inne odpady (w tym zmieszane substancje i przedmioty) z mechanicznej obr\u00f3bki odpad\u00f3w inne ni\u017c wymienione w 19 12 11 w procesie R1.",
+     "buyer_name": "INNEKO Sp. z o.o. w Gorzowie Wielkopolskim",
+     "publication_date": "2026-10-05",
+     "submission_deadline": "2026-11-05 12:00:00+01:00",
+     "reference_number": "PZP.271/11.2026-PN",
+     "documents": 17
+    },
+    "236764": {
+     "url": "https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/236764/details",
+     "title": "\u201eOdbi\u00f3r i zagospodarowanie odpad\u00f3w o kodzie 19 12 10 \u2013 odpady palne (paliwo alternatywne RDF) w procesie odzysku\u201d tj. sukcesywny odbi\u00f3r, transport i zagospodarowanie odpad\u00f3w o kodzie 19 12 10. Odpad musi by\u0107 zagospodarowany w instalacji w procesie odzysku zgodnie z ustaw\u0105 z dnia 14 grudnia 2012 roku o odpadach (t.j. Dz.U.2023.0.1587).\u201d",
+     "buyer_name": "INNEKO Sp. z o.o. w Gorzowie Wielkopolskim",
+     "publication_date": "2026-10-05",
+     "submission_deadline": "2026-11-03 11:00:00+01:00",
+     "reference_number": "PZP.271/09.2026-PN",
+     "documents": 15
+    },
+    "233341": {
+     "url": "https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/233341/details",
+     "title": "\u201eDostawa energii elektrycznej w okresie od 01.01.2027 do 31.12.2027 do wskazanych punkt\u00f3w poboru\u201d.",
+     "buyer_name": "INNEKO Sp. z o.o. w Gorzowie Wielkopolskim",
+     "publication_date": "2026-09-11",
+     "submission_deadline": "2026-09-28 12:00:00+02:00",
+     "reference_number": "PZP.271/12.2026-PN",
+     "documents": 18
+    }
+   },
+   "filled": {
+    "buyer_name": "39 of 39",
+    "contract_nature": "39 of 39",
+    "id": "39 of 39",
+    "procedure_type": "39 of 39",
+    "publication_date": "39 of 39",
+    "reference_number": "39 of 39",
+    "submission_deadline": "39 of 39",
+    "title": "39 of 39",
+    "url": "39 of 39"
+   }
+  },
+  "scenarios": {
+   "detail": {
+    "old_recipe_still_reads": false,
+    "fields_lost": [
+     "buyer_name",
+     "documents",
+     "publication_date",
+     "reference_number",
+     "submission_deadline",
+     "title",
+     "url"
+    ],
+    "old_recipe_records": 0,
+    "repaired": true,
+    "seconds": 58,
+    "reason": "The Aktualne tab\u2019s empty-state markup changed, so the recipe now detects the visible \u201cBrak wynik\u00f3w\u201d message and follows W toku; the dry run passed with 39 tenders, including all three previous IDs.",
+    "model_calls": 6,
+    "cost_usd": 0.165,
+    "input_tokens": 200695,
+    "cached_share": 0.73,
+    "output_tokens": 4126,
+    "steps": [
+     "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/current/list: status 200, 135,660 bytes.",
+     "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList: status 200, 78,943 bytes.",
+     "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details: status 200, 184,558 bytes.",
+     "tool open_page: Opened https://inneko.ezamawiajacy.pl/: status 200, 179 bytes.",
+     "tool try_locator: Tried xpath locator \"//a[contains(@href,'/publicpzp/current/list') and normalize-space()='Aktualne' and not(//form[@name='searchform']//div[normalize-space()='Brak wynik\u00f3w'])] | //a[contains(@href,'/publicpzp/during/list') and normalize-space()='W toku' and //form[@name='searchform']//div[normalize\u2026",
+     "tool search_page: Searched https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details for /(?:jsRequestURI\\b[^;]{0,180}|zagospodarowanie odpad\u00f3w o kodzie.{0,100}|/repository/download[^\"'\\s<]{0,100})/: 23 match(es), the first 20 shown:",
+     "tool open_page: Opened https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagestart=0&GD_pagesize=100: status 200, 90,772 bytes.",
+     "tool try_locator: Tried xpath locator \"//div[h2][contains(concat(' ',normalize-space(@class),' '),' box-header ') or contains(concat(' ',normalize-space(@class),' '),' ui-redaeh-xob ')][following-sibling::div//span[normalize-space()='Numer post\u0119powania']]/h2\" on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice\u2026",
+     "tool try_locator: Tried css locator 'tr.fileDataRow input[type=checkbox][value], tr.ui-woRataDelif input[type=checkbox][value]' on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/public/239612/details: 5 value(s).",
+     "tool try_locator: Tried css locator 'td.long' on https://inneko.ezamawiajacy.pl/pn/inneko/demand/notice/publicpzp/during/list?USER_MENU_HOVER=publicpzpDuringNoticePublicList&GD_pagestart=0&GD_pagesize=100: 5 value(s) in 39 item(s).",
+     "tool propose_recipe: Dry run of the recipe: 39 record(s) from 39 row(s), 3 tender page(s) read; it passed.",
+     "decision repair_done: The repair left a recipe whose dry run read 39 tender(s) (6 model call(s), 9 request(s), $0.16)."
+    ],
+    "reads_baseline_again": true,
+    "still_wrong": [],
+    "nodes_changed": [
+     "notices (list)",
+     "detail (detail)"
+    ],
+    "recipe": {
+     "start": "entry",
+     "nodes": [
+      {
+       "id": "entry",
+       "kind": "html",
+       "role": "entry",
+       "request": {
+        "method": "GET",
+        "url": "/pn/inneko/demand/notice/publicpzp/current/list",
+        "params": [],
+        "body_kind": "none",
+        "body": [],
+        "body_json": null,
+        "headers": [],
+        "via": "http"
+       },
+       "items": null,
+       "fields": [],
+       "paging": null,
+       "facts": null,
+       "documents": null,
+       "steps": [],
+       "family": null
+      },
+      {
+       "id": "notices",
+       "kind": "html",
+       "role": "list",
+       "request": null,
+       "items": {
+        "kind": "css",
+        "expr": "#publicList tr.dataRow[id]",
+        "labels": [],
+        "attr": null
+       },
+       "fields": [
+        {
+         "name": "id",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "@id",
+           "labels": [],
+           "attr": null
+          },
+          {
+           "kind": "css",
+           "expr": ":scope",
+           "labels": [],
+           "attr": "id"
+          }
+         ],
+         "value": {
+          "type": "id",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "url",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "concat('/pn/inneko/demand/notice/public/', @id, '/details')",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "url",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "title",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='name']/preceding-sibling::th)]",
+           "labels": [],
+           "attr": null
+          },
+          {
+           "kind": "css",
+           "expr": "td.long",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "buyer_name",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='organization']/preceding-sibling::th)]",
+           "labels": [],
+           "attr": null
+          },
+          {
+           "kind": "css",
+           "expr": "td.medium",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "publication_date",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='publicationDate']/preceding-sibling::th)]",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "date",
+          "formats": [
+           "%Y-%m-%d %H:%M",
+           "%Y-%m-%d"
+          ],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "submission_deadline",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='stageEndDate']/preceding-sibling::th)]",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "datetime",
+          "formats": [
+           "%Y-%m-%d %H:%M"
+          ],
+          "words": [],
+          "pattern": "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2})"
+         }
+        },
+        {
+         "name": "status",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "ancestor::body//a[contains(@href,'/demand/notice/publicpzp/') and contains(concat(' ',normalize-space(@class),' '),' menu-active ')]",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "status",
+          "formats": [],
+          "words": [
+           {
+            "name": "Aktualne",
+            "value": "open"
+           },
+           {
+            "name": "W toku",
+            "value": "closed"
+           },
+           {
+            "name": "Archiwalne",
+            "value": "closed"
+           },
+           {
+            "name": "Zako\u0144czone",
+            "value": "closed"
+           },
+           {
+            "name": "Uniewa\u017cnione",
+            "value": "withdrawn"
+           },
+           {
+            "name": "Uniewa\u017cniono",
+            "value": "withdrawn"
+           }
+          ],
+          "pattern": null
+         }
+        },
+        {
+         "name": "reference_number",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='number']/preceding-sibling::th) and ancestor::table[@id='publicList']//th[@data-mpgrid-id='number']]",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "contract_nature",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='type']/preceding-sibling::th) and ancestor::table[@id='publicList']//th[@data-mpgrid-id='type']]",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "nature",
+          "formats": [],
+          "words": [
+           {
+            "name": "Us\u0142ugi",
+            "value": "services"
+           },
+           {
+            "name": "Dostawy",
+            "value": "supplies"
+           },
+           {
+            "name": "Roboty budowlane",
+            "value": "works"
+           }
+          ],
+          "pattern": null
+         }
+        },
+        {
+         "name": "procedure_type",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "./td[count(preceding-sibling::td)=count(ancestor::table[@id='publicList']//th[@data-mpgrid-id='realizationType']/preceding-sibling::th) and ancestor::table[@id='publicList']//th[@data-mpgrid-id='realizationType']]",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "procedure",
+          "formats": [],
+          "words": [
+           {
+            "name": "Przetarg nieograniczony",
+            "value": "open"
+           },
+           {
+            "name": "Przetarg ograniczony",
+            "value": "restricted"
+           },
+           {
+            "name": "Negocjacje z og\u0142oszeniem",
+            "value": "negotiated"
+           },
+           {
+            "name": "Negocjacje z og\u0142oszeniem (art. 154)",
+            "value": "negotiated"
+           },
+           {
+            "name": "Negocjacje bez og\u0142oszenia",
+            "value": "negotiated"
+           },
+           {
+            "name": "Dialog konkurencyjny",
+            "value": "other"
+           },
+           {
+            "name": "Partnerstwo innowacyjne",
+            "value": "other"
+           },
+           {
+            "name": "Zam\u00f3wienie z wolnej r\u0119ki",
+            "value": "other"
+           },
+           {
+            "name": "Tryb podstawowy",
+            "value": "other"
+           },
+           {
+            "name": "Tryb podstawowy bez negocjacji",
+            "value": "other"
+           },
+           {
+            "name": "Tryb podstawowy z mo\u017cliwo\u015bci\u0105 negocjacji",
+            "value": "other"
+           },
+           {
+            "name": "Tryb podstawowy z negocjacjami",
+            "value": "other"
+           },
+           {
+            "name": "Aukcja elektroniczna",
+            "value": "other"
+           },
+           {
+            "name": "Licytacja elektroniczna",
+            "value": "other"
+           },
+           {
+            "name": "Zapytanie o cen\u0119",
+            "value": "other"
+           },
+           {
+            "name": "Konkurs",
+            "value": "other"
+           },
+           {
+            "name": "Przetarg",
+            "value": "other"
+           },
+           {
+            "name": "Przetarg sektorowy",
+            "value": "other"
+           },
+           {
+            "name": "Negocjacje sektorowe",
+            "value": "negotiated"
+           }
+          ],
+          "pattern": null
+         }
+        }
+       ],
+       "paging": {
+        "kind": "offset_param",
+        "next": null,
+        "param": "GD_pagestart",
+        "first": 0,
+        "size_param": "GD_pagesize",
+        "size": 100,
+        "form": null,
+        "max_pages": null
+       },
+       "facts": {
+        "total": {
+         "kind": "regex",
+         "expr": "Pozycje\\s+[\\d.,]+\\s*[-\u2013]\\s*[\\d.,]+\\s+z\\s+([\\d.,]+)",
+         "labels": [],
+         "attr": null
+        },
+        "total_counts_closed": null,
+        "empty_marker": {
+         "kind": "xpath",
+         "expr": "//form[@name='searchform']//div[normalize-space()='Brak wynik\u00f3w']",
+         "labels": [],
+         "attr": null
+        },
+        "newest_first": null,
+        "has_all_required": true,
+        "change_mark": null
+       },
+       "documents": null,
+       "steps": [],
+       "family": null
+      },
+      {
+       "id": "detail",
+       "kind": "html",
+       "role": "detail",
+       "request": null,
+       "items": null,
+       "fields": [
+        {
+         "name": "id",
+         "locators": [
+          {
+           "kind": "regex",
+           "expr": "var jsRequestURI\\s*=\\s*['\"][^'\"]*/public/(\\d+)/details",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "id",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "reference_number",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "//ul[@class='mp_infolist' or @class='ui-tsilofni_pm']/li/span[normalize-space()='Numer post\u0119powania']/following-sibling::strong",
+           "labels": [],
+           "attr": null
+          },
+          {
+           "kind": "label",
+           "expr": null,
+           "labels": [
+            "Numer post\u0119powania"
+           ],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "text",
+          "formats": [],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "publication_date",
+         "locators": [
+          {
+           "kind": "label",
+           "expr": null,
+           "labels": [
+            "Publikacja w strefie publicznej:"
+           ],
+           "attr": null
+          },
+          {
+           "kind": "xpath",
+           "expr": "//fieldset/span[normalize-space()='Publikacja w strefie publicznej:']/following-sibling::section",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "date",
+          "formats": [
+           "%Y-%m-%d %H:%M",
+           "%Y-%m-%d"
+          ],
+          "words": [],
+          "pattern": null
+         }
+        },
+        {
+         "name": "submission_deadline",
+         "locators": [
+          {
+           "kind": "label",
+           "expr": null,
+           "labels": [
+            "Data sk\u0142adania ofert/opracowa\u0144 studialnych:",
+            "Data sk\u0142adania ofert/wniosk\u00f3w:"
+           ],
+           "attr": null
+          },
+          {
+           "kind": "xpath",
+           "expr": "//fieldset/span[starts-with(normalize-space(),'Data sk\u0142adania ofert')]/following-sibling::section",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "datetime",
+          "formats": [
+           "%Y-%m-%d %H:%M"
+          ],
+          "words": [],
+          "pattern": "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2})"
+         }
+        },
+        {
+         "name": "contract_nature",
+         "locators": [
+          {
+           "kind": "label",
+           "expr": null,
+           "labels": [
+            "Rodzaj zam\u00f3wienia:"
+           ],
+           "attr": null
+          },
+          {
+           "kind": "xpath",
+           "expr": "//fieldset/span[normalize-space()='Rodzaj zam\u00f3wienia:']/following-sibling::section",
+           "labels": [],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "nature",
+          "formats": [],
+          "words": [
+           {
+            "name": "Us\u0142ugi",
+            "value": "services"
+           },
+           {
+            "name": "Dostawy",
+            "value": "supplies"
+           },
+           {
+            "name": "Roboty budowlane",
+            "value": "works"
+           }
+          ],
+          "pattern": null
+         }
+        },
+        {
+         "name": "procedure_type",
+         "locators": [
+          {
+           "kind": "xpath",
+           "expr": "//ul[@class='mp_infolist' or @class='ui-tsilofni_pm']/li/span[normalize-space()='Tryb udzielania zam\u00f3wienia']/following-sibling::span",
+           "labels": [],
+           "attr": null
+          },
+          {
+           "kind": "label",
+           "expr": null,
+           "labels": [
+            "Tryb udzielania zam\u00f3wienia"
+           ],
+           "attr": null
+          }
+         ],
+         "value": {
+          "type": "procedure",
+          "formats": [],
+          "words": [
+           {
+            "name": "Przetarg nieograniczony",
+            "value": "open"
+           },
+           {
+            "name": "Przetarg ograniczony",
+            "value": "restricted"
+           },
+           {
+            "name": "Negocjacje z og\u0142oszeniem",
+            "value": "negotiated"
+           },
+           {
+            "name": "Negocjacje z og\u0142oszeniem (art. 154)",
+            "value": "negotiated"
+           },
+           {
+            "name": "Negocjacje bez og\u0142oszenia",
+            "value": "negotiated"
+           },
+           {
+            "name": "Dialog konkurencyjny",
+            "value": "other"
+           },
+           {
+            "name": "Partnerstwo innowacyjne",
+            "value": "other"
+           },
+           {
+            "name": "Zam\u00f3wienie z wolnej r\u0119ki",
+            "value": "other"
+           },
+           {
+            "name": "Tryb podstawowy",
+            "value": "other"
+           },
+           {
+            "name": "Aukcja elektroniczna",
+            "value": "other"
+           },
+           {
+            "name": "Licytacja elektroniczna",
+            "value": "other"
+           },
+           {
+            "name": "Zapytanie o cen\u0119",
+            "value": "other"
+           },
+           {
+            "name": "Konkurs",
+            "value": "other"
+           },
+           {
+            "name": "Przetarg",
+            "value": "other"
+           },
+           {
+            "name": "Przetarg sektorowy",
+            "value": "other"
+           },
+           {
+            "name": "Negocjacje sektorowe",
+            "value": "negotiated"
+           }
+          ],
+          "pattern": null
+         }
+        }
+       ],
+       "paging": null,
+       "facts": null,
+       "documents": {
+        "links": {
+         "kind": "css",
+         "expr": "tr.fileDataRow input[type=checkbox][value], tr.ui-woRataDelif input[type=checkbox][value]",
+         "labels": [],
+         "attr": "value"
+        },
+        "url": "/repository/download/{file}",
+        "then": null,
+        "name": {
+         "kind": "xpath",
+         "expr": "ancestor::tr[contains(concat(' ',normalize-space(@class),' '),' fileDataRow ') or contains(concat(' ',normalize-space(@class),' '),' ui-woRataDelif ')]/td[(contains(concat(' ',normalize-space(@class),' '),' long ') or contains(concat(' ',normalize-space(@class),' '),' ui-gnol ')) and not(preceding-sibling::td[contains(concat(' ',normalize-space(@class),' '),' long ') or contains(concat(' ',normalize-space(@class),' '),' ui-gnol ')])]",
+         "labels": [],
+         "attr": null
+        },
+        "size": {
+         "kind": "xpath",
+         "expr": "ancestor::tr[contains(concat(' ',normalize-space(@class),' '),' fileDataRow ') or contains(concat(' ',normalize-space(@class),' '),' ui-woRataDelif ')]/td[contains(concat(' ',normalize-space(@class),' '),' medium ') or contains(concat(' ',normalize-space(@class),' '),' ui-muidem ')]",
+         "labels": [],
+         "attr": null
+        },
+        "all_in_one_zip": false,
+        "request": null
+       },
+       "steps": [],
+       "family": null
+      }
+     ],
+     "edges": [
+      {
+       "source": "entry",
+       "target": "notices",
+       "action": "follow_link",
+       "per_item": false,
+       "link": {
+        "kind": "xpath",
+        "expr": "//a[contains(@href,'/publicpzp/current/list') and normalize-space()='Aktualne' and not(//form[@name='searchform']//div[normalize-space()='Brak wynik\u00f3w'])] | //a[contains(@href,'/publicpzp/during/list') and normalize-space()='W toku' and //form[@name='searchform']//div[normalize-space()='Brak wynik\u00f3w']]",
+        "labels": [],
+        "attr": "href"
+       },
+       "request": null
+      },
+      {
+       "source": "notices",
+       "target": "detail",
+       "action": "follow_link",
+       "per_item": true,
+       "link": {
+        "kind": "xpath",
+        "expr": "concat('/pn/inneko/demand/notice/public/', @id, '/details')",
+        "labels": [],
+        "attr": null
+       },
+       "request": null
+      }
+     ],
+     "identity": {
+      "from_url": "/demand/notice/public/([0-9]+)/details(?:[?#]|$)",
+      "shape": "^[0-9]+$",
+      "must_agree": true
+     },
+     "family": "marketplanet-ezamawiajacy",
+     "host": {
+      "language": "pl",
+      "settings": [
+       {
+        "name": "tenant",
+        "value": "inneko"
+       },
+       {
+        "name": "GD_pagesize",
+        "value": "100"
+       }
+      ]
+     },
+     "rationale": "The Aktualne tab\u2019s empty-state markup changed, so the recipe now detects the visible \u201cBrak wynik\u00f3w\u201d message and follows W toku; the dry run passed with 39 tenders, including all three previous IDs."
+    }
+   }
+  },
+  "pages_cloned": 22
+ },
+ {
+  "portal": "evergabe-online",
+  "url": "https://www.evergabe-online.de/",
+  "kind": "unknown",
+  "expect": "serve",
+  "learn": {
+   "learned": false,
+   "seconds": 22,
+   "requests": 5,
+   "live_requests": 0,
+   "reason": "The public tender list loads, but paging depends on the server session: requesting the next-page link directly returned HTTP 403, and the portal exposes no standalone page or offset parameter.",
+   "model_calls": 8,
+   "cost_usd": 0.139,
+   "input_tokens": 243182,
+   "cached_share": 0.77,
+   "output_tokens": 626,
+   "refused": 0,
+   "steps": [
+    "tool open_page: Opened https://www.evergabe-online.de/: status 200, 93,906 bytes.",
+    "tool page_links: Listed the links of https://www.evergabe-online.de/ containing 'search'.",
+    "tool open_page: Opened https://www.evergabe-online.de/search.html: status 200, 203,564 bytes.",
+    "tool page_links: Listed the links of https://www.evergabe-online.de/search.html.",
+    "tool search_page: Searched https://www.evergabe-online.de/search.html for /(?is).{0,130}(n\u00e4chste Seite|pagination|Treffer insgesamt|Suchergebnisse|pageSize|itemsPerPage|pro Seite|tenderdetails\\.html).{0,160}/: 13 match(es):",
+    "tool page_links: Listed the links of https://www.evergabe-online.de/search.html containing 'navigator'.",
+    "tool page_links: Listed the links of https://www.evergabe-online.de/search.html containing 'rss'.",
+    "tool open_page: Opened https://www.evergabe-online.de/search.html?1-1.-searchPanel-results-searchResults-results-topToolbars-toolbars-1-span-navigator-next: status 403, 4,425 bytes.",
+    "tool open_page: Opened https://www.evergabe-online.de/tenderdetails.html?id=908830: status 200, 90,715 bytes.",
+    "tool open_page: Opened https://www.evergabe-online.de/tenderdetails.html?id=908809: status 200, 91,139 bytes.",
+    "tool search_page: Searched https://www.evergabe-online.de/search.html for /(?is).{0,100}(page=|offset=|pageNumber|rowsPerPageChoice|searchProfile=|\\.json|result_col_).{0,120}/: 17 match(es):",
+    "tool search_page: Searched https://www.evergabe-online.de/search.html for /(?is).{0,90}(?:[?&](?:amp;)?(?:page|offset|size|limit|rowsPerPage|pageSize|start)=|application/(?:rss|atom)|searchProfile).{0,100}/: 2 match(es):",
+    "tool page_links: Listed the links of https://www.evergabe-online.de/ containing 'rss'.",
+    "decision learn_failed: No recipe came out of the learn: The public tender list loads, but paging depends on the server session: requesting the next-page link directly returned HTTP 403, and the portal exposes no standalone page or offset parameter. (8 model call(s), 5 request(s), $0.14)."
+   ]
+  },
+  "pages_cloned": 14
+ },
+ {
+  "portal": "place",
+  "url": "https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons",
+  "kind": "unknown",
+  "expect": "unavailable",
+  "learn": {
+   "learned": false,
+   "seconds": 45,
+   "requests": 7,
+   "live_requests": 2,
+   "reason": "The public tender list loads, but pagination depends on server-side session state: the next-page request returned HTTP 400, and no working stateless pagination route was found, so I did not submit a first-page-only recipe.",
+   "model_calls": 11,
+   "cost_usd": 0.265,
+   "input_tokens": 365680,
+   "cached_share": 0.7,
+   "output_tokens": 1713,
+   "refused": 0,
+   "steps": [
+    "tool open_page: Opened https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons: status 200, 264,434 bytes.",
+    "tool page_links: Listed the links of https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons.",
+    "tool search_page: Searched https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons for /.{0,85}(pagination|page suivante|pageSize|PageIndex|suivant|nombre de r\u00e9sultats|consultations trouv\u00e9es).{0,140}/: 21 match(es), the first 20 shown:",
+    "tool search_page: Searched https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons for /(?s)name=\"ctl0\\$CONTENU_PAGE\\$resultSearch\\$numPageTop\".{0,450}|(?s)\\{'ID':\"ctl0_CONTENU_PAGE_resultSearch_(?:numPageTop|DefaultButtonTop|PagerTop_ctl2)\".{0,240}|name=\"(?:PRADO_[^\"]*|__\\w+)\"[^>]{0,15\u2026",
+    "tool page_links: Listed the links of https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons containing 'rss'.",
+    "tool open_page: Opened https://www.marches-publics.gouv.fr/app.php/entreprise/consultation/2940332?orgAcronyme=x7c: status 200, 175,300 bytes.",
+    "tool search_page: Searched https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons for /(?:href|action)=\"[^\"]*(?:[?&;](?:offset|limit|pagenum|pagenumber|pageindex|pagesize|page=\\d+)|rss|atom)[^\"]*\"|/app\\.php/entreprise/consultation/\\d+\\?orgAcronyme=\\w+\"/: 10 match(es):",
+    "tool search_page: Searched https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons for /(?s)name=\"ctl0\\$CONTENU_PAGE\\$resultSearch\\$numPageTop\".{0,450}|\\{'ID':\"ctl0_CONTENU_PAGE_resultSearch_(?:numPageTop|DefaultButtonTop|PagerTop_ctl2)\".{0,215}|name=\"(?:PRADO_[^\"]*|__\\w+)\"[^>]{0,100}/:\u2026",
+    "tool view_page: Viewed part 2 of https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons.",
+    "tool view_page: Viewed part 2 of https://www.marches-publics.gouv.fr/app.php/entreprise/consultation/2940332?orgAcronyme=x7c.",
+    "tool search_page: Searched https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons for /(?s).{0,80}(PRADO_POSTBACK_TARGET|PRADO_POSTBACK_PARAMETER|fetch\\(|\\.ajax\\(|/api/|AllCons[^\"']{0,60}|numPageTop).{0,120}/: 8 match(es):",
+    "tool open_page: Opened https://www.marches-publics.gouv.fr/app.php/entreprise/consultation/2908387?orgAcronyme=x7c: status 200, 175,099 bytes.",
+    "tool page_links: Listed the links of https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons containing 'prado'.",
+    "tool search_page: Searched https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons for /(?s)<(?:a|input|select)[^>]*(?:PagerTop|listePageSizeTop|DefaultButtonTop|PRADO|PAGESTATE)[^>]*>.{0,100}|(?:page|offset|limit|size)=[0-9]+/: 5 match(es):",
+    "tool page_links: Listed the links of https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons.",
+    "tool open_page: Opened https://www.marches-publics.gouv.fr/espace-entreprise/search: status 200, 139,522 bytes.",
+    "tool search_page: Searched https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons for /(?:PagerTop_ctl2|DefaultButtonTop)['\"]?[,}].{0,220}|(?:nextPage|currentPage|pageNumber|pageIndex|startIndex|offset|perPage|numPage|pageSize).{0,95}/: 20 match(es):",
+    "tool open_page: Opened https://www.marches-publics.gouv.fr/app.php/espace-entreprise/search: status 200, 139,520 bytes.",
+    "tool call_api: Called POST https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons: status 400, 1,784 bytes.",
+    "tool call_api: Called GET https://www.marches-publics.gouv.fr/?ctl0%24CONTENU_PAGE%24resultSearch%24numPageTop=2&ctl0%24CONTENU_PAGE%24resultSearch%24listePageSizeTop=20: status 200, 59,677 bytes.",
+    "tool try_locator: Tried css locator \"input[id$='numPageTop']\" on https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons: 1 value(s).",
+    "decision learn_failed: No recipe came out of the learn: The public tender list loads, but pagination depends on server-side session state: the next-page request returned HTTP 400, and no working stateless pagination route was found, so I did not submit a first-page-only recipe. (11 model call(s), 7 request(s), $0.27)."
+   ]
+  },
+  "pages_cloned": 13
+ }
+]

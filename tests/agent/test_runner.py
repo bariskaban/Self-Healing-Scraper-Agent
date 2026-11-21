@@ -53,7 +53,7 @@ def test_a_run_ends_in_a_validated_answer_and_logs_every_step():
     assert kinds == [(StepKind.llm, "gpt-6.2-sol"), (StepKind.tool, "echo"), (StepKind.llm, "gpt-6.2-sol")]
     assert [step.seq for step in steps.steps] == [1, 2, 3]
     llm = steps.steps[0]
-    assert llm.prompt_id == PROMPT.id == "learn/system@3" and llm.usage.input_tokens == 1000
+    assert llm.prompt_id == PROMPT.id == "learn/system@4" and llm.usage.input_tokens == 1000
     assert "call 1 of at most 10" in llm.summary and "echo" in llm.summary
     assert steps.steps[1].summary == "echoed a" and steps.steps[1].args == {"text": "a"}
     # The model and the answer's schema are named on every call.

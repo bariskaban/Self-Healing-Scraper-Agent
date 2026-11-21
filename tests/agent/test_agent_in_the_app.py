@@ -143,7 +143,7 @@ def test_a_portal_nobody_knows_is_learned_on_attach_and_served(site):
     assert kinds.count(StepKind.llm) == 3 and kinds.count(StepKind.tool) == 2
     names = [step.name for step in mine]
     assert names.index("learn_done") < names.index("learn") < names.index("read_list") < names.index("publish")
-    assert all(step.prompt_id == "learn/system@3" and step.usage for step in mine if step.kind is StepKind.llm)
+    assert all(step.prompt_id == "learn/system@4" and step.usage for step in mine if step.kind is StepKind.llm)
     assert recipe is not None and recipe.version == 1 and recipe.rationale == mock_recipe().rationale
     assert len(s.model.requests) == 3
 
@@ -219,7 +219,8 @@ def test_a_changed_layout_is_repaired_by_the_model_and_the_portal_serves_again(s
 
 
 def test_a_repair_that_finds_nothing_leaves_the_last_good_tenders_and_records_its_cost(site):
-    s = site([{"done": False, "what_changed": "The portal shows a different site now."}])
+    s = site([{"done": False, "what_changed": "The portal shows a different site now."},   # the patch
+              {"done": False, "summary": "Nothing here is a tender list."}])               # the learn that follows
     pid, _ = s.attach(MOCK)
     s.mock.layout_changed = True
     portal = s.refresh(pid)
@@ -231,8 +232,9 @@ def test_a_repair_that_finds_nothing_leaves_the_last_good_tenders_and_records_it
     runs, steps, recipe = s.records(pid)
     assert recipe.version == 1
     tried = next(run for run in runs if run.model_calls)
-    assert tried.model_calls == 1 and tried.usage.cost_usd > 0
-    assert any(step.name == "repair" and "different site" in step.summary for step in steps[tried.id])
+    assert tried.model_calls == 2 and tried.usage.cost_usd > 0
+    assert any(step.name == "repair" and "Nothing here is a tender list" in step.summary for step in steps[tried.id])
+    assert {"repair_failed", "learn_failed"} <= {step.name for step in steps[tried.id]}
 
 
 

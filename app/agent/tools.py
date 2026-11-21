@@ -68,7 +68,8 @@ class PageLinks(_Args):
 
 
 class SearchPage(_Args):
-    url: str = Field(description="a page opened before (HTML, JSON or a script file)")
+    url: str | None = Field(description="a page opened before (HTML, JSON or a script file); null searches "
+                                        "every page opened in this run")
     pattern: str = Field(description="a regular expression, matched without regard to case in the raw body")
 
 
@@ -149,6 +150,7 @@ class Workspace:
         self.country_code: str | None = portal.country_code
         # A repair knows the tenders of the last good read, by id: a dry run must give them again.
         self.known: dict[str, Any] = {}
+        self.known_documents: dict[str, int] = {}  # tender id: how many files the last good read had
         self.accepted: Accepted | None = None   # the working recipe, when its last dry run passed
         self.passed: Accepted | None = None     # the newest recipe that ever passed in this run
         self.last_check: DryRun | None = None
@@ -299,6 +301,13 @@ class Workspace:
                     f"{', '.join(r.tender_id for r in read)}; last good: {', '.join(list(self.known)[:3])}). "
                     "The id is taken from the wrong place, or these are other tenders."]
         out = []
+        had_files = [(new.tender_id, self.known_documents[new.tender_id]) for _, new in pairs
+                     if self.known_documents.get(new.tender_id)]
+        without = [tender_id for tender_id, _ in had_files if not result.documents.get(tender_id)]
+        if without:
+            out.append(f"{len(without)} of {len(had_files)} tenders that had files in the last good read have none "
+                       f"now (for example {without[0]}, which had {dict(had_files)[without[0]]}). The document "
+                       "links are no longer found: repair the node that reads them.")
         for name in COMPARED:
             had = [(old, new) for old, new in pairs if getattr(old, name) is not None]
             lost = [new.tender_id for old, new in had if getattr(new, name) is None]
@@ -452,6 +461,17 @@ def tools(space: Workspace) -> list[Tool]:
         return Said(text, f"Listed the links of {page.url}" + (f" containing {args.contains!r}." if args.contains else "."))
 
     def search_page(args: SearchPage) -> Said:
+        if args.url is None:
+            found = []
+            for page in space.pages.values():
+                text = views.search(space.text(page), args.pattern, settings=space.settings)
+                if text != "No match." and not text.startswith("Not a valid"):
+                    found.append(f"== {page.url}\n{text}")
+                elif text.startswith("Not a valid"):
+                    return Said(text, f"Searched every opened page for /{args.pattern}/: not a valid pattern.")
+            shown = "\n".join(found)[: space.settings.view_chars] or "No match on any opened page."
+            return Said(shown, f"Searched all {len(space.pages)} opened page(s) for /{args.pattern}/: "
+                               f"{len(found)} with a match.")
         page, problem = known(args.url)
         if page is None:
             return problem  # type: ignore[return-value]
