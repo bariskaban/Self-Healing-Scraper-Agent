@@ -8,7 +8,10 @@ gives no recipe; it does not raise.
 """
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,7 +20,7 @@ from app.agent.settings import DEFAULT_AGENT_SETTINGS, AgentSettings
 from app.agent.tools import Workspace, tools
 from app.config import ModelSettings
 from app.fetch.interface import Fetch
-from app.models import Portal, StepKind, TokenUsage
+from app.models import Portal, StepKind, TenderRecord, TokenUsage
 from app.recipe.schema import AuthoredRecipe
 from app.recipe.settings import DEFAULT_RECIPE_SETTINGS, RecipeSettings
 
@@ -44,19 +47,42 @@ class AgentResult:
 
 def learn(portal: Portal, *, fetch: Fetch, runner: Runner, steps: StepLog,
           models: ModelSettings | None = None, settings: AgentSettings = DEFAULT_AGENT_SETTINGS,
-          recipes: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> AgentResult:
-    """Learn a recipe for a portal nobody has read before."""
+          recipes: RecipeSettings = DEFAULT_RECIPE_SETTINGS, draft: AuthoredRecipe | None = None,
+          known: Sequence[TenderRecord] = (), known_documents: Mapping[str, int] | None = None,
+          why: str = "", pages: Mapping | None = None) -> AgentResult:
+    """Learn a recipe for a portal nobody has read before.
+
+    With `draft` it is a learn again after a repair found nothing (DESIGN.md, Repair, step 3): the
+    recipe that no longer reads the portal is handed over as a draft, the tenders of the last good
+    read (`known`) must come out again, and the result must differ from the draft.
+    """
     models = models or ModelSettings.from_env()
     space = Workspace(portal, fetch, max_requests=settings.learn_max_requests, settings=settings, recipes=recipes)
     task = (f"The portal's address: {portal.url}\n"
             f"You may send at most {settings.learn_max_requests} requests to it and make at most "
             f"{settings.learn_max_turns} model calls. Learn how to read it and leave a working recipe that "
             "passed its dry run.")
+    if pages:
+        space.pages.update(pages)  # what the repair before this learn already fetched is not fetched again
+    if draft is not None:
+        parts = urlsplit(portal.url)
+        space.recipe = draft
+        space.known = {record.tender_id: record for record in known}
+        space.known_documents = dict(known_documents or {})
+        some = [{"id": r.tender_id, "url": r.url, "title": r.title} for r in list(known)[: settings.check_tenders]]
+        task += ("\n\nThis portal was read before, and its recipe stopped working"
+                 + (f": {why}" if why else ".") +
+                 f" Only the domain can be relied on: start from {parts.scheme}://{parts.netloc}/ when the address "
+                 "above no longer answers. The old recipe is the working recipe now, as a draft: keep every part "
+                 "of it that still reads its values, and learn again what does not. The tenders must come out "
+                 "with the ids of the last good read, for example:\n"
+                 + json.dumps(some, ensure_ascii=False, indent=1)
+                 + "\nThe draft:\n" + json.dumps(draft.model_dump(mode="json"), ensure_ascii=False))
     outcome = runner.run(job="learn", model=models.learn, prompt=load_prompt("learn"), task=task,
                          tools=tools(space), answer_type=LearnAnswer, max_turns=settings.learn_max_turns,
                          max_usd=settings.learn_max_usd, steps=steps, reasoning=settings.reasoning_learn,
                          portal_id=portal.id)
-    return finish("learn", space, outcome, steps)
+    return finish("learn", space, outcome, steps, unchanged=draft)
 
 
 def finish(job: str, space: Workspace, outcome, steps: StepLog, *, unchanged: AuthoredRecipe | None = None,

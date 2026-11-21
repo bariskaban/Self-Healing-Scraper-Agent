@@ -253,6 +253,7 @@ def run_portal(spec, runner: Runner, settings: AgentSettings, models: ModelSetti
             steps = StepLog(f"real-{spec.id}-{scenario}-{int(time.time())}")
             began = time.time()
             fixed = repair(portal, RecipeBody.from_authored(recipe), rows, fetch=changed, known=known, runner=runner,
+                           known_documents={tid: want["documents"] for tid, want in baseline.items()},
                            steps=steps, models=models, settings=settings)
             result.update({"repaired": fixed.recipe is not None, "seconds": round(time.time() - began),
                            "reason": fixed.reason, **usage_of(fixed),
@@ -303,6 +304,7 @@ def lost_address(recipe: AuthoredRecipe, portal: Portal, clone: Clone, live: Fet
     steps = StepLog(f"real-{portal.id}-lost-{int(time.time())}")
     began = time.time()
     fixed = repair(where, RecipeBody.from_authored(broken), rows, fetch=fetch, known=known, runner=runner,
+                   known_documents={tid: want["documents"] for tid, want in baseline.items()},
                    steps=steps, models=models, settings=settings)
     result.update({"repaired": fixed.recipe is not None, "seconds": round(time.time() - began),
                    "reason": fixed.reason, "live_requests": fetch.live_requests, **usage_of(fixed),

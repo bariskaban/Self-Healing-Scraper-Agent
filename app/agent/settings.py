@@ -47,6 +47,9 @@ class AgentSettings:
     # Requests one learn or one repair may send to the portal while it explores (Q3: about 60).
     learn_max_requests: int = 60
     repair_max_requests: int = 30
+    # A repair that finds no recipe is followed by this many learns from scratch, with the old recipe
+    # as a draft and the learn's own budget (DESIGN.md, Repair, step 3). 0 turns that off.
+    repair_relearns: int = 1
     # A page view handed to the model is cut into parts of this many characters (about 4K tokens, Q4).
     view_chars: int = 14_000
     # Text inside one element, and one attribute value, are cut to this many characters in a view.
@@ -87,11 +90,11 @@ class AgentSettings:
     def __post_init__(self) -> None:
         for f in fields(self):
             value = getattr(self, f.name)
-            if isinstance(value, (int, float)) and not isinstance(value, bool) and f.name != "model_retries":
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and f.name not in ("model_retries", "repair_relearns"):
                 if not value > 0:
                     raise ValueError(f"agent setting {f.name} must be positive")
-        if self.model_retries < 0:
-            raise ValueError("agent setting model_retries must not be negative")
+        if self.model_retries < 0 or self.repair_relearns < 0:
+            raise ValueError("agent settings model_retries and repair_relearns must not be negative")
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "AgentSettings":

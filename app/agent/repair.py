@@ -11,11 +11,11 @@ from __future__ import annotations
 
 import json
 from urllib.parse import urlsplit
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.agent.learn import AgentResult, finish
+from app.agent.learn import AgentResult, finish, learn
 from app.agent.runner import Runner, StepLog, load_prompt
 from app.agent.settings import DEFAULT_AGENT_SETTINGS, AgentSettings
 from app.agent.tools import Workspace, tools
@@ -51,7 +51,8 @@ def _last_good(known: Sequence[TenderRecord], count: int) -> list[dict]:
 
 
 def repair(portal: Portal, recipe: AuthoredRecipe, failed: Sequence[CheckResult], *, fetch: Fetch, runner: Runner,
-           steps: StepLog, known: Sequence[TenderRecord] = (), models: ModelSettings | None = None,
+           steps: StepLog, known: Sequence[TenderRecord] = (), known_documents: Mapping[str, int] | None = None,
+           models: ModelSettings | None = None,
            settings: AgentSettings = DEFAULT_AGENT_SETTINGS,
            recipes: RecipeSettings = DEFAULT_RECIPE_SETTINGS) -> AgentResult:
     """Repair a recipe whose read failed its checks. `known` are tenders of the last good read."""
@@ -60,6 +61,7 @@ def repair(portal: Portal, recipe: AuthoredRecipe, failed: Sequence[CheckResult]
     space = Workspace(portal, fetch, max_requests=settings.repair_max_requests, settings=settings, recipes=recipes)
     space.recipe = current
     space.known = {record.tender_id: record for record in known}
+    space.known_documents = dict(known_documents or {})
     result, warnings = space.check()  # what the current recipe gives on the portal as it is now
     today = space.report(result, warnings).text
     space.accepted = space.passed = None  # the unchanged recipe is never the repair
@@ -83,4 +85,16 @@ def repair(portal: Portal, recipe: AuthoredRecipe, failed: Sequence[CheckResult]
                          max_usd=settings.repair_max_usd, steps=steps, reasoning=settings.reasoning_repair,
                          portal_id=portal.id)
     said = outcome.answer.what_changed if isinstance(outcome.answer, RepairAnswer) and outcome.answer.done else None
-    return finish("repair", space, outcome, steps, unchanged=current, rationale=said)
+    result = finish("repair", space, outcome, steps, unchanged=current, rationale=said)
+    for _ in range(settings.repair_relearns):
+        if result.recipe is not None:
+            break
+        # The patch found nothing. Learn again from scratch, with the old recipe as a draft and the
+        # learn's own, larger budget (DESIGN.md, Repair, step 3).
+        again = learn(portal, fetch=fetch, runner=runner, steps=steps, models=models, settings=settings,
+                      recipes=recipes, draft=current, known=known, known_documents=known_documents,
+                      why=result.reason, pages=space.pages)
+        again.usage, again.model_calls = result.usage.add(again.usage), result.model_calls + again.model_calls
+        again.requests += result.requests
+        result = again
+    return result

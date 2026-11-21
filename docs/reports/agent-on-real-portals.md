@@ -105,6 +105,20 @@ This scenario leaves the portal as it is and loses our address. It does not show
 - **Coverage**: `eb2b-gddkia` read a deadline on 405 of 2000 rows and `vergabe-niedersachsen` on 19 of 40; nobody checked whether the rest have none.
 - The repairs here ran through `repair()`, without the reader's trial read, except the one in-app run named above.
 
+## Follow-up, 21 Nov 2026, about 00:40 UTC: three of the open points closed
+
+Each was changed in `app/agent/` and then run again, live, on the case that showed it. Single runs.
+
+| Open point | Change | The same case, run again |
+| --- | --- | --- |
+| `eb2b-gddkia`, only the domain left: not found within a repair's 20 calls | A repair that finds no recipe is followed by a learn from scratch with the old recipe as a draft, on the learn's budget (DESIGN.md, Repair, step 3; `AGENT_REPAIR_RELEARNS`, default 1). The pages the repair fetched are kept. `search_page` with no address searches every opened page. | Found again, same values, only the list node changed. 59 model calls and $1.13 in all: the repair's 20 calls found nothing, the learn that followed found the call in 39. |
+| `ezamawiajacy-inneko`, tender pages altered: repaired, but the document links were lost | A repair's dry run also compares files: a tender that had files in the last good read and has none now refuses the recipe. In the app the counts come from the stored documents. | Repaired with the same values and the same number of documents; 6 calls, $0.17. |
+| `evergabe-online`, `place`: paging lives in the server's session; the learner spent $0.70 and $0.88 finding out | Learn prompt 4: try the paging two ways, then stop and say that the list's paging depends on the server session. | Both stop and say so: 8 calls and $0.14; 11 calls and $0.27. Neither is readable yet: that needs a session kept across requests or a browser, which this build does not have. |
+
+Also learn prompt 4 and repair prompt 3 tell the model to search a script, never to read it part by part: on `eb2b-gddkia` the first learn had paged through a 2.3 MB script.
+
+Still open: the cost of the `eb2b-gddkia` recovery ($1.13, more than its first learn); `evergabe-nrw` was not tried again; the reader's checks after a trial read were still not part of these runs. `CLAUDE.md` still says that no agent session reads a live portal: the exception Goktug made for these runs is written nowhere but here and in the pull requests, and a person should decide whether the file is to say so.
+
 ## Cost of this run
 
-About $10.30 for the learns and the one-node repairs, $1.28 for the lost-address repairs, $0.80 for the moved made-up portals, and about $3 on runs that failed for the rate limit or the proxy before the fixes: about $15 on the development key.
+About $10.30 for the learns and the one-node repairs, $1.28 for the lost-address repairs, $0.80 for the moved made-up portals, and about $3 on runs that failed for the rate limit or the proxy before the fixes: about $15 on the development key. The follow-up runs added about $1.70.
