@@ -1,0 +1,24 @@
+# Watchtower
+
+> Watchtower is an operator dashboard for public-tender portal monitoring. The service reads public procurement portals on a schedule, delivers their tenders in one format, and repairs its own reading recipe when a portal changes its layout. This page shows the state of every portal, its runs, its tenders and the model cost.
+
+The page is a single-page app. It reads the JSON API of the same service and has no content of its own beyond that data. Add `?demo` to the address to see a bundled demo snapshot without an API.
+
+## API
+
+- `POST /portals`: add a portal by URL
+- [`GET /portals`](/portals): list the portals
+- `GET /portals/{id}`: one portal and its state
+- `DELETE /portals/{id}`: remove a portal
+- `POST /portals/{id}/refresh`: read a portal now
+- `GET /portals/{id}/tenders`: the tenders of a portal
+- `GET /portals/{id}/runs`: the runs (reads and repairs) of a portal
+- [`GET /`](/): this dashboard page
+
+## Pages
+
+- [Portals](/#/): the overview of all portals
+- `/#/portal/{id}`: one portal with its runs and tenders
+- [Tender explorer](/#/tenders): all tenders, with search and export
+- [Cost & scale](/#/scale): what one portal costs, and the software families
+- [TV mode](/#/tv): a wallboard
