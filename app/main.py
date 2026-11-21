@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import mimetypes
 import os
 import re
 from collections.abc import AsyncIterator, Callable
@@ -57,6 +58,11 @@ _LOST_PLUS = re.compile(r"(\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?) (\d{2}:?\d{2})$")
 DASHBOARD_DIR = Path(__file__).parent / "dashboard" / "static"
 DASHBOARD_PAGE = DASHBOARD_DIR / "index.html"
 DASHBOARD_ROOT_FILES = ("favicon.ico", "robots.txt")
+# A module script is refused by the browser unless it is served as JavaScript; on some hosts
+# (Windows) the system's own table says otherwise for ".js".
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("image/svg+xml", ".svg")
 
 PLACEHOLDER_PAGE = """<!doctype html>
 <html lang="en">
@@ -107,7 +113,9 @@ def builtin_learner(portal: Portal, run_id: str) -> Learned | None:
     import mock_portal
 
     path = urlsplit(portal.url).path.rstrip("/")
-    if path.endswith(MOCK_PATH) or urlsplit(portal.url).hostname == "mock.example":
+    host = urlsplit(portal.url).hostname or ""
+    # `mock.example` is the mock portal's own name; the demo serves further ones under it.
+    if path.endswith(MOCK_PATH) or host == "mock.example" or host.endswith(".mock.example"):
         root = path if path.endswith(MOCK_PATH) else ""
         return Learned(recipe=mock_portal.recipe(root), timezone=mock_portal.TIMEZONE, country_code="NL")
     return None

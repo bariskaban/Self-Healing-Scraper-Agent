@@ -27,6 +27,9 @@ _LIST_EMPTIED = ("no", "with_notice", "without_notice")
 Answer = tuple[int, dict[str, str], bytes]
 
 
+MOVED_PATH = "/portal/v2"  # where everything lives once `paths_moved` is on
+
+
 class MockPortal:
     """A tender portal held in memory, with switches that break it the way real portals break.
 
@@ -61,6 +64,9 @@ class MockPortal:
     - `robots_disallow_all` (bool): `/robots.txt` forbids every path.
     - `deadline_moved` (id to text): the deadline shown on that tender's own page, and only
       there. The list keeps the old one.
+    - `paths_moved` (bool): every page and file lives under `/portal/v2` now (`MOVED_PATH`), and
+      the old addresses answer 404. The entry page at `/` stays and links to the new list; the
+      sitemap names the new addresses. The tenders, their ids and the pages' layout stay the same.
     - `columns_swapped` (bool): on the list, the publication cell shows the deadline's date and
       the deadline cell shows the publication date (with the deadline's time of day), so both
       cells still hold a date of the form they always held.
@@ -81,6 +87,10 @@ class MockPortal:
         self.requests: list[tuple[str, str]] = []
         self.reset()
 
+    def _link_root(self) -> str:
+        """The prefix of the portal's own addresses: the mount's, and `MOVED_PATH` once the paths moved."""
+        return self.root_path + (MOVED_PATH if self.paths_moved else "")
+
     def reset(self) -> None:
         """Every switch back to a working portal. The request counter is left as it is."""
         self.layout_changed = False
@@ -96,6 +106,7 @@ class MockPortal:
         self.robots_disallow_all = False
         self.deadline_moved: dict[str, str] = {}
         self.columns_swapped = False
+        self.paths_moved = False
 
     # == What is true ==
 
@@ -106,11 +117,11 @@ class MockPortal:
 
     def tender_url(self, tender_id: str) -> str:
         """The absolute address of a tender's own page."""
-        return self.base_url + pages.tender_path(self.root_path, tender_id)
+        return self.base_url + pages.tender_path(self._link_root(), tender_id)
 
     def file_url(self, tender_id: str, name: str) -> str:
         """The absolute address of one file."""
-        return self.base_url + pages.file_path(self.root_path, tender_id, name)
+        return self.base_url + pages.file_path(self._link_root(), tender_id, name)
 
     def truth(self) -> list[dict[str, Any]]:
         """What a correct read returns, one dict per tender, newest first, in the contract's values.
@@ -187,6 +198,14 @@ class MockPortal:
             path = path[len(root):] or "/"
         method = method.upper()
         self.requests.append((method, path))
+        if self.paths_moved and path != "/login":
+            # Only the domain is left: the entry page stays and now leads to the new addresses.
+            if path == MOVED_PATH or path.startswith(MOVED_PATH + "/"):
+                path = path[len(MOVED_PATH):] or "/"
+            elif path not in ("/", "/robots.txt"):
+                body = pages.not_found(root)
+                return 404, {"Content-Type": HTML, "Content-Length": str(len(body))}, body
+            root += MOVED_PATH
         status, headers, body = self._answer(method, path, dict(parse_qsl(parts.query)), root)
         return status, {**headers, "Content-Length": str(len(body))}, body
 
@@ -251,7 +270,14 @@ class MockPortal:
             return 200, {"Content-Type": HTML}, pages.maintenance(root)
         if path == "/robots.txt":
             rule = "Disallow: /" if self.robots_disallow_all else "Allow: /"
-            return 200, {"Content-Type": TEXT}, f"User-agent: *\n{rule}\n".encode("ascii")
+            sitemap = f"Sitemap: {self.base_url}{root}/sitemap.xml\n"
+            return 200, {"Content-Type": TEXT}, f"User-agent: *\n{rule}\n{sitemap}".encode("ascii")
+        if path == "/sitemap.xml" and self.login_wall != "all":
+            places = [f"{self.base_url}{root}/tenders", *(self.base_url + pages.tender_path(root, t.id)
+                                                          for t in self._listed())]
+            body = ('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                    + "".join(f"<url><loc>{place}</loc></url>\n" for place in places) + "</urlset>\n")
+            return 200, {"Content-Type": "application/xml"}, body.encode("utf-8")
         if path == "/login":
             return 200, {"Content-Type": HTML}, pages.login(root)
         if self.login_wall == "all" or (self.login_wall == "documents" and path.startswith("/files/")):

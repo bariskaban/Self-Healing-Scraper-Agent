@@ -59,6 +59,21 @@ export async function getJson<T>(
 export const portalPath = (id: string, part: "timeline" | "tenders") =>
   `${part === "tenders" ? "" : "/api"}/portals/${encodeURIComponent(id)}/${part}`;
 
+/** The public contract routes of one portal, used when the /api routes are not there. */
+export const contractPath = (id: string, part: "runs" | "tenders") =>
+  `/portals/${encodeURIComponent(id)}/${part}`;
+
+/** An address the browser may open in a new tab: http or https only, never javascript: or data:. */
+export function externalHref(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Only same-origin /files/{id} paths with a safe id are linkable. */
 export function safeFileHref(path: string | null): string | null {
   if (!path) return null;

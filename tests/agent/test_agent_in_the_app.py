@@ -143,7 +143,7 @@ def test_a_portal_nobody_knows_is_learned_on_attach_and_served(site):
     assert kinds.count(StepKind.llm) == 3 and kinds.count(StepKind.tool) == 2
     names = [step.name for step in mine]
     assert names.index("learn_done") < names.index("learn") < names.index("read_list") < names.index("publish")
-    assert all(step.prompt_id == "learn/system@3" and step.usage for step in mine if step.kind is StepKind.llm)
+    assert all(step.prompt_id == "learn/system@4" and step.usage for step in mine if step.kind is StepKind.llm)
     assert recipe is not None and recipe.version == 1 and recipe.rationale == mock_recipe().rationale
     assert len(s.model.requests) == 3
 
@@ -219,7 +219,8 @@ def test_a_changed_layout_is_repaired_by_the_model_and_the_portal_serves_again(s
 
 
 def test_a_repair_that_finds_nothing_leaves_the_last_good_tenders_and_records_its_cost(site):
-    s = site([{"done": False, "what_changed": "The portal shows a different site now."}])
+    s = site([{"done": False, "what_changed": "The portal shows a different site now."},   # the patch
+              {"done": False, "summary": "Nothing here is a tender list."}])               # the learn that follows
     pid, _ = s.attach(MOCK)
     s.mock.layout_changed = True
     portal = s.refresh(pid)
@@ -231,6 +232,69 @@ def test_a_repair_that_finds_nothing_leaves_the_last_good_tenders_and_records_it
     runs, steps, recipe = s.records(pid)
     assert recipe.version == 1
     tried = next(run for run in runs if run.model_calls)
-    assert tried.model_calls == 1 and tried.usage.cost_usd > 0
-    assert any(step.name == "repair" and "different site" in step.summary for step in steps[tried.id])
+    assert tried.model_calls == 2 and tried.usage.cost_usd > 0
+    assert any(step.name == "repair" and "Nothing here is a tender list" in step.summary for step in steps[tried.id])
+    assert {"repair_failed", "learn_failed"} <= {step.name for step in steps[tried.id]}
 
+
+
+def spot_answer(mock):
+    """A scripted spot check that quotes the page for every value, as a careful model would."""
+    import json
+    import re
+
+    def answer(request: dict) -> dict:
+        task = request["input"][0]["content"]
+        checks = []
+        for tender_id, values in re.findall(r"=== Tender (\S+) \(.*?\) ===\nValues the program read:\n(\{.*?\n\})", task, re.S):
+            truth = next(t for t in mock.truth() if t["id"] == tender_id)
+            quotes = {"title": truth["title"], "buyer_name": truth["buyer_name"],
+                      "publication_date": truth["publication_date"].strftime("%d.%m.%Y"),
+                      "submission_deadline": truth["submission_deadline"].strftime("%d.%m.%Y %H:%M"),
+                      "reference_number": truth.get("reference_number")}
+            checks += [{"tender_id": tender_id, "field": name, "agrees": True, "quote": quotes[name]}
+                       for name in json.loads(values)]
+        return {"checks": checks}
+
+    return answer
+
+
+def test_when_every_address_but_the_domain_moves_the_repair_finds_the_portal_again(site):
+    from mock_portal.portal import MOVED_PATH
+
+    moved = mock_recipe(MOVED_PATH).model_dump(mode="json")
+    s = site([])
+    s.model.script = [
+        [call("open_page", url="/"), call("portal_hints")],
+        [call("propose_recipe", recipe=moved, timezone="Europe/Amsterdam", country_code="NL")],
+        {"done": True, "what_changed": "Every address moved under /portal/v2; the pages themselves are the same."},
+        spot_answer(s.mock),
+    ]
+    pid, portal = s.attach(MOCK)
+    assert portal["state"] == "serving"
+    before = {t["id"]: t for t in s.client.get(f"/portals/{pid}/tenders").json()}
+
+    s.mock.paths_moved = True
+    portal = s.refresh(pid)
+    for _ in range(4):
+        if portal["state"] == "serving":
+            break
+        portal = s.refresh(pid)
+    assert portal["state"] == "serving", portal["reason"]
+    after = {t["id"]: t for t in s.client.get(f"/portals/{pid}/tenders").json()}
+    assert set(after) == set(before)                      # the same tenders, under the same ids
+    one = next(iter(before))
+    assert after[one]["title"] == before[one]["title"]
+    assert after[one]["url"] == before[one]["url"].replace("/tenders/", f"{MOVED_PATH}/tenders/")
+    assert after[one]["documents"] and all(d["sha256"] for d in after[one]["documents"])
+
+    runs, steps, recipe = s.records(pid)
+    assert recipe.version == 2 and recipe.body["nodes"][0]["request"]["url"] == f"{MOVED_PATH}/tenders"
+    fixed = next(run for run in runs if run.model_calls)
+    names = [step.name for step in steps[fixed.id]]
+    # The moved addresses are a changed value on every known tender: the spot check looked before anything was published.
+    assert fixed.model_calls == 4 and "repair_done" in names and "spot_check" in names
+    assert names.index("repair_done") < names.index("spot_check") < names.index("publish")
+    first = s.model.requests[0]["input"][0]["content"]
+    assert "The domain's root, the one address that can be relied on: https://mock.example/" in first
+    assert "portal_hints" in s.model.requests[0]["tools"]
