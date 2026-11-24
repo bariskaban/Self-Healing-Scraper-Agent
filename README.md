@@ -2,6 +2,12 @@
 
 Watchtower attaches to a public procurement portal it has never seen, learns once how to read it, and then keeps an up-to-date list of its open tenders and their documents. After the first learn it reads the portal on a schedule with **no model call**. It notices when the portal stops delivering correctly, and it repairs itself. Built for the Patterno track of the MAIN AI Hackathon 2026.
 
+The three-minute pitch, recorded on the running system:
+
+https://github.com/user-attachments/assets/886024db-407b-48f0-9d70-4fd9cfdd1e0f
+
+Full-quality file: [`pitch_video.mp4`](pitch_video.mp4).
+
 One Docker container serves a JSON API and an operator dashboard on port 8080.
 
 How it was tested, the results with their uncertainty, and why each design decision was taken: [`docs/REPORT.md`](docs/REPORT.md).
